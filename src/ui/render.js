@@ -19,7 +19,11 @@ export function render(ctx, state) {
   drawMap(ctx, state);
   if (state.showPath) drawPaths(ctx, state);
   drawSpawnGoalMarkers(ctx, state);
+  drawTowers(ctx, state);
   drawEnemies(ctx, state);
+  drawProjectiles(ctx, state);
+  drawEffects(ctx, state);
+  drawSelected(ctx, state);
   drawFloaters(ctx, state);
   drawHover(ctx, state);
   if (state.flash > 0) drawFlash(ctx, state);
@@ -125,6 +129,114 @@ function drawSpawnGoalMarkers(ctx, state) {
     ctx.fillText(g.id, c.x, c.y + 0.5);
   }
   ctx.restore();
+}
+
+function drawTowers(ctx, state) {
+  for (const t of state.towers) {
+    const px = t.cx * SIZE, py = t.cy * SIZE;
+    const pad = 3, r = 6;
+    // base body
+    roundRect(ctx, px + pad, py + pad, SIZE - pad * 2, SIZE - pad * 2, r);
+    ctx.fillStyle = t.def.color;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    const cx = cellCenterX(t.cx), cy = cellCenterY(t.cy);
+    // barrel pointing at the last target
+    ctx.strokeStyle = '#0c0e14';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + Math.cos(t.angle) * 11, cy + Math.sin(t.angle) * 11);
+    ctx.stroke();
+
+    // muzzle flash
+    if (t.muzzle > 0) {
+      ctx.fillStyle = 'rgba(255,240,180,0.9)';
+      ctx.beginPath();
+      ctx.arc(cx + Math.cos(t.angle) * 12, cy + Math.sin(t.angle) * 12, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // glyph
+    ctx.fillStyle = '#0c0e14';
+    ctx.font = 'bold 13px Segoe UI, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(t.def.glyph, cx, cy - 1);
+
+    // level pips along the bottom
+    const pips = t.level;
+    for (let i = 0; i < pips; i++) {
+      ctx.fillStyle = i === 3 ? '#ffe08a' : '#0c0e14';
+      ctx.beginPath();
+      ctx.arc(px + 7 + i * 6, py + SIZE - 6, 1.8, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // branch letter at L4
+    if (t.branch) {
+      ctx.fillStyle = '#ffe08a';
+      ctx.font = 'bold 9px Segoe UI, sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText(t.branch, px + SIZE - 4, py + 9);
+    }
+  }
+  ctx.textBaseline = 'alphabetic';
+  ctx.textAlign = 'left';
+}
+
+function drawProjectiles(ctx, state) {
+  for (const p of state.projectiles) {
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.stats.splashRadius > 0 ? 4 : 2.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawEffects(ctx, state) {
+  for (const e of state.effects) {
+    const a = Math.max(0, e.life / e.max);
+    if (e.kind === 'beam') {
+      ctx.strokeStyle = withAlpha(e.color, a);
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(e.x1, e.y1); ctx.lineTo(e.x2, e.y2);
+      ctx.stroke();
+    } else if (e.kind === 'chain') {
+      ctx.strokeStyle = withAlpha(e.color, a);
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let i = 0; i < e.points.length; i++) {
+        const pt = e.points[i];
+        if (i === 0) ctx.moveTo(pt.x, pt.y); else ctx.lineTo(pt.x, pt.y);
+      }
+      ctx.stroke();
+    } else if (e.kind === 'splash') {
+      ctx.strokeStyle = withAlpha(e.color, a * 0.9);
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, e.r * SIZE * (1 - a * 0.6), 0, Math.PI * 2);
+      ctx.stroke();
+    } else if (e.kind === 'spark') {
+      ctx.fillStyle = withAlpha(e.color, a);
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, 3 * a + 1, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
+
+function drawSelected(ctx, state) {
+  const t = state.selected;
+  if (!t || !t.stats) return;
+  // highlight border
+  ctx.strokeStyle = C.rangeRing;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(t.cx * SIZE + 1, t.cy * SIZE + 1, SIZE - 2, SIZE - 2);
+  drawRangeRing(ctx, t.cx, t.cy, t.stats.range);
 }
 
 function drawEnemies(ctx, state) {
@@ -245,6 +357,16 @@ export function drawRangeRing(ctx, cx, cy, rangeCells) {
   ctx.arc(cellCenterX(cx), cellCenterY(cy), rangeCells * SIZE, 0, Math.PI * 2);
   ctx.stroke();
   ctx.restore();
+}
+
+// Convert a #rrggbb (or existing rgba) colour to an rgba string with alpha.
+function withAlpha(color, a) {
+  if (color[0] === '#') {
+    const n = parseInt(color.slice(1), 16);
+    const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+    return `rgba(${r},${g},${b},${a})`;
+  }
+  return color;
 }
 
 // ---- shared drawing helpers ----

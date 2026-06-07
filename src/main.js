@@ -1,8 +1,9 @@
 // =============================================================================
 // main.js — bootstraps Mazecore TD and owns the update/render wiring.
 //
-// Phase 2: enemies spawn, walk the maze (or fly straight), leak at goals and
-// cost lives; the HUD shows gold/lives/wave and Start-Wave kicks off a stream.
+// Phase 3: build/select/sell towers (legal cells only), towers acquire targets
+// and fire (projectiles + hitscan), kills pay gold, and building/selling
+// re-routes enemies through the maze.
 // =============================================================================
 
 import { CONFIG, CANVAS_W, CANVAS_H } from './config.js';
@@ -11,8 +12,11 @@ import { makeRng } from './engine/rng.js';
 import { setupInput } from './engine/input.js';
 import { createState } from './game/state.js';
 import { updateEnemies } from './game/enemy.js';
+import { updateTowers } from './game/tower.js';
+import { updateProjectiles, updateEffects } from './game/projectile.js';
 import { onEnemyKilled, onEnemyLeaked, updateFloaters, payWaveClear } from './game/economy.js';
 import { startWave, processSpawning, waveComplete } from './game/wave.js';
+import { tryBuild, trySell, tryUpgrade } from './game/shop.js';
 import { render } from './ui/render.js';
 import { HUD } from './ui/hud.js';
 
@@ -25,7 +29,7 @@ const rng = makeRng(CONFIG.SEED);
 const state = createState(rng);
 
 // ---------------------------------------------------------------------------
-// high-level actions (shared by HUD buttons and keyboard)
+// high-level actions (shared by HUD buttons + keyboard + mouse)
 // ---------------------------------------------------------------------------
 const actions = {
   setSpeed: (n) => loop.setSpeed(n),
@@ -35,6 +39,14 @@ const actions = {
     if (state.waveActive || state.status === 'won' || state.status === 'lost') return;
     startWave(state, state.wave + 1);
   },
+  selectBuild: (typeId) => {
+    state.buildType = (state.buildType === typeId) ? null : typeId;
+    state.selected = null;
+  },
+  cancel: () => { state.buildType = null; state.selected = null; },
+  cycleTarget: () => { if (state.selected) state.selected.cycleTargetMode(); },
+  upgrade: (branch) => { if (state.selected) tryUpgrade(state, state.selected, branch); },
+  sell: () => { if (state.selected) trySell(state, state.selected); },
 };
 
 // ---------------------------------------------------------------------------
@@ -42,13 +54,19 @@ const actions = {
 // ---------------------------------------------------------------------------
 function update(dt) {
   state.time += dt;
-  if (state.status === 'won' || state.status === 'lost') { updateFloaters(state, dt); return; }
+  if (state.status === 'won' || state.status === 'lost') {
+    updateFloaters(state, dt);
+    updateEffects(state, dt);
+    return;
+  }
 
   processSpawning(state, dt);
+  updateTowers(state, dt);
+  updateProjectiles(state, dt);
   updateEnemies(state, dt, onEnemyKilled, onEnemyLeaked);
+  updateEffects(state, dt);
   updateFloaters(state, dt);
 
-  // wave clear?
   if (waveComplete(state)) {
     state.waveActive = false;
     payWaveClear(state, state.wave);
@@ -69,11 +87,23 @@ const loop = new GameLoop(update, draw);
 const hud = new HUD(document.getElementById('hud'), actions);
 loop.start();
 
-// ---- input ----
+// ---------------------------------------------------------------------------
+// input
+// ---------------------------------------------------------------------------
 setupInput(canvas, {
   onHover(x, y) { state.hover = { x, y }; },
   onHoverEnd() { state.hover = null; },
-  onLeftClick() { /* building arrives in Phase 3 */ },
+  onLeftClick(x, y) {
+    if (state.buildType) {
+      // Build, and stay armed so the player can place several quickly (Esc cancels).
+      tryBuild(state, state.buildType, x, y);
+      state.selected = null;
+    } else {
+      // select a tower on this cell (or clear selection)
+      const t = (y >= 0 && x >= 0 && state.towerGrid[y] && state.towerGrid[y][x]) || null;
+      state.selected = t;
+    }
+  },
   onRightClick() { /* hero command arrives in Phase 6 */ },
   onKey(key) {
     switch (key) {
@@ -83,10 +113,11 @@ setupInput(canvas, {
       case '3': loop.setSpeed(3); return true;
       case 'p': case 'P': state.showPath = !state.showPath; return true;
       case 's': case 'S': actions.startWave(); return true;
+      case 'Escape': actions.cancel(); return true;
     }
     return false;
   },
 });
 
 window.MAZECORE = { loop, state, CONFIG, actions };
-console.log('[main] Phase 2: enemies move & leak. S = start a wave of Grunts.');
+console.log('[main] Phase 3: towers, combat & maze re-routing.');
