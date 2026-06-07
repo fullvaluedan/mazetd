@@ -19,7 +19,10 @@ export function render(ctx, state) {
   drawMap(ctx, state);
   if (state.showPath) drawPaths(ctx, state);
   drawSpawnGoalMarkers(ctx, state);
+  drawEnemies(ctx, state);
+  drawFloaters(ctx, state);
   drawHover(ctx, state);
+  if (state.flash > 0) drawFlash(ctx, state);
 }
 
 function drawBackground(ctx) {
@@ -122,6 +125,97 @@ function drawSpawnGoalMarkers(ctx, state) {
     ctx.fillText(g.id, c.x, c.y + 0.5);
   }
   ctx.restore();
+}
+
+function drawEnemies(ctx, state) {
+  for (const e of state.enemies) {
+    if (!e.alive) continue;
+    let ey = e.y;
+    if (e.flying) {
+      // soft shadow on the ground + gentle bob
+      ey = e.y + Math.sin(state.time * 3 + e.bob) * 3;
+      ctx.fillStyle = 'rgba(0,0,0,0.30)';
+      ctx.beginPath();
+      ctx.ellipse(e.x, e.y + e.radius + 4, e.radius * 0.8, e.radius * 0.35, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // healer aura
+    if (e.def.healPct && !e.disrupted) {
+      const pulse = 0.5 + 0.5 * Math.sin(state.time * 4);
+      ctx.strokeStyle = `rgba(95,206,122,${0.12 + 0.12 * pulse})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(e.x, ey, e.def.healRadius * SIZE * 0.5, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    // body
+    ctx.fillStyle = e.color;
+    ctx.beginPath();
+    ctx.arc(e.x, ey, e.radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // boss outline + name
+    if (e.boss) {
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = C.text;
+      ctx.font = 'bold 11px Segoe UI, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(e.name, e.x, ey - e.radius - 10);
+      ctx.textAlign = 'left';
+    }
+
+    // shield ring
+    if (e.shieldHp > 0) {
+      ctx.strokeStyle = 'rgba(120,170,255,0.9)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(e.x, ey, e.radius + 3, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    // status outlines: slow (cyan) / poison (green) / stun (white dashes)
+    if (e.slowTimer > 0) outline(ctx, e.x, ey, e.radius + 1.5, 'rgba(110,200,255,0.9)');
+    if (e.poison.length) outline(ctx, e.x, ey, e.radius + 3.5, 'rgba(120,210,90,0.85)');
+    if (e.stunTimer > 0) outline(ctx, e.x, ey, e.radius + 5.5, 'rgba(255,255,255,0.7)');
+
+    // hp bar (skip for full-hp tiny swarm to reduce clutter)
+    if (e.hp < e.maxHp || e.boss) {
+      const bw = Math.max(14, e.radius * 2);
+      const bx = e.x - bw / 2, by = ey - e.radius - 7;
+      ctx.fillStyle = C.hpBack;
+      ctx.fillRect(bx, by, bw, 3);
+      ctx.fillStyle = e.boss ? '#e24b4a' : C.hpFront;
+      ctx.fillRect(bx, by, bw * Math.max(0, e.hp / e.maxHp), 3);
+    }
+  }
+}
+
+function outline(ctx, x, y, r, color) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.stroke();
+}
+
+function drawFloaters(ctx, state) {
+  ctx.save();
+  ctx.font = 'bold 12px Segoe UI, sans-serif';
+  ctx.textAlign = 'center';
+  for (const f of state.floaters) {
+    ctx.globalAlpha = Math.max(0, Math.min(1, f.life / f.max));
+    ctx.fillStyle = f.color;
+    ctx.fillText(f.text, f.x, f.y);
+  }
+  ctx.restore();
+}
+
+function drawFlash(ctx, state) {
+  ctx.fillStyle = `rgba(226,75,74,${0.35 * state.flash})`;
+  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 }
 
 function drawHover(ctx, state) {

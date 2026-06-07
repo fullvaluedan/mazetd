@@ -1,0 +1,80 @@
+// =============================================================================
+// economy.js — gold, lives, and the events that change them.
+//
+// Kills award bounty (+ hero XP). Leaks cost lives based on the enemy's
+// damageToLives. Wave clears pay a bonus plus optional interest on savings, and
+// calling a wave in early pays an early-start bonus. All numbers come from CONFIG.
+// =============================================================================
+
+import { CONFIG } from '../config.js';
+
+export function canAfford(state, cost) { return state.gold >= cost; }
+
+export function spendGold(state, cost) {
+  if (state.gold < cost) return false;
+  state.gold -= cost;
+  return true;
+}
+
+export function addGold(state, amt) { state.gold += amt; }
+
+// Floating number helper (damage/gold popups).
+export function addFloater(state, x, y, text, color) {
+  state.floaters.push({ x, y, text, color, life: 0.9, max: 0.9, vy: -28 });
+}
+
+export function onEnemyKilled(state, e) {
+  addGold(state, e.bounty);
+  addFloater(state, e.x, e.y - e.radius, '+' + e.bounty, CONFIG.COLORS.gold);
+  // Hero XP (Phase 6): the hero, if present, earns XP for kills near it / overall.
+  if (state.hero && typeof state.hero.gainXp === 'function') {
+    state.hero.gainXp(e.boss ? 60 : Math.max(2, Math.round(e.maxHp * 0.02)), state);
+  }
+  // Contagion (Venom L4B): on death, spread remaining poison to nearby enemies.
+  if (e._contagion && e.poison.length) spreadContagion(state, e);
+}
+
+function spreadContagion(state, e) {
+  const r = 1.6; // cells
+  const best = e.poison.reduce((a, b) => (b.dps > a.dps ? b : a), e.poison[0]);
+  for (const o of state.enemies) {
+    if (!o.alive || o === e) continue;
+    const dxc = (o.x - e.x) / CONFIG.CELL, dyc = (o.y - e.y) / CONFIG.CELL;
+    if (dxc * dxc + dyc * dyc <= r * r) o.applyPoison(best.dps, 2.5, state);
+  }
+}
+
+export function onEnemyLeaked(state, e) {
+  state.lives -= e.damageToLives;
+  addFloater(state, e.x, e.y, '-' + e.damageToLives + '♥', CONFIG.COLORS.danger);
+  state.flash = Math.min(1, (state.flash || 0) + 0.5);   // red screen flash
+  if (state.lives <= 0) {
+    state.lives = 0;
+    state.status = 'lost';
+  }
+}
+
+// Wave-clear payout: flat bonus + interest on current gold (capped).
+export function payWaveClear(state, waveNum) {
+  const bonus = Math.floor(CONFIG.WAVECLEAR_BASE + CONFIG.WAVECLEAR_PER_WAVE * waveNum);
+  addGold(state, bonus);
+  const interest = Math.min(CONFIG.INTEREST_CAP, Math.floor(state.gold * CONFIG.INTEREST_RATE));
+  addGold(state, interest);
+  return { bonus, interest };
+}
+
+// Early-start bonus: gold for each whole second left on the build timer.
+export function payEarlyStart(state, secondsLeft) {
+  const bonus = Math.max(0, Math.floor(secondsLeft * CONFIG.EARLY_START_BONUS_PER_SEC));
+  if (bonus > 0) addGold(state, bonus);
+  return bonus;
+}
+
+// Advance floating numbers; drop expired ones.
+export function updateFloaters(state, dt) {
+  for (const f of state.floaters) { f.life -= dt; f.y += f.vy * dt; }
+  if (state.floaters.some((f) => f.life <= 0)) {
+    state.floaters = state.floaters.filter((f) => f.life > 0);
+  }
+  if (state.flash > 0) state.flash = Math.max(0, state.flash - dt * 1.5);
+}

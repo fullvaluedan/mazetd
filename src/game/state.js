@@ -48,6 +48,9 @@ export function createState(rng) {
     // run status
     status: 'setup',         // 'setup' | 'playing' | 'won' | 'lost'
     waveActive: false,
+    spawnQueue: [],          // pending enemy spawns for the active wave
+    spawnElapsed: 0,         // seconds since the active wave started spawning
+    flash: 0,                // red screen-flash intensity (leaks)
 
     // ui / interaction
     showPath: true,
