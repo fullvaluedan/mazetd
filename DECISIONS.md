@@ -20,6 +20,27 @@ gold-plating.
   were written in Phase 0 even though they're used later, to avoid churning the
   config file every phase. Behaviour is still added phase by phase.
 
+## Phase 3–4 — Towers, combat & upgrades
+- **Full combat built in Phase 3:** rather than ship a single archer in Phase 3
+  and rewrite the firing code in Phase 4, the type-aware pipeline (splash, chain,
+  slow, poison, hitscan, anti-air) was written once in Phase 3 and all six towers
+  enabled. Phase 4 then added/verified the L1→L4 upgrade tree, the L3 fork and
+  the targeting-mode UI. Cleaner and avoids churn.
+- **Branch mods are multipliers on the L3 stats** (e.g. Marksman "+120% dmg" =
+  L3 damage × 2.2). Computed in `getTowerStats`.
+- **Homing projectiles** stand in for "lead the target": shots re-aim at the
+  target's live position each tick, so moving enemies are hit reliably without a
+  separate lead-prediction calc. Frost & Tesla are hitscan (instant beam/chain).
+- **Shatter (Frost L4B)** applies a debuff (`+50% from all sources`) for the slow
+  duration; it affects *subsequent* hits, and Frost keeps its base slow so frozen
+  targets are both slowed and amplified.
+- **Disrupt (Arcane L4B)** strips the shield pool to 0 and sets `disrupted` on the
+  target, which stops a Mender's healing aura.
+- **Contagion (Venom L4B)** marks the victim; on death its strongest poison stack
+  is copied to enemies within 1.6 cells.
+- **Build stays armed** after a successful placement so several towers can be
+  dropped quickly; Esc cancels.
+
 ## Planned mechanics (decided up front, implemented in later phases)
 - **Pathfinding:** enemy routing uses a per-goal BFS **distance field** (uniform
   cost = shortest path on a 4-connected grid) rather than per-enemy A*. Enemies
