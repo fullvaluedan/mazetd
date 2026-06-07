@@ -1,0 +1,11 @@
+{
+  "name": "mazecore-td",
+  "version": "1.0.0",
+  "description": "A maze tower-defense game in pure HTML5 Canvas + vanilla JS (no build step, no dependencies).",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node .claude/serve.cjs",
+    "sim": "node src/sim/autoplay.js"
+  }
+}
