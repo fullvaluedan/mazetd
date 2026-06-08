@@ -15,6 +15,14 @@ import { canBuildAt } from '../game/state.js';
 const C = CONFIG.COLORS;
 
 export function render(ctx, state) {
+  // screen shake (juice): jitter the whole world layer
+  const shaking = state.shake > 0.1;
+  if (shaking) {
+    ctx.save();
+    const m = state.shake;
+    ctx.translate((Math.random() - 0.5) * m, (Math.random() - 0.5) * m);
+  }
+
   drawBackground(ctx);
   drawMap(ctx, state);
   if (state.showPath) drawPaths(ctx, state);
@@ -23,13 +31,28 @@ export function render(ctx, state) {
   drawEnemies(ctx, state);
   drawProjectiles(ctx, state);
   drawEffects(ctx, state);
+  drawParticles(ctx, state);
   drawSelected(ctx, state);
   drawHero(ctx, state);
   drawFloaters(ctx, state);
-  drawBossBars(ctx, state);
   drawHover(ctx, state);
   drawAbilityTarget(ctx, state);
+  if (shaking) ctx.restore();
+
+  // these stay screen-fixed (not shaken)
+  drawBossBars(ctx, state);
   if (state.flash > 0) drawFlash(ctx, state);
+}
+
+function drawParticles(ctx, state) {
+  if (!state.particles) return;
+  for (const p of state.particles) {
+    const a = Math.max(0, p.life / p.max);
+    ctx.globalAlpha = a;
+    ctx.fillStyle = p.color;
+    ctx.fillRect(p.x - 1.5, p.y - 1.5, 3, 3);
+  }
+  ctx.globalAlpha = 1;
 }
 
 function drawHero(ctx, state) {

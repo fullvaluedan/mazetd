@@ -12,7 +12,7 @@ import { CELL, COLS, ROWS, inBounds } from '../engine/grid.js';
 import { bfsDistanceField, isReachable, tracePath, fieldAt, UNREACHABLE } from '../engine/pathfinding.js';
 import { createMap } from './map.js';
 
-export function createState(rng) {
+export function createState(rng, seed = 0) {
   const map = createMap(rng);
 
   // towerGrid[y][x] = tower entity or null. Separate from map cell types so we
@@ -22,9 +22,12 @@ export function createState(rng) {
 
   const state = {
     rng,
+    seed,
     map,
     towerGrid,
     time: 0,                 // seconds of sim time (for animations)
+    shake: 0,                // screen-shake intensity (juice)
+    particles: [],           // transient death particles (juice)
 
     // entities
     towers: [],

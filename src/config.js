@@ -36,7 +36,7 @@ export const CONFIG = {
   // ---------------------------------------------------------------------------
   // ECONOMY
   // ---------------------------------------------------------------------------
-  START_GOLD: 260,
+  START_GOLD: 800,             // tuned in Phase 8 (was 260) — fund an early maze
   START_LIVES: 20,
   SELL_REFUND: 0.70,            // 70% of total invested
   INTEREST_RATE: 0.05,         // +5% of current gold on wave clear
@@ -49,22 +49,23 @@ export const CONFIG = {
   WIN_WAVE: 100,
   HP_BASE: 10,
   HP_LINEAR: 0.15,
-  HP_EXP: 1.10,
-  DIFFICULTY: 1.0,             // global hp multiplier; tuned in Phase 8
+  HP_EXP: 1.05,               // tuned in Phase 8 (was 1.10 — too steep to beat)
+  DIFFICULTY: 0.65,           // global hp multiplier; tuned in Phase 8
+  DAMAGE_SCALE: 3.0,          // global tower-damage multiplier; tuned in Phase 8
 
   ENEMY_BASE_SPEED: 1.7,       // cells/second at speedMult 1.0, wave 1
   SPEED_WAVE_FACTOR: 0.004,    // speed(w) = base * min(1.6, 1 + 0.004*w)
   SPEED_WAVE_CAP: 1.6,
 
   COUNT_BASE: 10,
-  COUNT_PER_WAVE: 0.6,         // count(w) = floor(10 + 0.6*w)
-  SWARM_PACK_MIN: 8,
-  SWARM_PACK_MAX: 12,
+  COUNT_PER_WAVE: 0.55,        // count(w) = floor(10 + 0.55*w)  (tuned Phase 8)
+  SWARM_PACK_MIN: 4,           // tuned Phase 8 (was 8) — softer swarm spike
+  SWARM_PACK_MAX: 7,
 
-  BOUNTY_BASE: 2,
-  BOUNTY_PER_WAVE: 0.45,       // bounty(w) = floor(2 + 0.45*w) * typeBountyMult
+  BOUNTY_BASE: 3,
+  BOUNTY_PER_WAVE: 1.6,        // bounty(w) = floor(3 + 1.6*w) * typeBountyMult (tuned Phase 8)
   WAVECLEAR_BASE: 20,
-  WAVECLEAR_PER_WAVE: 4,       // clear bonus = floor(20 + 4*w)
+  WAVECLEAR_PER_WAVE: 12,      // clear bonus = floor(20 + 12*w)  (tuned Phase 8)
 
   SPAWN_STAGGER: 0.5,          // seconds between enemies in a wave
   BUILD_TIMER: 18,             // seconds of build time before a wave auto-readies (for early-start bonus)
@@ -95,7 +96,7 @@ export const CONFIG = {
   // the level-3 stats when the player picks a level-4 specialization.
   // ---------------------------------------------------------------------------
   UPGRADE: {
-    dmgMultPerLevel: 1.6,     // applied at L2 and again at L3
+    dmgMultPerLevel: 2.0,     // applied at L2 and again at L3 (tuned Phase 8: 1.6 -> 2.0)
     rangeMultPerLevel: 1.08,  // applied at L2 and again at L3
     cooldownMultPerLevel: 0.9,// applied at L2 and again at L3
     costMultL2: 1.0,          // L2 cost = round(baseCost * 1.0)

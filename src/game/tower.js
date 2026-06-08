@@ -66,6 +66,7 @@ export function getTowerStats(typeId, level, branchId) {
     if (m.contagion) s.contagion = true;
     if (m.cluster) s.cluster = m.cluster;
   }
+  s.damage *= CONFIG.DAMAGE_SCALE;   // global balance knob (Phase 8)
   return s;
 }
 

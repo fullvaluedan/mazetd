@@ -15,10 +15,11 @@ import { updateEnemies } from './game/enemy.js';
 import { updateTowers } from './game/tower.js';
 import { updateProjectiles, updateEffects } from './game/projectile.js';
 import { createHero } from './game/hero.js';
-import { onEnemyKilled, onEnemyLeaked, updateFloaters, payWaveClear, payEarlyStart } from './game/economy.js';
+import { onEnemyKilled, onEnemyLeaked, updateFloaters, updateParticles, payWaveClear, payEarlyStart } from './game/economy.js';
 import { startWave, processSpawning, waveComplete, updateBosses, waveInfo } from './game/wave.js';
 import { tryBuild, trySell, tryUpgrade, tryHeroUpgrade, tryConsumable } from './game/shop.js';
 import { getTowerStats } from './game/tower.js';
+import { saveGame, hasSave, loadSnapshot, applySnapshot, getHighScore, recordHighScore } from './game/save.js';
 import { render } from './ui/render.js';
 import { HUD } from './ui/hud.js';
 import { Tooltip } from './ui/tooltips.js';
@@ -30,8 +31,7 @@ const ctx = canvas.getContext('2d');
 const overlay = document.getElementById('overlay');
 const modal = document.getElementById('modal');
 
-const rng = makeRng(CONFIG.SEED);
-const state = createState(rng);
+let state = createState(makeRng(CONFIG.SEED), CONFIG.SEED);
 let prevStatus = state.status;
 const tooltip = new Tooltip();
 
@@ -162,6 +162,19 @@ const actions = {
   cycleTarget: () => { if (state.selected) state.selected.cycleTargetMode(); },
   upgrade: (branch) => { if (state.selected) tryUpgrade(state, state.selected, branch); },
   sell: () => { if (state.selected) trySell(state, state.selected); },
+  save: () => {
+    if (state.waveActive) { showBanner('Save between waves only', 'warn', 1.4); return; }
+    if (saveGame(state)) showBanner('Game saved', '', 1.4);
+  },
+  load: () => {
+    const snap = loadSnapshot();
+    if (!snap) { showBanner('No save found', 'warn', 1.4); return; }
+    state = applySnapshot(snap);
+    prevStatus = state.status;
+    clearTargeting();
+    modal.classList.add('hidden');
+    showBanner('Game loaded', '', 1.4);
+  },
   castAbility: (i) => {
     const h = state.hero;
     if (!h || !h.canCast(i)) return;
@@ -180,14 +193,16 @@ const actions = {
 // start screen — hero selection
 // ---------------------------------------------------------------------------
 function showStartModal() {
+  const hs = getHighScore();
   modal.classList.remove('hidden');
   modal.innerHTML = `<div class="card">
     <h1>Mazecore <span style="color:#00d4ff">TD</span></h1>
     <p>Build a maze of towers to force 100 waves of enemies down a long, deadly
        path — but never wall them off completely. Choose your hero:</p>
     <div class="hero-pick" id="heropick"></div>
+    ${hasSave() ? '<button class="primary" id="continue" style="padding:8px 22px;margin-bottom:8px">Continue saved game</button><br>' : ''}
     <p class="muted">Right-click to move your hero · Q / W cast abilities · get
-       anti-air before wave 15 · P toggles the path overlay.</p>
+       anti-air before wave 15 · P toggles the path overlay.${hs ? ` · Best: wave ${hs}` : ''}</p>
   </div>`;
   const pick = document.getElementById('heropick');
   for (const [id, def] of Object.entries(CONFIG.HEROES)) {
@@ -198,6 +213,8 @@ function showStartModal() {
     b.addEventListener('click', () => { createHero(state, id); modal.classList.add('hidden'); showBanner(`${def.name} ready!`, '', 1.5); });
     pick.appendChild(b);
   }
+  const cont = document.getElementById('continue');
+  if (cont) cont.addEventListener('click', actions.load);
 }
 
 // ---------------------------------------------------------------------------
@@ -206,7 +223,7 @@ function showStartModal() {
 function update(dt) {
   state.time += dt;
   if (state.status === 'won' || state.status === 'lost') {
-    updateFloaters(state, dt); updateEffects(state, dt);
+    updateFloaters(state, dt); updateEffects(state, dt); updateParticles(state, dt);
     return;
   }
 
@@ -223,6 +240,7 @@ function update(dt) {
   if (state.hero) state.hero.update(dt, state);
   updateEffects(state, dt);
   updateFloaters(state, dt);
+  updateParticles(state, dt);
 
   if (waveComplete(state)) {
     state.waveActive = false;
@@ -240,11 +258,13 @@ function update(dt) {
 
 function showEndModal() {
   const won = state.status === 'won';
+  recordHighScore(state.maxWave);
+  const hs = getHighScore();
   modal.classList.remove('hidden');
   modal.innerHTML = `<div class="card">
     <h1 style="color:${won ? '#5fce7a' : '#e24b4a'}">${won ? 'VICTORY!' : 'DEFEAT'}</h1>
     <p>${won ? 'You cleared all 100 waves. The maze held.' : `Your lives ran out on wave ${state.wave}.`}</p>
-    <p class="muted">Reached wave <b>${state.maxWave}</b> · Hero L<b>${state.hero ? state.hero.level : 1}</b> · Gold <b>${Math.floor(state.gold)}</b></p>
+    <p class="muted">Reached wave <b>${state.maxWave}</b> · Hero L<b>${state.hero ? state.hero.level : 1}</b> · Best ever: wave <b>${hs}</b></p>
     <button class="primary" id="again" style="margin-top:14px;padding:10px 24px">Play again</button>
   </div>`;
   document.getElementById('again').addEventListener('click', actions.restart);
@@ -305,5 +325,5 @@ setupInput(canvas, {
   },
 });
 
-window.MAZECORE = { loop, state, CONFIG, actions };
-console.log('[main] Phase 6: heroes — select, command, abilities, XP, respawn.');
+window.MAZECORE = { get state() { return state; }, loop, CONFIG, actions };
+console.log('[main] Mazecore TD ready — pick a hero and build your maze.');

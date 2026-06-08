@@ -23,9 +23,29 @@ export function addFloater(state, x, y, text, color) {
   state.floaters.push({ x, y, text, color, life: 0.9, max: 0.9, vy: -28 });
 }
 
+// --- juice: screen shake + death particles -------------------------------
+export function addShake(state, amt) { state.shake = Math.min(12, (state.shake || 0) + amt); }
+
+const PARTICLE_CAP = 160;   // bounds headless runs (which never drain the list)
+function spawnParticles(state, x, y, color, n) {
+  if (!state.particles || state.particles.length > PARTICLE_CAP) return;
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2, sp = 20 + Math.random() * 70;
+    state.particles.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 0.4 + Math.random() * 0.3, max: 0.7, color });
+  }
+}
+
+export function updateParticles(state, dt) {
+  for (const p of state.particles) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 120 * dt; p.life -= dt; }
+  if (state.particles.some((p) => p.life <= 0)) state.particles = state.particles.filter((p) => p.life > 0);
+  if (state.shake > 0) state.shake = Math.max(0, state.shake - dt * 30);
+}
+
 export function onEnemyKilled(state, e) {
   addGold(state, e.bounty);
   addFloater(state, e.x, e.y - e.radius, '+' + e.bounty, CONFIG.COLORS.gold);
+  spawnParticles(state, e.x, e.y, e.color, e.boss ? 18 : 4);
+  if (e.boss) addShake(state, 8);
   // Hero XP (Phase 6): the hero, if present, earns XP for kills near it / overall.
   if (state.hero && typeof state.hero.gainXp === 'function') {
     state.hero.gainXp(e.boss ? 60 : Math.max(2, Math.round(e.maxHp * 0.02)), state);
@@ -48,6 +68,7 @@ export function onEnemyLeaked(state, e) {
   state.lives -= e.damageToLives;
   addFloater(state, e.x, e.y, '-' + e.damageToLives + '♥', CONFIG.COLORS.danger);
   state.flash = Math.min(1, (state.flash || 0) + 0.5);   // red screen flash
+  addShake(state, 3 + e.damageToLives);
   if (state.lives <= 0) {
     state.lives = 0;
     state.status = 'lost';

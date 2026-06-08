@@ -52,7 +52,9 @@ export class HUD {
     const row2 = div('speed-row');
     row2.style.marginTop = '6px';
     this.el.path = btn('Path (P)', () => this.actions.togglePath());
-    row2.append(this.el.path);
+    this.el.save = btn('Save', () => this.actions.save());
+    this.el.load = btn('Load', () => this.actions.load());
+    row2.append(this.el.path, this.el.save, this.el.load);
     controls.appendChild(row2);
     this.root.appendChild(controls);
 

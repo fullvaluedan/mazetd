@@ -77,6 +77,38 @@ gold-plating.
 - **Level-up fully heals**; respawn time = `8 + level + shop bonus`, respawning
   at the base cell next to G1.
 
+## Phase 8 — Balance, save & juice
+- **Balance was retuned via the autoplay sim** (BUILD_PROMPT §5 says the starting
+  numbers are placeholders for Phase 8). Final constants vs the prompt's starters:
+  `HP_EXP 1.10 → 1.05`, `DIFFICULTY 1.0 → 0.65`, new `DAMAGE_SCALE = 3`,
+  `UPGRADE.dmgMultPerLevel 1.6 → 2.0`, `START_GOLD 260 → 800`,
+  `BOUNTY_BASE/PER_WAVE 2/0.45 → 3/1.6`, `WAVECLEAR_PER_WAVE 4 → 12`,
+  `SWARM_PACK 8–12 → 4–7`, `COUNT_PER_WAVE 0.6 → 0.55`.
+- **Why HP_EXP had to drop so far:** a maze deals damage to each enemy only while
+  it's in a tower's range, so there's a *throughput ceiling* — past some per-enemy
+  HP, enemies survive the whole traversal no matter the total DPS. At HP_EXP 1.10
+  (×13,780 by wave 100) even a 145-tower all-L4 build died ~wave 37. 1.05 (×131 by
+  w100) sits inside what an upgraded maze can chew.
+- **Upgrades carry the curve (dmgMultPerLevel 2.0):** L1 towers stay weak (so a
+  no-upgrade "careless" build falls behind), while L4 towers get strong enough to
+  clear 100 — widening the competent-vs-careless gap deliberately.
+- **START_GOLD 800** lets a real maze go up immediately; without it the early game
+  leaned on ranged-hero AoE as a crutch and the melee Warrior run collapsed by
+  wave 8. Careless is unaffected (its strategy self-caps at ~20 unupgraded towers).
+- **Verified balance:** reference build clears wave 100 on 6/6 tested seeds with
+  3–9 lives left (low margin; lives hold ~16 until the wave-100 double-boss), all
+  three heroes win, and the careless build dies waves ~22–28 (teaching zone).
+- **The reference maze is a serpentine of border-anchored walls.** An early bug
+  left the top/bottom rows as open highways so the path never lengthened (stuck at
+  33); anchoring each wall to one border fixed it (path → ~115).
+- **Save is between-waves only** so we never serialise live enemies/projectiles —
+  the snapshot stores seed + economy + hero progression + every tower, and load
+  rebuilds the identical map from the seed. High score = best wave reached.
+- **Juice (screen shake + death particles) is cosmetic-only.** Particles use
+  `Math.random` but are never read by game logic, so sim determinism (and thus
+  reproducible balance) is preserved; the particle list is capped so headless
+  runs (which don't drain it) stay bounded.
+
 ## Planned mechanics (decided up front, implemented in later phases)
 - **Pathfinding:** enemy routing uses a per-goal BFS **distance field** (uniform
   cost = shortest path on a 4-connected grid) rather than per-enemy A*. Enemies

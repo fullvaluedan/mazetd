@@ -49,13 +49,33 @@ long as possible in range.
 | `Space` | Pause / resume |
 | `1` / `2` / `3` | Game speed 1× / 2× / 3× |
 | `S` | Start the next wave (early-start = bonus gold) |
+| `Q` / `W` | Cast hero ability 1 / 2 (targeted ones then click a cell) |
 | `Esc` | Cancel current build/target action |
+
+The HUD also has **Save** / **Load** buttons (save is allowed between waves;
+your best wave reached is kept as a high score), an **Auto-start** toggle, and a
+full tower shop, hero panel and consumables shop. Hover anything for a tooltip.
 
 ## Where to tune the game
 
 **Everything** lives in [`src/config.js`](src/config.js) — map size, economy,
 wave scaling, every enemy and tower stat, hero stats, shop prices and the colour
-palette. There are no magic numbers in the gameplay code.
+palette. There are no magic numbers in the gameplay code. The key balance knobs
+(tuned by the sim below) are `HP_EXP`, `DIFFICULTY`, `DAMAGE_SCALE`,
+`UPGRADE.dmgMultPerLevel` and the bounty/start-gold values.
+
+## Balance simulation
+
+A headless balance sim plays a reference build through all 100 waves with no
+browser:
+
+```bash
+node src/sim/autoplay.js            # competent "reference" build → clears wave 100
+node src/sim/autoplay.js careless   # sloppy build → dies in the ~20s-30s
+```
+
+It's the instrument used in Phase 8 to tune the constants so a competent run
+clears wave 100 with a low margin while a careless one dies in the teaching zone.
 
 ## Project layout
 
