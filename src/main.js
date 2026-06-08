@@ -10,16 +10,18 @@ import { CONFIG, CANVAS_W, CANVAS_H } from './config.js';
 import { GameLoop } from './engine/loop.js';
 import { makeRng } from './engine/rng.js';
 import { setupInput } from './engine/input.js';
-import { createState } from './game/state.js';
+import { createState, canBuildAt } from './game/state.js';
 import { updateEnemies } from './game/enemy.js';
 import { updateTowers } from './game/tower.js';
 import { updateProjectiles, updateEffects } from './game/projectile.js';
 import { createHero } from './game/hero.js';
 import { onEnemyKilled, onEnemyLeaked, updateFloaters, payWaveClear, payEarlyStart } from './game/economy.js';
 import { startWave, processSpawning, waveComplete, updateBosses, waveInfo } from './game/wave.js';
-import { tryBuild, trySell, tryUpgrade } from './game/shop.js';
+import { tryBuild, trySell, tryUpgrade, tryHeroUpgrade, tryConsumable } from './game/shop.js';
+import { getTowerStats } from './game/tower.js';
 import { render } from './ui/render.js';
 import { HUD } from './ui/hud.js';
+import { Tooltip } from './ui/tooltips.js';
 
 const canvas = document.getElementById('game');
 canvas.width = CANVAS_W;
@@ -31,6 +33,12 @@ const modal = document.getElementById('modal');
 const rng = makeRng(CONFIG.SEED);
 const state = createState(rng);
 let prevStatus = state.status;
+const tooltip = new Tooltip();
+
+function clearTargeting() {
+  state.targetingAbility = null; state.targetingAbilityIndex = -1;
+  state.targetingConsumable = null; state.targetingConsumableKey = null;
+}
 
 // ---------------------------------------------------------------------------
 // transient banners over the canvas
@@ -42,6 +50,80 @@ function showBanner(text, cls = '', dur = 2.2) {
   overlay.appendChild(el);
   requestAnimationFrame(() => el.classList.add('show'));
   setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 300); }, dur * 1000);
+}
+
+// ---------------------------------------------------------------------------
+// hover tooltip content (enemy under cursor > tower on cell > build preview)
+// ---------------------------------------------------------------------------
+function specialText(s) {
+  const t = [];
+  if (s.splashRadius) t.push(`splash ${s.splashRadius.toFixed(1)}`);
+  if (s.slowPct) t.push(`slow ${(s.slowPct * 100) | 0}%/${s.slowDur}s`);
+  if (s.dotDps) t.push(`poison ${s.dotDps.toFixed(0)}/s·${s.dotDur}s`);
+  if (s.chainTargets) t.push(`chain ${s.chainTargets}`);
+  if (s.multishot > 1) t.push(`${s.multishot}× shots`);
+  if (s.shatter) t.push(`shatter +${(s.shatter * 100) | 0}%`);
+  if (s.disrupt) t.push('dispels shields/regen');
+  if (s.contagion) t.push('poison spreads on kill');
+  if (s.cluster) t.push('cluster blasts');
+  return t.join(' · ');
+}
+
+function buildTooltip(x, y, px, py) {
+  // 1) enemy directly under the cursor
+  let near = null, nd = Infinity;
+  for (const e of state.enemies) {
+    if (!e.alive) continue;
+    const d = Math.hypot(e.x - px, e.y - py);
+    if (d <= e.radius + 5 && d < nd) { nd = d; near = e; }
+  }
+  if (near) {
+    const traits = [];
+    if (near.flying) traits.push('flying');
+    if (near.armor) traits.push('armor ' + near.armor);
+    if (near.shieldHp > 0) traits.push(`shield ${Math.ceil(near.shieldHp)}`);
+    if (near.def.healPct) traits.push('heals allies');
+    if (near.slowTimer > 0) traits.push('slowed');
+    if (near.poison.length) traits.push('poisoned');
+    if (near.stunTimer > 0) traits.push('stunned');
+    return `<b style="color:${near.color}">${near.name}</b>${near.boss ? ' ★' : ''}<br>
+      HP ${Math.ceil(near.hp).toLocaleString()} / ${near.maxHp.toLocaleString()}<br>
+      ${traits.length ? traits.join(' · ') + '<br>' : ''}
+      <span class="muted" style="color:#9aa3b2">bounty ${near.bounty}g · ${near.damageToLives}♥ if leaked</span>`;
+  }
+
+  // 2) tower on the hovered cell
+  const t = (y >= 0 && x >= 0 && state.towerGrid[y] && state.towerGrid[y][x]) || null;
+  if (t) {
+    const s = t.stats;
+    const dps = (s.damage * (s.multishot || 1) / s.cooldown).toFixed(1);
+    const sp = specialText(s);
+    const next = t.canUpgrade() ? `<br><span style="color:#f2c14b">▲ upgrade: ${t.nextUpgradeCost()}g</span>` : '<br><span class="muted">max level</span>';
+    return `<b style="color:${t.def.color}">${t.def.glyph} ${t.def.name}</b> — L${t.level}${t.branch ? ' ' + t.def.branches[t.branch].name : ''}<br>
+      DMG ${s.damage.toFixed(1)} · RNG ${s.range.toFixed(1)} · CD ${s.cooldown.toFixed(2)}s<br>
+      ~DPS ${dps} · ${s.damageType}${s.targetsAir ? ' · hits air' : ''}<br>
+      ${sp ? sp + '<br>' : ''}
+      <span class="muted">target: ${t.targetMode} · sell +${Math.floor(t.invested * CONFIG.SELL_REFUND)}g</span>${next}`;
+  }
+
+  // 3) build preview when a tower is armed
+  if (state.buildType) {
+    const def = CONFIG.TOWERS[state.buildType];
+    const s = getTowerStats(state.buildType, 1, null);
+    const legal = (y >= 0 && x >= 0) ? canBuildAtSafe(x, y) : false;
+    const dps = (s.damage / s.cooldown).toFixed(1);
+    return `<b style="color:${def.color}">${def.glyph} ${def.name}</b> — ${def.cost}g<br>
+      DMG ${s.damage} · RNG ${s.range} · CD ${s.cooldown}s · ~DPS ${dps}<br>
+      ${s.damageType}${s.targetsAir ? ' · hits air' : ''}<br>
+      <span class="muted">${def.blurb}</span><br>
+      <b style="color:${legal ? '#5fce7a' : '#e24b4a'}">${legal ? 'click to build' : 'cannot build here'}</b>`;
+  }
+  return null;
+}
+
+// guard canBuildAt against exceptions during tooltip building
+function canBuildAtSafe(x, y) {
+  try { return canBuildAt(state, x, y); } catch { return false; }
 }
 
 // ---------------------------------------------------------------------------
@@ -64,11 +146,18 @@ const actions = {
   },
   selectBuild: (typeId) => {
     state.buildType = (state.buildType === typeId) ? null : typeId;
-    state.selected = null; state.targetingAbility = null; state.targetingAbilityIndex = -1;
+    state.selected = null; clearTargeting();
   },
-  cancel: () => {
-    state.buildType = null; state.selected = null;
-    state.targetingAbility = null; state.targetingAbilityIndex = -1; state.targetingConsumable = null;
+  cancel: () => { state.buildType = null; state.selected = null; clearTargeting(); },
+  heroUpgrade: (key) => { tryHeroUpgrade(state, key); },
+  consumable: (key) => {
+    const def = CONFIG.CONSUMABLES[key];
+    if (def.targetCell) {
+      state.targetingConsumable = def; state.targetingConsumableKey = key;
+      state.buildType = null; state.targetingAbility = null; state.targetingAbilityIndex = -1;
+    } else {
+      tryConsumable(state, key, null);
+    }
   },
   cycleTarget: () => { if (state.selected) state.selected.cycleTargetMode(); },
   upgrade: (branch) => { if (state.selected) tryUpgrade(state, state.selected, branch); },
@@ -78,7 +167,8 @@ const actions = {
     if (!h || !h.canCast(i)) return;
     const ab = h.abilities[i];
     if (ab.targetCell) {
-      state.targetingAbility = ab; state.targetingAbilityIndex = i; state.buildType = null;
+      state.targetingAbility = ab; state.targetingAbilityIndex = i;
+      state.buildType = null; state.targetingConsumable = null; state.targetingConsumableKey = null;
     } else {
       h.cast(state, i);
     }
@@ -177,12 +267,17 @@ showStartModal();
 // input
 // ---------------------------------------------------------------------------
 setupInput(canvas, {
-  onHover(x, y) { state.hover = { x, y }; },
-  onHoverEnd() { state.hover = null; },
+  onHover(x, y, px, py) { state.hover = { x, y }; tooltip.set(buildTooltip(x, y, px, py)); },
+  onHoverEnd() { state.hover = null; tooltip.set(null); },
   onLeftClick(x, y) {
     if (state.targetingAbility && state.hero) {
       state.hero.cast(state, state.targetingAbilityIndex, { x, y });
-      state.targetingAbility = null; state.targetingAbilityIndex = -1;
+      clearTargeting();
+      return;
+    }
+    if (state.targetingConsumable) {
+      tryConsumable(state, state.targetingConsumableKey, { x, y });
+      clearTargeting();
       return;
     }
     if (state.buildType) {

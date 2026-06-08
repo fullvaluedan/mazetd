@@ -233,7 +233,7 @@ export const CONFIG = {
     repair:  { name: 'Repair',       desc: '+3 lives',                       baseCost: 60,  perWave: 6,  lives: 3 },
     frenzy:  { name: 'Frenzy',       desc: '+50% tower dmg for 10s',         baseCost: 90,  perWave: 8,  mult: 1.5, dur: 10 },
     freeze:  { name: 'Flash Freeze', desc: 'Freeze non-boss enemies 3s',     baseCost: 110, perWave: 9,  dur: 3 },
-    airstrike:{name: 'Airstrike',    desc: 'Big AoE burst at a cell',        baseCost: 120, perWave: 12, radius: 2.6, dmgWaveMult: 60, targetCell: true },
+    airstrike:{name: 'Airstrike',    desc: 'Big AoE burst at a cell',        baseCost: 120, perWave: 12, radius: 2.6, dmgWaveMult: 4, targetCell: true },
   },
 
   // ---------------------------------------------------------------------------

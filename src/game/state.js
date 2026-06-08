@@ -60,12 +60,17 @@ export function createState(rng) {
     buildType: null,         // tower type id chosen to place
     selected: null,          // selected placed tower
     hover: null,             // {x,y} hovered cell
-    targetingConsumable: null, // consumable awaiting a target cell
+    targetingConsumable: null, // consumable def awaiting a target cell
+    targetingConsumableKey: null,
     targetingAbility: null,  // hero ability awaiting a target cell
     targetingAbilityIndex: -1,
 
     // modifiers
     frenzyTimer: 0,          // seconds of +damage frenzy remaining
+
+    // shop
+    heroUpgrades: { hp: 0, dmg: 0, cooldown: 0, respawn: 0 }, // tiers purchased
+    repairUses: 0,           // for escalating Repair cost
   };
 
   // Default routing: each spawn heads for whichever goal is closest on the

@@ -10,6 +10,7 @@
 
 import { CONFIG } from '../config.js';
 import { waveInfo } from '../game/wave.js';
+import { heroUpgradeCost, heroUpgradeMaxed, consumableCost } from '../game/shop.js';
 
 // Tiny glyphs for the next-wave preview.
 const EGLYPH = { normal: '●', fast: '»', tank: '▣', swarm: '∴', flyer: '▲', healer: '✚', shield: '◈', boss: '★' };
@@ -97,9 +98,8 @@ export class HUD {
     // --- hero panel (hidden until a hero is chosen) ---
     this.buildHeroPanel();
 
-    // placeholder container that later phases populate (hero panel, consumables)
-    this.el.shopMount = div('');
-    this.root.appendChild(this.el.shopMount);
+    // --- shop: hero upgrades + consumables ---
+    this.buildShop();
 
     // --- help footer ---
     const help = div('section');
@@ -154,6 +154,61 @@ export class HUD {
 
     this.refreshCard(state);
     this.refreshHero(state);
+    this.refreshShop(state);
+  }
+
+  buildShop() {
+    // hero stat upgrades (between waves)
+    const hu = div('section');
+    hu.innerHTML = `<h3>Hero Upgrades <span class="muted" style="font-weight:400">(between waves)</span></h3>`;
+    const huGrid = div('tower-grid');
+    this.el.heroUpBtns = {};
+    for (const [key, def] of Object.entries(CONFIG.HERO_UPGRADES)) {
+      const b = document.createElement('button');
+      b.style.textAlign = 'left';
+      b.addEventListener('click', () => this.actions.heroUpgrade(key));
+      this.el.heroUpBtns[key] = b;
+      huGrid.appendChild(b);
+    }
+    hu.appendChild(huGrid);
+    this.root.appendChild(hu);
+
+    // consumables (mid-wave)
+    const co = div('section');
+    co.innerHTML = `<h3>Consumables</h3>`;
+    const coGrid = div('tower-grid');
+    this.el.consBtns = {};
+    for (const [key, def] of Object.entries(CONFIG.CONSUMABLES)) {
+      const b = document.createElement('button');
+      b.style.textAlign = 'left';
+      b.innerHTML = `<b>${def.name}</b><br><span class="muted" style="font-size:10px">${def.desc}</span><br><span class="t-cost">--</span>`;
+      b.addEventListener('click', () => this.actions.consumable(key));
+      this.el.consBtns[key] = b;
+      coGrid.appendChild(b);
+    }
+    co.appendChild(coGrid);
+    this.root.appendChild(co);
+  }
+
+  refreshShop(state) {
+    const hasHero = !!state.hero;
+    for (const [key, def] of Object.entries(CONFIG.HERO_UPGRADES)) {
+      const b = this.el.heroUpBtns[key];
+      const maxed = hasHero && heroUpgradeMaxed(state, key);
+      const cost = hasHero ? heroUpgradeCost(state, key) : def.baseCost;
+      const tier = hasHero ? state.heroUpgrades[key] : 0;
+      b.innerHTML = `<b>${def.name}</b><br><span class="muted" style="font-size:10px">tier ${tier}/${def.maxTier}</span><br>` +
+        (maxed ? `<span class="muted">MAX</span>` : `<span class="t-cost">${cost}g</span>`);
+      b.disabled = !hasHero || maxed || state.waveActive || state.gold < cost;
+    }
+    for (const [key, def] of Object.entries(CONFIG.CONSUMABLES)) {
+      const b = this.el.consBtns[key];
+      const cost = consumableCost(state, key);
+      const costEl = b.querySelector('.t-cost');
+      if (costEl) costEl.textContent = `${cost}g`;
+      b.disabled = state.gold < cost || state.status === 'won' || state.status === 'lost';
+      b.classList.toggle('active', state.targetingConsumable === def);
+    }
   }
 
   buildHeroPanel() {
