@@ -178,6 +178,13 @@ export const CONFIG = {
   HERO_RESPAWN_BASE: 8,        // respawn = 8 + level seconds
   HERO_LEVEL_HP_GAIN: 0.12,    // +12% maxHp per level
   HERO_LEVEL_DMG_GAIN: 0.10,   // +10% damage per level
+  HERO_SPEED_CELLS: 1,         // movement = def.speed (cells/sec) baseline scale
+  HERO_PROJECTILE_SPEED: 14,   // cells/sec for ranged hero shots
+  HERO_CONTACT_RADIUS: 0.7,    // cells: enemies this close damage the hero
+  HERO_CONTACT_DPS_BASE: 4,    // contact dps per adjacent enemy
+  HERO_CONTACT_DPS_PER_WAVE: 0.7,
+  HERO_BOSS_CONTACT_MULT: 6,   // bosses hit the hero much harder
+  HERO_KILL_XP_BASE: 2,        // xp ~ enemy maxHp * 0.02, min 2; bosses give 60
 
   HEROES: {
     warrior: {

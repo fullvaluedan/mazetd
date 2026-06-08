@@ -24,10 +24,90 @@ export function render(ctx, state) {
   drawProjectiles(ctx, state);
   drawEffects(ctx, state);
   drawSelected(ctx, state);
+  drawHero(ctx, state);
   drawFloaters(ctx, state);
   drawBossBars(ctx, state);
   drawHover(ctx, state);
+  drawAbilityTarget(ctx, state);
   if (state.flash > 0) drawFlash(ctx, state);
+}
+
+function drawHero(ctx, state) {
+  const h = state.hero;
+  if (!h) return;
+
+  if (h.downed) {
+    // ghost + respawn countdown at the base
+    const c = cellCenter(h.baseCell.x, h.baseCell.y);
+    ctx.globalAlpha = 0.4;
+    drawHeroShape(ctx, c.x, c.y, h.def.color, 0);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = C.text;
+    ctx.font = 'bold 12px Segoe UI, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(`↻ ${Math.ceil(h.respawnLeft)}s`, c.x, c.y - 16);
+    ctx.textAlign = 'left';
+    return;
+  }
+
+  // move-target marker
+  if (h.moveTarget) {
+    const m = cellCenter(h.moveTarget.x, h.moveTarget.y);
+    ctx.strokeStyle = withAlpha(h.def.color, 0.6);
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(m.x, m.y, 6 + Math.sin(state.time * 6) * 2, 0, Math.PI * 2); ctx.stroke();
+  }
+
+  // attack range (faint) + hawk-eye buff glow
+  ctx.strokeStyle = withAlpha(h.def.color, h.buffLeft > 0 ? 0.45 : 0.18);
+  ctx.lineWidth = 1.2; ctx.setLineDash([3, 4]);
+  ctx.beginPath(); ctx.arc(h.x, h.y, h.range * SIZE, 0, Math.PI * 2); ctx.stroke();
+  ctx.setLineDash([]);
+
+  drawHeroShape(ctx, h.x, h.y, h.def.color, h.angle);
+
+  // HP bar + level
+  const bw = 26, bx = h.x - bw / 2, by = h.y - 18;
+  ctx.fillStyle = C.hpBack; ctx.fillRect(bx, by, bw, 4);
+  ctx.fillStyle = '#5fce7a'; ctx.fillRect(bx, by, bw * Math.max(0, h.hp / h.maxHp), 4);
+  ctx.fillStyle = '#ffe08a';
+  ctx.font = 'bold 10px Segoe UI, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('L' + h.level, h.x, by - 3);
+  ctx.textAlign = 'left';
+}
+
+function drawHeroShape(ctx, x, y, color, angle) {
+  ctx.save();
+  ctx.translate(x, y);
+  // diamond body
+  ctx.fillStyle = color;
+  ctx.strokeStyle = '#0c0e14';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, -11); ctx.lineTo(9, 0); ctx.lineTo(0, 11); ctx.lineTo(-9, 0); ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  // facing nub
+  ctx.fillStyle = '#0c0e14';
+  ctx.beginPath();
+  ctx.arc(Math.cos(angle) * 7, Math.sin(angle) * 7, 2.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawAbilityTarget(ctx, state) {
+  if (!state.targetingAbility && !state.targetingConsumable) return;
+  if (!state.hover) return;
+  const { x, y } = state.hover;
+  const c = cellCenter(x, y);
+  const radius = state.targetingAbility ? state.targetingAbility.radius
+    : (state.targetingConsumable && state.targetingConsumable.radius) || 2;
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,224,138,0.8)';
+  ctx.fillStyle = 'rgba(255,224,138,0.12)';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(c.x, c.y, radius * SIZE, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.restore();
 }
 
 function drawBossBars(ctx, state) {

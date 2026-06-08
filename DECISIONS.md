@@ -60,6 +60,23 @@ gold-plating.
   DIFFICULTY/HP/damage so a *competent* run clears 100 with low margin is exactly
   Phase 8's job (per BUILD_PROMPT §10).
 
+## Phase 6 — Heroes
+- **Hero doesn't block enemy movement.** It pathfinds like an enemy and crowds
+  the front line, but enemies walk past its cell rather than colliding. This
+  avoids the hero accidentally "walling" a route (which would break the maze
+  legality invariant) and keeps pathing simple. The Kingdom-Rush "hold the line"
+  feel comes from **contact damage** instead: ground enemies within
+  `HERO_CONTACT_RADIUS` chip the hero each tick (bosses ×6), so parking a fragile
+  Mage in a swarm gets it killed while a Warrior can tank a chokepoint.
+- **Ability power scales with hero level** implicitly: every ability's damage is
+  `hero.damage × mult`, and `hero.damage` grows per level — so no separate
+  ability-scaling tables are needed.
+- **Targeted abilities** (Meteor, Frost Nova, Volley) arm a reticle; the next
+  left-click on the canvas casts at that cell. Self/around-hero abilities
+  (Whirlwind, Taunt, Hawk-Eye) fire immediately. Q/W are hotkeys.
+- **Level-up fully heals**; respawn time = `8 + level + shop bonus`, respawning
+  at the base cell next to G1.
+
 ## Planned mechanics (decided up front, implemented in later phases)
 - **Pathfinding:** enemy routing uses a per-goal BFS **distance field** (uniform
   cost = shortest path on a 4-connected grid) rather than per-enemy A*. Enemies

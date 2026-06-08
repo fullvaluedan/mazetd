@@ -62,6 +62,7 @@ export function createState(rng) {
     hover: null,             // {x,y} hovered cell
     targetingConsumable: null, // consumable awaiting a target cell
     targetingAbility: null,  // hero ability awaiting a target cell
+    targetingAbilityIndex: -1,
 
     // modifiers
     frenzyTimer: 0,          // seconds of +damage frenzy remaining
@@ -152,6 +153,7 @@ export function onMazeChanged(state) {
   for (const e of state.enemies) {
     if (e.alive && !e.flying && typeof e.reroute === 'function') e.reroute(state);
   }
+  if (state.hero && typeof state.hero.onMazeChanged === 'function') state.hero.onMazeChanged(state);
 }
 
 // Distance from a cell to a goal's exit (used by enemy stepping).

@@ -94,6 +94,9 @@ export class HUD {
     this.el.cardMount = div('');
     this.root.appendChild(this.el.cardMount);
 
+    // --- hero panel (hidden until a hero is chosen) ---
+    this.buildHeroPanel();
+
     // placeholder container that later phases populate (hero panel, consumables)
     this.el.shopMount = div('');
     this.root.appendChild(this.el.shopMount);
@@ -150,6 +153,60 @@ export class HUD {
     }
 
     this.refreshCard(state);
+    this.refreshHero(state);
+  }
+
+  buildHeroPanel() {
+    const p = div('section');
+    p.classList.add('hidden');
+    p.innerHTML = `<h3>Hero</h3>`;
+    const head = div('');
+    head.style.cssText = 'display:flex;gap:8px;align-items:center';
+    this.el.heroGlyph = div('');
+    this.el.heroGlyph.style.cssText = 'font-size:26px;width:34px;text-align:center';
+    const info = div(''); info.style.flex = '1';
+    this.el.heroName = div(''); this.el.heroName.style.fontWeight = '700';
+    this.el.heroHpBar = bar('hp'); this.el.heroXpBar = bar('xp');
+    this.el.heroHpText = div('muted'); this.el.heroHpText.style.fontSize = '11px';
+    info.append(this.el.heroName, this.el.heroHpBar.wrap, this.el.heroHpText, this.el.heroXpBar.wrap);
+    head.append(this.el.heroGlyph, info);
+    p.appendChild(head);
+
+    const abRow = div('ability-row'); abRow.style.marginTop = '8px';
+    this.el.abBtns = [];
+    for (let i = 0; i < 2; i++) {
+      const b = document.createElement('button');
+      b.className = 'ability-btn';
+      const label = document.createElement('span');
+      const cd = document.createElement('div'); cd.className = 'cd';
+      b.append(label, cd);
+      b.addEventListener('click', () => this.actions.castAbility(i));
+      abRow.appendChild(b);
+      this.el.abBtns.push({ btn: b, label, cd });
+    }
+    p.appendChild(abRow);
+    this.el.heroPanel = p;
+    this.root.appendChild(p);
+  }
+
+  refreshHero(state) {
+    const h = state.hero;
+    if (!h) { this.el.heroPanel.classList.add('hidden'); return; }
+    this.el.heroPanel.classList.remove('hidden');
+    this.el.heroGlyph.textContent = h.def.glyph;
+    this.el.heroGlyph.style.color = h.def.color;
+    this.el.heroName.textContent = `${h.def.name} — L${h.level}` + (h.downed ? `  (down ${Math.ceil(h.respawnLeft)}s)` : '') + (h.buffLeft > 0 ? '  ⤴buffed' : '');
+    this.el.heroHpBar.fill.style.width = Math.max(0, 100 * h.hp / h.maxHp) + '%';
+    this.el.heroHpText.textContent = `HP ${Math.max(0, Math.ceil(h.hp))}/${h.maxHp}`;
+    this.el.heroXpBar.fill.style.width = (h.level >= 10 ? 100 : 100 * h.xp / h.xpToNext()) + '%';
+    for (let i = 0; i < 2; i++) {
+      const ab = h.abilities[i], ui = this.el.abBtns[i];
+      ui.label.textContent = ab.name;
+      const frac = ab.cdLeft > 0 ? Math.min(1, ab.cdLeft / (ab.cooldown * h.abilityCdMult)) : 0;
+      ui.cd.style.height = (frac * 100) + '%';
+      ui.btn.disabled = h.downed || ab.cdLeft > 0;
+      ui.btn.classList.toggle('active', state.targetingAbility === ab);
+    }
   }
 
   // Rebuild the card DOM only when the selection "shape" changes; update the
@@ -264,6 +321,14 @@ export class HUD {
 // ---- tiny DOM helpers ----
 function div(cls) { const d = document.createElement('div'); if (cls) d.className = cls; return d; }
 function btn(label, onClick) { const b = document.createElement('button'); b.textContent = label; b.addEventListener('click', onClick); return b; }
+function bar(kind) {
+  const wrap = div('bar' + (kind ? ' ' + kind : ''));
+  wrap.style.margin = '3px 0';
+  const fill = document.createElement('div');
+  fill.style.width = '100%';
+  wrap.appendChild(fill);
+  return { wrap, fill };
+}
 function stat(parent, label, valueClass) {
   const s = div('stat');
   const l = div('label'); l.textContent = label;
