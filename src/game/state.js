@@ -50,6 +50,9 @@ export function createState(rng) {
     waveActive: false,
     spawnQueue: [],          // pending enemy spawns for the active wave
     spawnElapsed: 0,         // seconds since the active wave started spawning
+    activeSpawns: [],        // which spawns the current wave uses
+    buildTimer: CONFIG.BUILD_TIMER,  // seconds of build time left (early-start bonus)
+    autoStart: false,        // auto-chain waves when the build timer expires
     flash: 0,                // red screen-flash intensity (leaks)
 
     // ui / interaction
@@ -69,6 +72,7 @@ export function createState(rng) {
   recomputeFields(state);
   defaultRouting(state);
   recomputePaths(state);
+  state.activeSpawns = state.map.spawns.map((s) => s.id);
   return state;
 }
 

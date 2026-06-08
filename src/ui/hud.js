@@ -9,6 +9,10 @@
 // =============================================================================
 
 import { CONFIG } from '../config.js';
+import { waveInfo } from '../game/wave.js';
+
+// Tiny glyphs for the next-wave preview.
+const EGLYPH = { normal: '●', fast: '»', tank: '▣', swarm: '∴', flyer: '▲', healer: '✚', shield: '◈', boss: '★' };
 
 export class HUD {
   constructor(root, actions) {
@@ -62,7 +66,10 @@ export class HUD {
     this.el.start.className = 'primary';
     this.el.start.style.width = '100%';
     this.el.start.style.marginTop = '6px';
-    waveSec.append(this.el.preview, this.el.warn, this.el.start);
+    this.el.auto = btn('Auto-start: OFF', () => this.actions.toggleAuto());
+    this.el.auto.style.width = '100%';
+    this.el.auto.style.marginTop = '6px';
+    waveSec.append(this.el.preview, this.el.warn, this.el.start, this.el.auto);
     this.root.appendChild(waveSec);
 
     // --- tower shop ---
@@ -114,9 +121,26 @@ export class HUD {
     this.el.s3.classList.toggle('active', !ui.paused && ui.speed === 3);
     this.el.path.classList.toggle('active', state.showPath);
 
-    // start button state
+    // next-wave preview + flying warning
+    const nw = state.wave + 1;
+    if (nw > CONFIG.WIN_WAVE) {
+      this.el.preview.textContent = state.status === 'won' ? 'All 100 waves cleared!' : 'Final wave!';
+      this.el.warn.textContent = '';
+    } else {
+      const info = waveInfo(nw);
+      const icons = info.types.map((t) => `<span style="color:${CONFIG.ENEMIES[t].color}">${EGLYPH[t] || '?'}</span>`).join(' ');
+      this.el.preview.innerHTML = `<b>Wave ${nw}</b> &nbsp; ${icons} ${info.isBoss ? '&nbsp;<b style="color:#c65bd6">BOSS</b>' : ''} <span class="muted">(${info.count})</span>`;
+      this.el.warn.textContent = info.hasFlying ? '⚠ FLYING incoming — bring anti-air!' : '';
+    }
+
+    // start button state + early-start bonus
+    const bonus = Math.floor(state.buildTimer * CONFIG.EARLY_START_BONUS_PER_SEC);
     this.el.start.disabled = state.waveActive || state.status === 'won' || state.status === 'lost';
-    this.el.start.textContent = state.waveActive ? 'Wave in progress…' : 'Start Wave (S)';
+    this.el.start.textContent = state.waveActive
+      ? 'Wave in progress…'
+      : (bonus > 0 ? `Start Wave (S)  +${bonus}g` : 'Start Wave (S)');
+    this.el.auto.classList.toggle('active', state.autoStart);
+    this.el.auto.textContent = 'Auto-start: ' + (state.autoStart ? 'ON' : 'OFF');
 
     // tower shop: affordability + which build is armed
     for (const [id, def] of Object.entries(CONFIG.TOWERS)) {

@@ -41,6 +41,25 @@ gold-plating.
 - **Build stays armed** after a successful placement so several towers can be
   dropped quickly; Esc cancels.
 
+## Phase 5 — Waves, bosses & economy
+- **Deterministic, preview-consistent composition:** `waveInfo(w)` is seeded by
+  `SEED+w` and is the single source of the type set, so the HUD's next-wave
+  preview always matches what actually spawns. `buildWave` uses a *separate* rng
+  for placement/timing so the type list can't drift from the preview.
+- **Routing variety from wave 40:** before 40 all spawns are used with
+  nearest-goal routing; from 40 a random 2–3 spawns are chosen with random goal
+  assignments, so attacks come from varying directions.
+- **Boss ability kit escalates by tier (waveNum/10):** heal (all) → +swarmling
+  spawns (T2) → +speed burst (T3) → +slow-immunity window (T4). Handled in
+  `updateBosses` to avoid an enemy↔wave import cycle.
+- **Build timer / early-start:** an 18s build timer ticks down between waves; the
+  early-start bonus = `floor(remaining)` gold and is shown live on the Start
+  button. Auto-start (off by default) chains waves when the timer expires.
+- **Balance is deferred to Phase 8:** with default constants even a 127-tower L4
+  "max build" only reaches ~wave 37. The wave system is correct; tuning
+  DIFFICULTY/HP/damage so a *competent* run clears 100 with low margin is exactly
+  Phase 8's job (per BUILD_PROMPT §10).
+
 ## Planned mechanics (decided up front, implemented in later phases)
 - **Pathfinding:** enemy routing uses a per-goal BFS **distance field** (uniform
   cost = shortest path on a 4-connected grid) rather than per-enemy A*. Enemies

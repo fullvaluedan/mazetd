@@ -21,14 +21,16 @@ import { fieldAt } from '../engine/pathfinding.js';
 let NEXT_ID = 1;
 
 export class Enemy {
-  // stats = { hp, speed (cells/sec), bounty } computed by the wave generator.
-  constructor(state, type, spawnId, goalId, stats) {
+  // stats = { hp, speed (cells/sec), bounty } from the wave generator.
+  // opts (optional): { flying } overrides flight (e.g. a flying boss);
+  //                   { bossTier } selects the boss ability kit.
+  constructor(state, type, spawnId, goalId, stats, opts = {}) {
     const def = CONFIG.ENEMIES[type];
     this.id = NEXT_ID++;
     this.type = type;
     this.def = def;
     this.name = def.name;
-    this.flying = def.flying;
+    this.flying = (opts.flying != null) ? opts.flying : def.flying;
     this.armor = def.armor;
     this.radius = def.radius;
     this.color = def.color;
@@ -67,6 +69,16 @@ export class Enemy {
     this.poison = [];           // [{dps, until}]
     this.disrupted = false;     // regen dispelled (Arcane Disrupt)
     this.bob = state.rng ? state.rng.next() * Math.PI * 2 : 0; // flyer bob phase
+    this.burstLeft = 0;         // boss speed-burst window (sec)
+    this.slowImmuneLeft = 0;    // boss slow-immunity window (sec)
+
+    // boss ability kit (escalates with tier = waveNum/10)
+    if (this.boss) {
+      const tier = opts.bossTier || 1;
+      this.bossTier = tier;
+      this.bossKit = { heal: true, spawn: tier >= 2, burst: tier >= 3, immune: tier >= 4 };
+      this.healTimer = 6; this.spawnTimer = 8; this.burstTimer = 12; this.immuneTimer = 14;
+    }
 
     this.alive = true;
     this.reachedGoal = false;
@@ -80,6 +92,7 @@ export class Enemy {
 
   // --- status effects -------------------------------------------------------
   applySlow(pct, dur) {
+    if (this.slowImmuneLeft > 0) return;     // boss immunity window
     if (pct >= this.slowPct || this.slowTimer <= 0) this.slowPct = pct;
     this.slowTimer = Math.max(this.slowTimer, dur);
   }
@@ -118,15 +131,18 @@ export class Enemy {
     if (!this.alive) return;
     // timers
     if (this.stunTimer > 0) this.stunTimer -= dt;
+    if (this.slowImmuneLeft > 0) { this.slowImmuneLeft -= dt; this.slowTimer = 0; this.slowPct = 0; }
     if (this.slowTimer > 0) { this.slowTimer -= dt; if (this.slowTimer <= 0) this.slowPct = 0; }
     if (this.shatterTimer > 0) this.shatterTimer -= dt;
+    if (this.burstLeft > 0) this.burstLeft -= dt;
     this.tickPoison(state, dt);
     if (this.hp <= 0) return;
 
     if (this.stunTimer > 0) return;     // frozen/taunted: no movement
 
     const slowFactor = this.slowTimer > 0 ? (1 - this.slowPct) : 1;
-    const movePx = this.speed * slowFactor * SIZE * dt;
+    const burst = this.burstLeft > 0 ? 1.5 : 1;
+    const movePx = this.speed * slowFactor * burst * SIZE * dt;
     if (this.flying) this.moveStraight(movePx);
     else this.moveGrid(movePx, state);
   }

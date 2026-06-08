@@ -25,8 +25,33 @@ export function render(ctx, state) {
   drawEffects(ctx, state);
   drawSelected(ctx, state);
   drawFloaters(ctx, state);
+  drawBossBars(ctx, state);
   drawHover(ctx, state);
   if (state.flash > 0) drawFlash(ctx, state);
+}
+
+function drawBossBars(ctx, state) {
+  const bosses = state.enemies.filter((e) => e.alive && e.boss);
+  if (bosses.length === 0) return;
+  const bw = 360, bh = 14;
+  let y = 10;
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.font = 'bold 11px Segoe UI, sans-serif';
+  for (const b of bosses) {
+    const x = (CANVAS_W - bw) / 2;
+    ctx.fillStyle = 'rgba(12,14,20,0.85)';
+    roundRect(ctx, x - 2, y - 2, bw + 4, bh + 4, 4); ctx.fill();
+    ctx.fillStyle = '#3a1f3f';
+    ctx.fillRect(x, y, bw, bh);
+    ctx.fillStyle = '#c65bd6';
+    ctx.fillRect(x, y, bw * Math.max(0, b.hp / b.maxHp), bh);
+    ctx.fillStyle = '#fff';
+    ctx.fillText(`${b.name}  ${Math.ceil(b.hp).toLocaleString()} / ${b.maxHp.toLocaleString()}`, CANVAS_W / 2, y + bh - 3);
+    y += bh + 6;
+  }
+  ctx.restore();
+  ctx.textAlign = 'left';
 }
 
 function drawBackground(ctx) {
