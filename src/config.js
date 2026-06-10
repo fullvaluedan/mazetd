@@ -230,6 +230,15 @@ export const CONFIG = {
     respawn:  { name: '-1.5s Respawn',    stat: 'respawnAdd',   amount: -1.5, baseCost: 70,  costGrowth: 1.6, maxTier: 4 },
   },
 
+  // Permanent global tower boosts (between waves) — the tower-side counterpart
+  // to HERO_UPGRADES. Steep cost growth so they're a long-game gold sink, not an
+  // early-game shortcut.
+  TOWER_BOOSTS: {
+    dmg:   { name: '+10% Tower Damage', amount: 0.10, baseCost: 250, costGrowth: 1.9, maxTier: 5 },
+    speed: { name: '+5% Attack Speed',  amount: 0.05, baseCost: 220, costGrowth: 1.9, maxTier: 4 },
+    range: { name: '+4% Tower Range',   amount: 0.04, baseCost: 200, costGrowth: 1.9, maxTier: 3 },
+  },
+
   CONSUMABLES: {
     repair:  { name: 'Repair',       desc: '+3 lives',                       baseCost: 60,  perWave: 6,  lives: 3 },
     frenzy:  { name: 'Frenzy',       desc: '+50% tower dmg for 10s',         baseCost: 90,  perWave: 8,  mult: 1.5, dur: 10 },

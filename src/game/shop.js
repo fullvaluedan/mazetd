@@ -70,6 +70,23 @@ export function tryHeroUpgrade(state, key) {
   return true;
 }
 
+// --- global tower boosts (permanent, bought between waves) ------------------
+export function towerBoostMaxed(state, key) {
+  return state.towerBoosts[key] >= CONFIG.TOWER_BOOSTS[key].maxTier;
+}
+export function towerBoostCost(state, key) {
+  const def = CONFIG.TOWER_BOOSTS[key];
+  return Math.round(def.baseCost * Math.pow(def.costGrowth, state.towerBoosts[key]));
+}
+export function tryTowerBoost(state, key) {
+  if (towerBoostMaxed(state, key)) return false;
+  const cost = towerBoostCost(state, key);
+  if (!canAfford(state, cost)) return false;
+  spendGold(state, cost);
+  state.towerBoosts[key]++;
+  return true;
+}
+
 // --- consumables (one-shot, usable mid-wave) -------------------------------
 export function consumableCost(state, key) {
   const def = CONFIG.CONSUMABLES[key];

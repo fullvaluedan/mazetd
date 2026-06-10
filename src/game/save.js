@@ -28,6 +28,7 @@ export function buildSnapshot(state) {
     autoStart: state.autoStart,
     repairUses: state.repairUses,
     heroUpgrades: { ...state.heroUpgrades },
+    towerBoosts: { ...state.towerBoosts },
     hero: state.hero ? {
       id: state.hero.id, level: state.hero.level, xp: state.hero.xp,
       bonuses: { ...state.hero.bonuses }, hp: state.hero.hp,
@@ -64,6 +65,7 @@ export function applySnapshot(snap) {
   state.autoStart = !!snap.autoStart;
   state.repairUses = snap.repairUses || 0;
   state.heroUpgrades = { ...snap.heroUpgrades };
+  if (snap.towerBoosts) state.towerBoosts = { ...snap.towerBoosts };
   state.status = 'playing';
 
   for (const tw of snap.towers) {

@@ -50,7 +50,12 @@ long as possible in range.
 | `1` / `2` / `3` | Game speed 1× / 2× / 3× |
 | `S` | Start the next wave (early-start = bonus gold) |
 | `Q` / `W` | Cast hero ability 1 / 2 (targeted ones then click a cell) |
+| `M` | Arm hero move, then click/tap a destination |
 | `Esc` | Cancel current build/target action |
+
+**On touch devices:** tap your hero (or the *Move* button), then tap where it
+should go. The layout stacks vertically on phones, and you can add the game to
+your home screen (PWA).
 
 The HUD also has **Save** / **Load** buttons (save is allowed between waves;
 your best wave reached is kept as a high score), an **Auto-start** toggle, and a
@@ -63,6 +68,14 @@ wave scaling, every enemy and tower stat, hero stats, shop prices and the colour
 palette. There are no magic numbers in the gameplay code. The key balance knobs
 (tuned by the sim below) are `HP_EXP`, `DIFFICULTY`, `DAMAGE_SCALE`,
 `UPGRADE.dmgMultPerLevel` and the bounty/start-gold values.
+
+## Generated art (optional)
+
+The repo plays fully with built-in shape graphics. To switch to hand-painted
+Warcraft-III-style sprites, generate them once with your own OpenAI key (see
+[`tools/README.md`](tools/README.md)) — the game auto-loads anything in
+`assets/` and falls back to shapes for whatever's missing. The HUD's **Art**
+button toggles between sprites and shapes.
 
 ## Balance simulation
 

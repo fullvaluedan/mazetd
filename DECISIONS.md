@@ -109,6 +109,25 @@ gold-plating.
   reproducible balance) is preserved; the particle list is capped so headless
   runs (which don't drain it) stay bounded.
 
+## Post-launch — Art, mobile & store pass
+- **Sprites are an overlay, not a dependency.** `ui/sprites.js` loads whatever
+  `assets/manifest.json` lists; every draw call falls back to the original shape
+  when an image is missing/disabled. Assets stay gitignored & regenerable; the
+  HUD "Art" button toggles live. Sprites are downscaled once to 128px offscreen
+  canvases at load (they're 1024px source, drawn at ~32px — big mobile perf win).
+- **Touch hero control:** tap the hero (20px hit circle), the hero-panel Move
+  button, or `M` to arm move mode; the next tap is the destination. Right-click
+  still works on desktop. Chosen over drag (conflicts with future pan/zoom) and
+  over auto-follow (removes the WC3 "command your hero" feel).
+- **Tower Boosts** apply at the combat layer (like Frenzy) rather than baking
+  into per-tower stats, so they're save-friendly, retroactive to existing
+  towers, and can't compound with upgrade math; the selected-tower ring shows
+  the boosted range via `effectiveRange`.
+- **Preview-tool gotcha:** the Claude preview reads `.claude/launch.json` from
+  the *primary working dir* (OneDrive Claude folder), not the repo — a stale
+  `opencut-classic` placeholder there was why the preview kept failing on port
+  3100. Added a `mazecore` config there pointing at this repo's `serve.cjs`.
+
 ## Planned mechanics (decided up front, implemented in later phases)
 - **Pathfinding:** enemy routing uses a per-goal BFS **distance field** (uniform
   cost = shortest path on a 4-connected grid) rather than per-enemy A*. Enemies

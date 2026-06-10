@@ -67,12 +67,14 @@ export function createState(rng, seed = 0) {
     targetingConsumableKey: null,
     targetingAbility: null,  // hero ability awaiting a target cell
     targetingAbilityIndex: -1,
+    heroMoveMode: false,     // touch flow: tap hero (or Move btn) -> tap a cell
 
     // modifiers
     frenzyTimer: 0,          // seconds of +damage frenzy remaining
 
     // shop
     heroUpgrades: { hp: 0, dmg: 0, cooldown: 0, respawn: 0 }, // tiers purchased
+    towerBoosts: { dmg: 0, speed: 0, range: 0 },              // global tower tiers
     repairUses: 0,           // for escalating Repair cost
   };
 

@@ -133,9 +133,15 @@ export class Tower {
     return fieldAt(state.fields[e.goalId], e.cx, e.cy);
   }
 
+  // Effective range including the global shop range-boost tiers.
+  effectiveRange(state) {
+    const tier = (state.towerBoosts && state.towerBoosts.range) || 0;
+    return this.stats.range * (1 + tier * CONFIG.TOWER_BOOSTS.range.amount);
+  }
+
   candidates(state) {
     const list = [];
-    const r = this.stats.range;
+    const r = this.effectiveRange(state);
     for (const e of state.enemies) {
       if (!e.alive) continue;
       if (e.flying && !this.stats.targetsAir) continue;
@@ -189,7 +195,9 @@ export class Tower {
         spawnProjectile(state, this.px, this.py, tgt, this.stats, this.def.color);
       }
     }
-    this.cooldownLeft = this.stats.cooldown;
+    // attack-speed shop boost shortens the effective cooldown
+    const spdTier = (state.towerBoosts && state.towerBoosts.speed) || 0;
+    this.cooldownLeft = this.stats.cooldown / (1 + spdTier * CONFIG.TOWER_BOOSTS.speed.amount);
   }
 }
 

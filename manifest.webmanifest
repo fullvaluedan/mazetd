@@ -1,0 +1,13 @@
+{
+  "name": "Mazecore TD",
+  "short_name": "Mazecore",
+  "description": "Build the maze. Survive 100 waves.",
+  "start_url": ".",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#12151d",
+  "theme_color": "#12151d",
+  "icons": [
+    { "src": "assets/misc/icon.png", "sizes": "1024x1024", "type": "image/png", "purpose": "any" }
+  ]
+}

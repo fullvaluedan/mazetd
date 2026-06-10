@@ -13,12 +13,16 @@ import { CONFIG } from '../config.js';
 import { SIZE, cellDist } from '../engine/grid.js';
 import { addFloater } from './economy.js';
 
-// Global tower-damage multiplier from the Frenzy consumable.
+// Global tower-damage multipliers: the Frenzy consumable + permanent shop boosts.
 function frenzy(state) {
   return state.frenzyTimer > 0 ? CONFIG.CONSUMABLES.frenzy.mult : 1;
 }
+function boostMult(state) {
+  const tier = (state.towerBoosts && state.towerBoosts.dmg) || 0;
+  return 1 + tier * CONFIG.TOWER_BOOSTS.dmg.amount;
+}
 function baseDamage(state, stats, scale) {
-  return stats.damage * scale * frenzy(state);
+  return stats.damage * scale * frenzy(state) * boostMult(state);
 }
 
 // The single place damage + on-hit effects are applied to an enemy.
