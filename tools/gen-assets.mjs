@@ -40,28 +40,29 @@ async function loadEnv() {
 
 // --- per-type art hints (kept short; the shared style does the heavy lifting) -
 const TOWER_HINT = {
-  archer: 'a compact crossbow/ballista turret on a small base',
-  cannon: 'a stubby mortar cannon with a wide barrel',
-  frost: 'a turret made of jagged ice crystals emitting cold mist',
-  arcane: 'an arcane spire with a floating glowing magic orb',
-  venom: 'an organic spitter turret dripping green toxic ooze',
-  tesla: 'a tesla coil turret crackling with electric arcs',
+  archer: 'a wooden elven guard tower with a mounted ballista, rope and timber details',
+  cannon: 'a squat dwarven cannon emplacement, riveted iron and stone, smoking barrel',
+  frost: 'a tower of jagged blue ice crystals on a frozen stone base, cold mist swirling',
+  arcane: 'an ornate violet arcane spire with a levitating glowing rune orb and floating stones',
+  venom: 'a twisted organic spitter tower of fungal green flesh, dripping toxic ooze',
+  tesla: 'a brass-and-copper storm tower with a crackling lightning coil at its crown',
 };
 const ENEMY_HINT = {
-  normal: 'a sturdy basic grunt foot-soldier creature',
-  fast: 'a lean, swift runner creature built for speed',
-  tank: 'a massive heavily-armoured brute with thick plating',
-  swarm: 'a tiny skittering spawnling, one of a swarm',
-  flyer: 'a glowing floating wisp/spirit with faint wings',
-  healer: 'a robed mender radiating a soft green healing aura',
-  shield: 'a warden behind a glowing energy barrier/shield',
-  boss: 'a huge menacing boss monster, imposing and detailed',
+  normal: 'a stocky orc-like grunt warrior with crude leather armor and an axe',
+  fast: 'a lean feral ghoul sprinting low to the ground, claws out',
+  tank: 'a hulking armored ogre brute with massive pauldrons and a tower shield back',
+  swarm: 'a tiny skittering spiderling creature, one of a hatchling swarm',
+  flyer: 'a glowing ethereal wisp spirit trailing faint blue wings of light',
+  healer: 'a hooded acolyte mender robed in green, hands glowing with healing light',
+  shield: 'a stern warden knight wrapped in a shimmering blue energy barrier',
+  boss: 'a colossal demonic pit-lord boss with horns, burning eyes and heavy armor',
 };
 
 const STYLE =
-  'Flat modern minimalist 2D game asset, clean vector-like bold shapes, strong readable silhouette, ' +
-  'centered, subtle soft cel shading, dark sci-fi/fantasy tower-defense theme. ' +
-  'No text, no letters, no UI, no border, no ground shadow. Fully transparent background.';
+  'Hand-painted fantasy game art in the style of early-2000s RTS classics (Warcraft III: The Frozen Throne era): ' +
+  'painterly brushwork, rich saturated colors, chunky exaggerated proportions, dramatic rim lighting, ' +
+  'gritty heroic dark-fantasy mood, slight 3/4 top-down perspective, strong readable silhouette, centered single subject. ' +
+  'No text, no letters, no watermark, no UI, no frame or border. Fully transparent background.';
 
 function buildManifest() {
   const items = [];
@@ -77,8 +78,10 @@ function buildManifest() {
     items.push({ id: `hero-${id}`, out: `heroes/${id}.png`, size: '1024x1024',
       prompt: `Heroic character sprite of "${h.name}" — ${h.role}. Primary colour ${h.color}. ${STYLE}` });
   }
+  items.push({ id: 'misc-icon', out: 'misc/icon.png', size: '1024x1024', transparent: false,
+    prompt: 'Square mobile game app icon for a dark-fantasy maze tower-defense game: a single bold ice-crystal tower emblem on a dark slate rune-ring background, hand-painted Warcraft III Frozen Throne style, rich color, dramatic lighting, fills the frame edge to edge, no text, no border.' });
   items.push({ id: 'misc-background', out: 'misc/background.png', size: '1536x1024', transparent: false,
-    prompt: 'Seamless dark slate tower-defense battlefield, faint square grid, base colour #1b1f2a, top-down, atmospheric, no characters, no text, no UI.' });
+    prompt: 'Top-down hand-painted dark fantasy battlefield terrain for a tower-defense map: weathered dark slate stone ground with subtle cracks, moss and snow patches, muted cool tones around #1b1f2a, painterly Warcraft III Frozen Throne style, evenly lit, low contrast so game pieces stay readable on top, no characters, no buildings, no text, no UI, no grid lines.' });
   return items;
 }
 

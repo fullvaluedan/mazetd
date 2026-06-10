@@ -17,12 +17,13 @@ import { updateProjectiles, updateEffects } from './game/projectile.js';
 import { createHero } from './game/hero.js';
 import { onEnemyKilled, onEnemyLeaked, updateFloaters, updateParticles, payWaveClear, payEarlyStart } from './game/economy.js';
 import { startWave, processSpawning, waveComplete, updateBosses, waveInfo } from './game/wave.js';
-import { tryBuild, trySell, tryUpgrade, tryHeroUpgrade, tryConsumable } from './game/shop.js';
+import { tryBuild, trySell, tryUpgrade, tryHeroUpgrade, tryConsumable, tryTowerBoost } from './game/shop.js';
 import { getTowerStats } from './game/tower.js';
 import { saveGame, hasSave, loadSnapshot, applySnapshot, getHighScore, recordHighScore } from './game/save.js';
 import { render } from './ui/render.js';
 import { HUD } from './ui/hud.js';
 import { Tooltip } from './ui/tooltips.js';
+import { loadSprites, toggleSprites } from './ui/sprites.js';
 
 const canvas = document.getElementById('game');
 canvas.width = CANVAS_W;
@@ -50,6 +51,48 @@ function showBanner(text, cls = '', dur = 2.2) {
   overlay.appendChild(el);
   requestAnimationFrame(() => el.classList.add('show'));
   setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 300); }, dur * 1000);
+}
+
+// ---------------------------------------------------------------------------
+// first-run onboarding hints (persistent banner until each step is done; only
+// for players who haven't cleared wave 1 before)
+// ---------------------------------------------------------------------------
+const TUTORIAL_KEY = 'mazecore_tutorial_done_v1';
+let tutorialDone = false;
+try { tutorialDone = !!localStorage.getItem(TUTORIAL_KEY); } catch { tutorialDone = true; }
+let hintEl = null, lastHint = '';
+
+function currentHint() {
+  if (tutorialDone || !state.hero || state.status !== 'setup' && state.status !== 'playing') return '';
+  if (state.wave === 0 && state.towers.length === 0) {
+    return state.buildType
+      ? 'Now tap a green cell on the map to place it. Long winding maze = more damage.'
+      : 'Tap a tower in the shop (Archer is a great start), then tap the map to build.';
+  }
+  if (state.wave === 0 && state.towers.length > 0 && !state.waveActive) {
+    return 'Build a few more, then press Start Wave. Starting early pays bonus gold!';
+  }
+  if (state.wave === 1 && state.waveActive) return 'Enemies follow the dotted path. Tap your hero, then a cell, to move them.';
+  return '';
+}
+
+function updateHint() {
+  const text = currentHint();
+  if (text === lastHint) return;
+  lastHint = text;
+  if (!hintEl) {
+    hintEl = document.createElement('div');
+    hintEl.className = 'banner warn';
+    overlay.appendChild(hintEl);
+  }
+  hintEl.textContent = text;
+  hintEl.classList.toggle('show', !!text);
+}
+
+function finishTutorial() {
+  if (tutorialDone) return;
+  tutorialDone = true;
+  try { localStorage.setItem(TUTORIAL_KEY, '1'); } catch { /* private mode */ }
 }
 
 // ---------------------------------------------------------------------------
@@ -133,6 +176,7 @@ const actions = {
   setSpeed: (n) => loop.setSpeed(n),
   togglePause: () => loop.togglePause(),
   togglePath: () => { state.showPath = !state.showPath; },
+  toggleArt: () => { toggleSprites(); },
   toggleAuto: () => { state.autoStart = !state.autoStart; },
   startWave: () => {
     if (!state.hero || state.waveActive || state.status === 'won' || state.status === 'lost') return;
@@ -148,8 +192,10 @@ const actions = {
     state.buildType = (state.buildType === typeId) ? null : typeId;
     state.selected = null; clearTargeting();
   },
-  cancel: () => { state.buildType = null; state.selected = null; clearTargeting(); },
+  cancel: () => { state.buildType = null; state.selected = null; state.heroMoveMode = false; clearTargeting(); },
+  heroMove: () => { if (state.hero && !state.hero.downed) state.heroMoveMode = !state.heroMoveMode; },
   heroUpgrade: (key) => { tryHeroUpgrade(state, key); },
+  towerBoost: (key) => { tryTowerBoost(state, key); },
   consumable: (key) => {
     const def = CONFIG.CONSUMABLES[key];
     if (def.targetCell) {
@@ -207,9 +253,13 @@ function showStartModal() {
   const pick = document.getElementById('heropick');
   for (const [id, def] of Object.entries(CONFIG.HEROES)) {
     const b = document.createElement('button');
-    b.innerHTML = `<span class="h-glyph" style="color:${def.color}">${def.glyph}</span>
+    b.innerHTML = `<img src="assets/heroes/${id}.png" alt="" style="width:52px;height:52px;align-self:center" onerror="this.remove()">
+      <span class="h-glyph" style="color:${def.color}">${def.glyph}</span>
       <span class="h-name">${def.name}</span>
       <span class="h-role">${def.role}</span>`;
+    // if the portrait loads, hide the placeholder glyph
+    const img = b.querySelector('img');
+    if (img) img.addEventListener('load', () => { const g = b.querySelector('.h-glyph'); if (g) g.style.display = 'none'; });
     b.addEventListener('click', () => { createHero(state, id); modal.classList.add('hidden'); showBanner(`${def.name} ready!`, '', 1.5); });
     pick.appendChild(b);
   }
@@ -244,6 +294,7 @@ function update(dt) {
 
   if (waveComplete(state)) {
     state.waveActive = false;
+    if (state.wave >= 1) finishTutorial();
     const pay = payWaveClear(state, state.wave);
     showBanner(`Wave ${state.wave} cleared!  +${pay.bonus}g${pay.interest ? ` (+${pay.interest} interest)` : ''}`, '', 2);
     state.buildTimer = CONFIG.BUILD_TIMER;
@@ -276,12 +327,14 @@ function showEndModal() {
 function draw() {
   render(ctx, state);
   hud.refresh(state, { speed: loop.gameSpeed, paused: loop.paused });
+  updateHint();
 }
 
 const loop = new GameLoop(update, draw);
 const hud = new HUD(document.getElementById('hud'), actions);
 loop.start();
 showStartModal();
+loadSprites();   // async; art pops in when ready, shapes are the fallback
 
 // ---------------------------------------------------------------------------
 // input
@@ -289,7 +342,7 @@ showStartModal();
 setupInput(canvas, {
   onHover(x, y, px, py) { state.hover = { x, y }; tooltip.set(buildTooltip(x, y, px, py)); },
   onHoverEnd() { state.hover = null; tooltip.set(null); },
-  onLeftClick(x, y) {
+  onLeftClick(x, y, px, py) {
     if (state.targetingAbility && state.hero) {
       state.hero.cast(state, state.targetingAbilityIndex, { x, y });
       clearTargeting();
@@ -300,13 +353,26 @@ setupInput(canvas, {
       clearTargeting();
       return;
     }
+    // touch flow: hero-move mode armed -> this tap is the destination
+    if (state.heroMoveMode && state.hero && !state.hero.downed) {
+      state.hero.commandMove(state, x, y);
+      state.heroMoveMode = false;
+      return;
+    }
     if (state.buildType) {
       tryBuild(state, state.buildType, x, y);
       state.selected = null;
-    } else {
-      const t = (y >= 0 && x >= 0 && state.towerGrid[y] && state.towerGrid[y][x]) || null;
-      state.selected = t;
+      return;
     }
+    // tapping the hero arms move mode (mobile has no right-click)
+    const h = state.hero;
+    if (h && !h.downed && Math.hypot(px - h.x, py - h.y) <= 20) {
+      state.heroMoveMode = true;
+      state.selected = null;
+      return;
+    }
+    const t = (y >= 0 && x >= 0 && state.towerGrid[y] && state.towerGrid[y][x]) || null;
+    state.selected = t;
   },
   onRightClick(x, y) { if (state.hero) state.hero.commandMove(state, x, y); },
   onKey(key) {
@@ -319,6 +385,7 @@ setupInput(canvas, {
       case 's': case 'S': actions.startWave(); return true;
       case 'q': case 'Q': actions.castAbility(0); return true;
       case 'w': case 'W': actions.castAbility(1); return true;
+      case 'm': case 'M': actions.heroMove(); return true;
       case 'Escape': actions.cancel(); return true;
     }
     return false;

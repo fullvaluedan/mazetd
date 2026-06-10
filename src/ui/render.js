@@ -11,6 +11,7 @@
 import { CONFIG, CANVAS_W, CANVAS_H } from '../config.js';
 import { CELL, COLS, ROWS, SIZE, cellCenter, cellCenterX, cellCenterY } from '../engine/grid.js';
 import { canBuildAt } from '../game/state.js';
+import { getSprite } from './sprites.js';
 
 const C = CONFIG.COLORS;
 
@@ -81,13 +82,28 @@ function drawHero(ctx, state) {
     ctx.beginPath(); ctx.arc(m.x, m.y, 6 + Math.sin(state.time * 6) * 2, 0, Math.PI * 2); ctx.stroke();
   }
 
+  // move-mode indicator: pulsing ring + "tap to move" affordance
+  if (state.heroMoveMode) {
+    ctx.strokeStyle = 'rgba(255,224,138,0.9)';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(h.x, h.y, 16 + Math.sin(state.time * 6) * 3, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
   // attack range (faint) + hawk-eye buff glow
   ctx.strokeStyle = withAlpha(h.def.color, h.buffLeft > 0 ? 0.45 : 0.18);
   ctx.lineWidth = 1.2; ctx.setLineDash([3, 4]);
   ctx.beginPath(); ctx.arc(h.x, h.y, h.range * SIZE, 0, Math.PI * 2); ctx.stroke();
   ctx.setLineDash([]);
 
-  drawHeroShape(ctx, h.x, h.y, h.def.color, h.angle);
+  const heroSprite = getSprite('hero-' + h.id);
+  if (heroSprite) {
+    const s = 34;
+    ctx.drawImage(heroSprite, h.x - s / 2, h.y - s / 2, s, s);
+  } else {
+    drawHeroShape(ctx, h.x, h.y, h.def.color, h.angle);
+  }
 
   // HP bar + level
   const bw = 26, bx = h.x - bw / 2, by = h.y - 18;
@@ -158,8 +174,16 @@ function drawBossBars(ctx, state) {
 }
 
 function drawBackground(ctx) {
-  ctx.fillStyle = C.bg;
-  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+  const bgImg = getSprite('misc-background');
+  if (bgImg) {
+    ctx.drawImage(bgImg, 0, 0, CANVAS_W, CANVAS_H);
+    // dim slightly so entities and the grid stay readable on painted terrain
+    ctx.fillStyle = 'rgba(18,21,29,0.35)';
+    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+  } else {
+    ctx.fillStyle = C.bg;
+    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+  }
   ctx.strokeStyle = C.gridLine;
   ctx.lineWidth = 1;
   for (let x = 0; x <= COLS; x++) {
@@ -262,38 +286,46 @@ function drawSpawnGoalMarkers(ctx, state) {
 function drawTowers(ctx, state) {
   for (const t of state.towers) {
     const px = t.cx * SIZE, py = t.cy * SIZE;
-    const pad = 3, r = 6;
-    // base body
-    roundRect(ctx, px + pad, py + pad, SIZE - pad * 2, SIZE - pad * 2, r);
-    ctx.fillStyle = t.def.color;
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(0,0,0,0.35)';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-
     const cx = cellCenterX(t.cx), cy = cellCenterY(t.cy);
-    // barrel pointing at the last target
-    ctx.strokeStyle = '#0c0e14';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(cx, cy);
-    ctx.lineTo(cx + Math.cos(t.angle) * 11, cy + Math.sin(t.angle) * 11);
-    ctx.stroke();
+    const sprite = getSprite('tower-' + t.type);
 
-    // muzzle flash
+    if (sprite) {
+      // sprite art: draw slightly larger than the cell for presence
+      const s = SIZE + 6;
+      ctx.drawImage(sprite, cx - s / 2, cy - s / 2 - 2, s, s);
+    } else {
+      const pad = 3, r = 6;
+      // base body
+      roundRect(ctx, px + pad, py + pad, SIZE - pad * 2, SIZE - pad * 2, r);
+      ctx.fillStyle = t.def.color;
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // barrel pointing at the last target
+      ctx.strokeStyle = '#0c0e14';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(t.angle) * 11, cy + Math.sin(t.angle) * 11);
+      ctx.stroke();
+
+      // glyph
+      ctx.fillStyle = '#0c0e14';
+      ctx.font = 'bold 13px Segoe UI, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(t.def.glyph, cx, cy - 1);
+    }
+
+    // muzzle flash (both modes)
     if (t.muzzle > 0) {
       ctx.fillStyle = 'rgba(255,240,180,0.9)';
       ctx.beginPath();
       ctx.arc(cx + Math.cos(t.angle) * 12, cy + Math.sin(t.angle) * 12, 3, 0, Math.PI * 2);
       ctx.fill();
     }
-
-    // glyph
-    ctx.fillStyle = '#0c0e14';
-    ctx.font = 'bold 13px Segoe UI, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(t.def.glyph, cx, cy - 1);
 
     // level pips along the bottom
     const pips = t.level;
@@ -364,7 +396,8 @@ function drawSelected(ctx, state) {
   ctx.strokeStyle = C.rangeRing;
   ctx.lineWidth = 2;
   ctx.strokeRect(t.cx * SIZE + 1, t.cy * SIZE + 1, SIZE - 2, SIZE - 2);
-  drawRangeRing(ctx, t.cx, t.cy, t.stats.range);
+  // show the boosted range, matching what targeting actually uses
+  drawRangeRing(ctx, t.cx, t.cy, t.effectiveRange ? t.effectiveRange(state) : t.stats.range);
 }
 
 function drawEnemies(ctx, state) {
@@ -390,17 +423,21 @@ function drawEnemies(ctx, state) {
       ctx.stroke();
     }
 
-    // body
-    ctx.fillStyle = e.color;
-    ctx.beginPath();
-    ctx.arc(e.x, ey, e.radius, 0, Math.PI * 2);
-    ctx.fill();
+    // body: generated sprite when available, colored circle otherwise
+    const sprite = getSprite('enemy-' + e.type);
+    if (sprite) {
+      const s = e.radius * 2.6;   // sprites carry whitespace; oversize a bit
+      ctx.drawImage(sprite, e.x - s / 2, ey - s / 2, s, s);
+    } else {
+      ctx.fillStyle = e.color;
+      ctx.beginPath();
+      ctx.arc(e.x, ey, e.radius, 0, Math.PI * 2);
+      ctx.fill();
+      if (e.boss) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke(); }
+    }
 
-    // boss outline + name
+    // boss name (both modes)
     if (e.boss) {
-      ctx.strokeStyle = '#fff';
-      ctx.lineWidth = 2;
-      ctx.stroke();
       ctx.fillStyle = C.text;
       ctx.font = 'bold 11px Segoe UI, sans-serif';
       ctx.textAlign = 'center';

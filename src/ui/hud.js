@@ -10,7 +10,7 @@
 
 import { CONFIG } from '../config.js';
 import { waveInfo } from '../game/wave.js';
-import { heroUpgradeCost, heroUpgradeMaxed, consumableCost } from '../game/shop.js';
+import { heroUpgradeCost, heroUpgradeMaxed, consumableCost, towerBoostCost, towerBoostMaxed } from '../game/shop.js';
 
 // Tiny glyphs for the next-wave preview.
 const EGLYPH = { normal: '●', fast: '»', tank: '▣', swarm: '∴', flyer: '▲', healer: '✚', shield: '◈', boss: '★' };
@@ -52,9 +52,10 @@ export class HUD {
     const row2 = div('speed-row');
     row2.style.marginTop = '6px';
     this.el.path = btn('Path (P)', () => this.actions.togglePath());
+    this.el.art = btn('Art', () => this.actions.toggleArt());
     this.el.save = btn('Save', () => this.actions.save());
     this.el.load = btn('Load', () => this.actions.load());
-    row2.append(this.el.path, this.el.save, this.el.load);
+    row2.append(this.el.path, this.el.art, this.el.save, this.el.load);
     controls.appendChild(row2);
     this.root.appendChild(controls);
 
@@ -175,6 +176,21 @@ export class HUD {
     hu.appendChild(huGrid);
     this.root.appendChild(hu);
 
+    // global tower boosts (between waves)
+    const tb = div('section');
+    tb.innerHTML = `<h3>Tower Boosts <span class="muted" style="font-weight:400">(between waves)</span></h3>`;
+    const tbGrid = div('tower-grid');
+    this.el.towerBoostBtns = {};
+    for (const [key, def] of Object.entries(CONFIG.TOWER_BOOSTS)) {
+      const b = document.createElement('button');
+      b.style.textAlign = 'left';
+      b.addEventListener('click', () => this.actions.towerBoost(key));
+      this.el.towerBoostBtns[key] = b;
+      tbGrid.appendChild(b);
+    }
+    tb.appendChild(tbGrid);
+    this.root.appendChild(tb);
+
     // consumables (mid-wave)
     const co = div('section');
     co.innerHTML = `<h3>Consumables</h3>`;
@@ -202,6 +218,15 @@ export class HUD {
       b.innerHTML = `<b>${def.name}</b><br><span class="muted" style="font-size:10px">tier ${tier}/${def.maxTier}</span><br>` +
         (maxed ? `<span class="muted">MAX</span>` : `<span class="t-cost">${cost}g</span>`);
       b.disabled = !hasHero || maxed || state.waveActive || state.gold < cost;
+    }
+    for (const [key, def] of Object.entries(CONFIG.TOWER_BOOSTS)) {
+      const b = this.el.towerBoostBtns[key];
+      const maxed = towerBoostMaxed(state, key);
+      const cost = towerBoostCost(state, key);
+      const tier = state.towerBoosts[key];
+      b.innerHTML = `<b>${def.name}</b><br><span class="muted" style="font-size:10px">tier ${tier}/${def.maxTier}</span><br>` +
+        (maxed ? `<span class="muted">MAX</span>` : `<span class="t-cost">${cost}g</span>`);
+      b.disabled = maxed || state.waveActive || state.gold < cost;
     }
     for (const [key, def] of Object.entries(CONFIG.CONSUMABLES)) {
       const b = this.el.consBtns[key];
@@ -242,6 +267,11 @@ export class HUD {
       this.el.abBtns.push({ btn: b, label, cd });
     }
     p.appendChild(abRow);
+
+    // Move command — the touch-friendly substitute for right-click
+    this.el.heroMove = btn('Move (M) — then tap the map', () => this.actions.heroMove());
+    this.el.heroMove.style.cssText = 'width:100%;margin-top:6px';
+    p.appendChild(this.el.heroMove);
     this.el.heroPanel = p;
     this.root.appendChild(p);
   }
@@ -250,7 +280,17 @@ export class HUD {
     const h = state.hero;
     if (!h) { this.el.heroPanel.classList.add('hidden'); return; }
     this.el.heroPanel.classList.remove('hidden');
-    this.el.heroGlyph.textContent = h.def.glyph;
+    // portrait: generated art if available, glyph fallback
+    if (this._heroPortraitFor !== h.id) {
+      this._heroPortraitFor = h.id;
+      this.el.heroGlyph.innerHTML = '';
+      const img = document.createElement('img');
+      img.alt = '';
+      img.style.cssText = 'width:34px;height:34px;display:block;margin:auto';
+      img.addEventListener('error', () => { this.el.heroGlyph.textContent = h.def.glyph; });
+      img.src = `assets/heroes/${h.id}.png`;
+      this.el.heroGlyph.appendChild(img);
+    }
     this.el.heroGlyph.style.color = h.def.color;
     this.el.heroName.textContent = `${h.def.name} — L${h.level}` + (h.downed ? `  (down ${Math.ceil(h.respawnLeft)}s)` : '') + (h.buffLeft > 0 ? '  ⤴buffed' : '');
     this.el.heroHpBar.fill.style.width = Math.max(0, 100 * h.hp / h.maxHp) + '%';
@@ -264,6 +304,9 @@ export class HUD {
       ui.btn.disabled = h.downed || ab.cdLeft > 0;
       ui.btn.classList.toggle('active', state.targetingAbility === ab);
     }
+    this.el.heroMove.disabled = h.downed;
+    this.el.heroMove.classList.toggle('active', !!state.heroMoveMode);
+    this.el.heroMove.textContent = state.heroMoveMode ? 'Tap the map to move…' : 'Move (M) — then tap the map';
   }
 
   // Rebuild the card DOM only when the selection "shape" changes; update the
