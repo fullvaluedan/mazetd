@@ -6,6 +6,8 @@
   "private": true,
   "scripts": {
     "start": "node .claude/serve.cjs",
-    "sim": "node src/sim/autoplay.js"
+    "sim": "node src/sim/autoplay.js",
+    "assets": "node tools/gen-assets.mjs",
+    "assets:list": "node tools/gen-assets.mjs --list"
   }
 }
