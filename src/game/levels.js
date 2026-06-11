@@ -130,7 +130,7 @@ export const LEVELS = [
     goals: [{ id: 'G1', cx: 6, cy: 16 }],
     checkpoints: [{ id: 'CP1', cx: 2, cy: 8 }, { id: 'CP2', cx: 9, cy: 8 }],
     startGold: 320,
-    waves: { count: 13, types: ['normal', 'fast', 'swarm', 'tank', 'flyer'], swarmFrom: 4, flyerFrom: 6, hpMult: 1.7 },
+    waves: { count: 13, types: ['normal', 'fast', 'swarm', 'tank', 'flyer'], swarmFrom: 4, flyerFrom: 6, hpMult: 1.9 },
   }),
   L(9, 'Venom Garden', {                        // unlock: venom
     cols: 12, rows: 18,
@@ -139,7 +139,7 @@ export const LEVELS = [
     checkpoints: [{ id: 'CP1', cx: 9, cy: 6 }, { id: 'CP2', cx: 2, cy: 12 }],
     obstacles: rect(5, 8, 7, 9),
     startGold: 340,
-    waves: { count: 14, types: ['normal', 'fast', 'swarm', 'tank', 'healer', 'flyer'], swarmFrom: 4, flyerFrom: 7, hpMult: 2 },
+    waves: { count: 14, types: ['normal', 'fast', 'swarm', 'tank', 'healer', 'flyer'], swarmFrom: 4, flyerFrom: 7, hpMult: 2.3 },
   }),
   L(10, 'The Wardens', {                        // first boss; Endless unlocks after
     cols: 12, rows: 18,

@@ -196,6 +196,35 @@ gold-plating.
   sheet with an empty/full-bleed quadrant is dropped — misaligned AI frames
   must never look worse than no sheet at all.
 
+## Post-launch — Vertical maze-defense campaign
+- **Grid size is per-level via live bindings.** grid.js exports mutable
+  COLS/ROWS (`setGridSize` before createState); every consumer reads them at
+  call time. The classic 28×18 board stays the sim's regression world.
+- **Checkpoints are the depth engine for small screens** (Gem TD): routes are
+  waypoint chains, one BFS field per stage, creeps advance stage ON the flag.
+  Flyers fly the flags in straight lines so air waves can't skip them. Seal
+  checks and breach fields work per consecutive pair — cutting off a MIDDLE
+  flag besieges exactly that segment.
+- **Walls sell at 100%, towers at 70%** — juggling is a core mechanic, not a
+  tax. Walls can't upgrade and never attack; their HP is flat (160) while
+  tower HP scales with invested gold.
+- **The classic sim only stayed green because the reference learned the real
+  genre arc**: cheap-wall serpentine early, every 3rd cell a killer, then
+  late-game wall→tower conversion as gold piles up. Raising DAMAGE_SCALE
+  alone could NOT fix the w83 death — the failure was attacker (anti-air)
+  density, not per-shot damage.
+- **Campaign difficulty is double-gated**: the reference mazer must clear all
+  20 levels (floor: always beatable) and the careless no-maze archer build
+  must first lose between levels 2–10 (ceiling: ignoring the mechanic fails;
+  it currently dies on level 9, right before the first boss).
+- **Reload-per-level navigation** (?level=lN): zero state-teardown code, the
+  page IS the level. Profile (localStorage) carries stars, the hero's
+  level/XP and star-bought upgrades between reloads; endless snapshots store
+  their levelId and re-size the grid on load.
+- **Star economy**: tier n of a hero track costs n+1 stars; maxing all four
+  tracks costs 67 of the 60 earnable stars — full completion can't buy
+  everything, so choices persist.
+
 ## Planned mechanics (decided up front, implemented in later phases)
 - **Pathfinding:** enemy routing uses a per-goal BFS **distance field** (uniform
   cost = shortest path on a 4-connected grid) rather than per-enemy A*. Enemies

@@ -1,10 +1,28 @@
 # Mazecore TD
 
-A maze tower-defense game in the spirit of the Warcraft III *Frozen Throne*
-classics (Wintermaul, Green TD, Element TD, GemTD), with modern systems borrowed
-from Bloons TD (tiered upgrade forks) and Kingdom Rush (a commandable hero with
-abilities). Pure HTML5 Canvas + vanilla JavaScript — **no build step, no
-dependencies.**
+A **vertical mobile maze-defense game** in the spirit of the Warcraft III
+classics (Wintermaul, Gem TD, Maze TD): you get an open field, enemies always
+take the shortest path, and your towers ARE the walls. A 20-level campaign
+grows from a tiny teaching board to multi-spawn checkpoint runs, with an
+Endless mode, a persistent fighting hero, and rewarded ads. Pure HTML5 Canvas
++ vanilla JavaScript — **no build step, no dependencies.**
+
+## The game
+
+- **Campaign** (20 authored portrait levels): each level adds a wrinkle — new
+  tower unlocks, Gem-TD **checkpoint flags** (creeps must visit them in order,
+  so one maze gets walked 3–5 times), flying waves, twin spawns, bosses.
+  1–3 **stars** per level (lives kept) gate later levels and buy permanent
+  hero upgrades on the map screen. **Endless** (100 procedural waves + high
+  score + save/load) unlocks after level 10.
+- **Maze-first economy**: 5g **Walls** (sell back 100% — juggling is free)
+  form the labyrinth; a handful of real towers do the killing.
+- **You CAN seal the maze** — but cut-off creeps swarm the cheapest wall and
+  chew through it (every enemy shows its wall-damage stat). No refunds on
+  rubble.
+- **The hero fights on its own**: it guards its post, auto-engages anything
+  in aggro range — wall-chewers first — chases on a leash, and returns home.
+  Tap it, then the ground, to redeploy. It keeps its level between missions.
 
 ## How to run
 
