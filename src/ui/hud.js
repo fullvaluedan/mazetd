@@ -1,55 +1,46 @@
 // =============================================================================
-// hud.js — the HTML/CSS side panel (everything that is NOT the canvas).
+// hud.js — orchestrator for all game chrome. The old 320px side panel is gone;
+// everything lives over the canvas now:
+//   topbar.js   gold/lives/wave chips, speed, pause, store, settings gear
+//   wavebar.js  NEXT WAVE button + incoming-wave chevrons at the spawns
+//   radial.js   tap-a-cell build ring / tap-a-tower manage ring
+//   herobar.js  hero portrait + abilities dock
+//   sheets.js   settings + store modal sheets
+//   infocard.js docked inspect card (replaces the cursor tooltip)
 //
-// Built once into #hud, then refresh(state, ui) is called every frame to update
-// the live values cheaply (text content / disabled flags only — no re-layout).
-// Sections are added phase by phase: Phase 2 ships the stat readout, the
-// pause/speed controls and the Start-Wave button. Later phases add the tower
-// shop, the selected-tower card, the hero panel and the consumables shop.
+// HUD(root, actions, scene) keeps its constructor/refresh signature for the
+// DOM-shim smoke tests; root is unused (kept for compatibility) and scene
+// ({uiLayer, viewport}) mounts the real widgets.
 // =============================================================================
 
-import { CONFIG } from '../config.js';
-import { waveInfo } from '../game/wave.js';
-import { strongWeak } from '../game/damage.js';
-import { heroUpgradeCost, heroUpgradeMaxed, consumableCost, towerBoostCost, towerBoostMaxed } from '../game/shop.js';
-import { div, btn, bar, stat, EGLYPH } from './components.js';
 import { TopBar } from './topbar.js';
 import { WaveBar } from './wavebar.js';
 import { Radial, buildRingItems, towerRingItems } from './radial.js';
 import { HeroBar } from './herobar.js';
-
-// Compact strong/weak armor badges for a damage type (e.g. "▲L U  ▼F H").
-function badgeHtml(damageType) {
-  const sw = strongWeak(damageType);
-  const chip = (id) => {
-    const a = CONFIG.ARMOR_TYPES[id];
-    return a ? `<span style="color:${a.color}">${a.short}</span>` : '';
-  };
-  const parts = [];
-  if (sw.strong.length) parts.push(`<span style="color:#5fce7a">▲</span>${sw.strong.map(chip).join('')}`);
-  if (sw.weak.length) parts.push(`<span style="color:#e24b4a">▼</span>${sw.weak.map(chip).join('')}`);
-  return parts.join('&nbsp; ');
-}
+import { Sheets } from './sheets.js';
+import { InfoCard } from './infocard.js';
 
 export class HUD {
-  // scene (optional): { uiLayer, viewport } — mounts the in-scene widgets
-  // (top bar, wave control) over the canvas. Omitted in DOM-shim tests.
   constructor(root, actions, scene = null) {
-    this.root = root;
-    this.actions = actions;   // { setSpeed, togglePause, togglePath, startWave, ... }
-    this.el = {};
+    this.root = root;          // unused (legacy panel mount) — kept for tests
+    this.actions = actions;
     this.topbar = null;
     this.wavebar = null;
     this.radial = null;
     this.herobar = null;
-    this.build();
+    this.infocard = null;
+    this.sheets = new Sheets(actions);
     if (scene && scene.uiLayer) {
       this.topbar = new TopBar(scene.uiLayer, actions);
       this.wavebar = new WaveBar(scene.uiLayer, scene.viewport, actions);
       this.radial = new Radial(scene.uiLayer, scene.viewport);
       this.herobar = new HeroBar(scene.uiLayer, actions);
+      this.infocard = new InfoCard(scene.uiLayer);
     }
   }
+
+  // kept for API compatibility with older callers/tests
+  build() { }
 
   // Called when the viewport letterbox changes: re-anchor world-pinned widgets.
   onViewportResize() {
@@ -82,181 +73,12 @@ export class HUD {
 
   closeRadial() { if (this.radial) this.radial.close(); }
 
-  build() {
-    this.root.innerHTML = '';
-
-    // --- title ---
-    const title = div('section');
-    title.innerHTML = `<div style="font-weight:800;font-size:18px;letter-spacing:.5px">MAZECORE&nbsp;TD</div>
-      <div class="muted">Build the maze. Survive 100 waves.</div>`;
-    this.root.appendChild(title);
-
-    // (gold/lives/wave + pause/speed + start-wave moved to the in-scene
-    //  top bar and wave button — see topbar.js / wavebar.js)
-
-    // --- controls ---
-    const controls = div('section');
-    controls.innerHTML = `<h3>Controls</h3>`;
-    const row2 = div('speed-row');
-    this.el.path = btn('Path (P)', () => this.actions.togglePath());
-    this.el.art = btn('Art', () => this.actions.toggleArt());
-    this.el.save = btn('Save', () => this.actions.save());
-    this.el.load = btn('Load', () => this.actions.load());
-    row2.append(this.el.path, this.el.art, this.el.save, this.el.load);
-    controls.appendChild(row2);
-    this.root.appendChild(controls);
-
-    // --- next wave preview ---
-    const waveSec = div('section');
-    waveSec.innerHTML = `<h3>Next Wave</h3>`;
-    this.el.preview = div('muted');
-    this.el.preview.style.minHeight = '20px';
-    this.el.warn = div('muted');
-    this.el.warn.style.color = CONFIG.COLORS.gold;
-    this.el.auto = btn('Auto-start: OFF', () => this.actions.toggleAuto());
-    this.el.auto.style.width = '100%';
-    this.el.auto.style.marginTop = '6px';
-    waveSec.append(this.el.preview, this.el.warn, this.el.auto);
-    this.root.appendChild(waveSec);
-
-    // (tower shop + selected-tower card replaced by the in-scene radial
-    //  menus — tap an empty cell to build, tap a tower to manage it)
-
-    // (hero panel moved to the in-scene hero bar — herobar.js)
-
-    // --- shop: hero upgrades + consumables ---
-    this.buildShop();
-
-    // --- help footer ---
-    const help = div('section');
-    help.innerHTML = `<h3>Help</h3><div class="muted" style="line-height:1.5">
-      <span class="kbd">L-click</span> build/select &nbsp;
-      <span class="kbd">R-click</span> move hero<br>
-      <span class="kbd">P</span> path &nbsp; <span class="kbd">Space</span> pause &nbsp;
-      <span class="kbd">1/2/3</span> speed &nbsp; <span class="kbd">S</span> start &nbsp;
-      <span class="kbd">Esc</span> cancel</div>`;
-    this.root.appendChild(help);
-  }
-
+  // ---- per-frame ----
   refresh(state, ui) {
     if (this.topbar) this.topbar.refresh(state, ui);
     if (this.wavebar) this.wavebar.refresh(state);
-
-    this.el.path.classList.toggle('active', state.showPath);
-
-    // next-wave preview + flying warning
-    const nw = state.wave + 1;
-    if (nw > CONFIG.WIN_WAVE) {
-      this.el.preview.textContent = state.status === 'won' ? 'All 100 waves cleared!' : 'Final wave!';
-      this.el.warn.textContent = '';
-    } else {
-      const info = waveInfo(nw);
-      const icons = info.types.map((t) => {
-        const e = CONFIG.ENEMIES[t];
-        const a = CONFIG.ARMOR_TYPES[e.armorType];
-        return `<span style="color:${e.color}">${EGLYPH[t] || '?'}</span><sub style="color:${a ? a.color : '#888'}">${a ? a.short : ''}</sub>`;
-      }).join(' ');
-      this.el.preview.innerHTML = `<b>Wave ${nw}</b> &nbsp; ${icons} ${info.isBoss ? '&nbsp;<b style="color:#c65bd6">BOSS</b>' : ''} <span class="muted">(${info.count})</span>`;
-      this.el.warn.textContent = info.hasFlying ? '⚠ FLYING incoming — bring anti-air!' : '';
-    }
-    // siege overrides the warn line while any route is sealed
-    if (state.siege) {
-      this.el.warn.textContent = '⚠ Path sealed — enemies attack your towers!';
-      this.el.warn.style.color = CONFIG.COLORS.danger;
-    } else {
-      this.el.warn.style.color = CONFIG.COLORS.gold;
-    }
-
-    this.el.auto.classList.toggle('active', state.autoStart);
-    this.el.auto.textContent = 'Auto-start: ' + (state.autoStart ? 'ON' : 'OFF');
-
-    if (this.radial) this.radial.refresh(state);   // live affordability in open rings
     if (this.herobar) this.herobar.refresh(state);
-    this.refreshShop(state);
+    if (this.radial) this.radial.refresh(state);     // live affordability in open rings
+    if (this.sheets.isOpen) this.sheets.refresh(state);
   }
-
-  buildShop() {
-    // hero stat upgrades (between waves)
-    const hu = div('section');
-    hu.innerHTML = `<h3>Hero Upgrades <span class="muted" style="font-weight:400">(between waves)</span></h3>`;
-    const huGrid = div('tower-grid');
-    this.el.heroUpBtns = {};
-    for (const [key, def] of Object.entries(CONFIG.HERO_UPGRADES)) {
-      const b = document.createElement('button');
-      b.style.textAlign = 'left';
-      b.addEventListener('click', () => this.actions.heroUpgrade(key));
-      this.el.heroUpBtns[key] = b;
-      huGrid.appendChild(b);
-    }
-    hu.appendChild(huGrid);
-    this.root.appendChild(hu);
-
-    // global tower boosts (between waves)
-    const tb = div('section');
-    tb.innerHTML = `<h3>Tower Boosts <span class="muted" style="font-weight:400">(between waves)</span></h3>`;
-    const tbGrid = div('tower-grid');
-    this.el.towerBoostBtns = {};
-    for (const [key, def] of Object.entries(CONFIG.TOWER_BOOSTS)) {
-      const b = document.createElement('button');
-      b.style.textAlign = 'left';
-      b.addEventListener('click', () => this.actions.towerBoost(key));
-      this.el.towerBoostBtns[key] = b;
-      tbGrid.appendChild(b);
-    }
-    tb.appendChild(tbGrid);
-    this.root.appendChild(tb);
-
-    // consumables (mid-wave)
-    const co = div('section');
-    co.innerHTML = `<h3>Consumables</h3>`;
-    const coGrid = div('tower-grid');
-    this.el.consBtns = {};
-    for (const [key, def] of Object.entries(CONFIG.CONSUMABLES)) {
-      const b = document.createElement('button');
-      b.style.textAlign = 'left';
-      b.innerHTML = `<b>${def.name}</b><br><span class="muted" style="font-size:10px">${def.desc}</span><br><span class="t-cost">--</span>`;
-      b.addEventListener('click', () => this.actions.consumable(key));
-      this.el.consBtns[key] = b;
-      coGrid.appendChild(b);
-    }
-    co.appendChild(coGrid);
-    this.root.appendChild(co);
-  }
-
-  refreshShop(state) {
-    const hasHero = !!state.hero;
-    for (const [key, def] of Object.entries(CONFIG.HERO_UPGRADES)) {
-      const b = this.el.heroUpBtns[key];
-      const maxed = hasHero && heroUpgradeMaxed(state, key);
-      const cost = hasHero ? heroUpgradeCost(state, key) : def.baseCost;
-      const tier = hasHero ? state.heroUpgrades[key] : 0;
-      b.innerHTML = `<b>${def.name}</b><br><span class="muted" style="font-size:10px">tier ${tier}/${def.maxTier}</span><br>` +
-        (maxed ? `<span class="muted">MAX</span>` : `<span class="t-cost">${cost}g</span>`);
-      b.disabled = !hasHero || maxed || state.waveActive || state.gold < cost;
-    }
-    for (const [key, def] of Object.entries(CONFIG.TOWER_BOOSTS)) {
-      const b = this.el.towerBoostBtns[key];
-      const maxed = towerBoostMaxed(state, key);
-      const cost = towerBoostCost(state, key);
-      const tier = state.towerBoosts[key];
-      b.innerHTML = `<b>${def.name}</b><br><span class="muted" style="font-size:10px">tier ${tier}/${def.maxTier}</span><br>` +
-        (maxed ? `<span class="muted">MAX</span>` : `<span class="t-cost">${cost}g</span>`);
-      b.disabled = maxed || state.waveActive || state.gold < cost;
-    }
-    for (const [key, def] of Object.entries(CONFIG.CONSUMABLES)) {
-      const b = this.el.consBtns[key];
-      const cost = consumableCost(state, key);
-      const costEl = b.querySelector('.t-cost');
-      if (costEl) costEl.textContent = `${cost}g`;
-      b.disabled = state.gold < cost || state.status === 'won' || state.status === 'lost';
-      b.classList.toggle('active', state.targetingConsumable === def);
-    }
-  }
-
-  // (hero panel replaced by the in-scene hero bar — see herobar.js)
-
-  // Lets later phases drop their sections into the panel.
-  mount(node) { this.el.shopMount.appendChild(node); }
 }
-
-// (DOM helpers div/btn/bar/stat + EGLYPH now live in components.js)

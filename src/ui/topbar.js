@@ -27,7 +27,9 @@ export class TopBar {
 
     this.el.speed = mkBtn('1×', () => this.actions.cycleSpeed());
     this.el.pause = mkBtn('▮▮', () => this.actions.togglePause());
-    bar.append(this.el.speed, this.el.pause);
+    this.el.store = mkBtn('🛒', () => this.actions.openStore());
+    this.el.gear = mkBtn('⚙', () => this.actions.openSettings());
+    bar.append(this.el.speed, this.el.pause, this.el.store, this.el.gear);
 
     this.root = bar;
     uiLayer.appendChild(bar);

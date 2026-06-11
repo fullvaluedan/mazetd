@@ -10,8 +10,7 @@ import { CONFIG, CANVAS_W, CANVAS_H } from './config.js';
 import { GameLoop } from './engine/loop.js';
 import { makeRng } from './engine/rng.js';
 import { setupInput } from './engine/input.js';
-import { createState, canBuildAt, wouldSealAt } from './game/state.js';
-import { strongWeak } from './game/damage.js';
+import { createState, canBuildAt } from './game/state.js';
 import { updateEnemies } from './game/enemy.js';
 import { updateTowers } from './game/tower.js';
 import { updateProjectiles, updateEffects } from './game/projectile.js';
@@ -19,13 +18,13 @@ import { createHero } from './game/hero.js';
 import { onEnemyKilled, onEnemyLeaked, updateFloaters, updateParticles, payWaveClear, payEarlyStart } from './game/economy.js';
 import { startWave, processSpawning, waveComplete, updateBosses, waveInfo } from './game/wave.js';
 import { tryBuild, trySell, tryUpgrade, tryHeroUpgrade, tryConsumable, tryTowerBoost } from './game/shop.js';
-import { getTowerStats } from './game/tower.js';
 import { saveGame, hasSave, loadSnapshot, applySnapshot, getHighScore, recordHighScore } from './game/save.js';
 import { render } from './ui/render.js';
 import { HUD } from './ui/hud.js';
-import { Tooltip } from './ui/tooltips.js';
 import { loadSprites, toggleSprites } from './ui/sprites.js';
 import { Viewport } from './ui/viewport.js';
+import { createHints } from './ui/hints.js';
+import { hoverCardHtml, enemyCardHtml, enemyAt } from './ui/infocard.js';
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -39,7 +38,6 @@ const viewport = new Viewport(canvas, uiLayer, document.getElementById('stage'))
 let state = createState(makeRng(CONFIG.SEED), CONFIG.SEED);
 let prevStatus = state.status;
 let prevSiege = false;
-const tooltip = new Tooltip();
 
 function clearTargeting() {
   state.targetingAbility = null; state.targetingAbilityIndex = -1;
@@ -58,168 +56,29 @@ function showBanner(text, cls = '', dur = 2.2) {
   setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 300); }, dur * 1000);
 }
 
-// ---------------------------------------------------------------------------
-// first-run onboarding hints (persistent banner until each step is done; only
-// for players who haven't cleared wave 1 before)
-// ---------------------------------------------------------------------------
-const TUTORIAL_KEY = 'mazecore_tutorial_done_v1';
-let tutorialDone = false;
-try { tutorialDone = !!localStorage.getItem(TUTORIAL_KEY); } catch { tutorialDone = true; }
-let hintEl = null, lastHint = '';
+// (first-run onboarding hints live in ui/hints.js; inspect-card content in
+//  ui/infocard.js — both created/imported around the HUD boot below)
 
-function currentHint() {
-  if (tutorialDone || !state.hero || state.status !== 'setup' && state.status !== 'playing') return '';
-  if (state.wave === 0 && state.towers.length === 0) {
-    return state.buildType
-      ? 'Now tap a green cell on the map to place it. Long winding maze = more damage.'
-      : 'Tap a tower in the shop (Archer is a great start), then tap the map to build.';
-  }
-  if (state.wave === 0 && state.towers.length > 0 && !state.waveActive) {
-    return 'Build a few more, then hit NEXT WAVE. Starting early pays bonus gold!';
-  }
-  if (state.wave === 1 && state.waveActive) return 'Enemies follow the dotted path. Tap your hero, then a cell, to move them.';
-  return '';
-}
-
-function updateHint() {
-  const text = currentHint();
-  if (text === lastHint) return;
-  lastHint = text;
-  if (!hintEl) {
-    hintEl = document.createElement('div');
-    hintEl.className = 'banner warn';
-    overlay.appendChild(hintEl);
-  }
-  hintEl.textContent = text;
-  hintEl.classList.toggle('show', !!text);
-}
-
-function finishTutorial() {
-  if (tutorialDone) return;
-  tutorialDone = true;
-  try { localStorage.setItem(TUTORIAL_KEY, '1'); } catch { /* private mode */ }
-}
-
-// ---------------------------------------------------------------------------
-// hover tooltip content (enemy under cursor > tower on cell > build preview)
-// ---------------------------------------------------------------------------
-function specialText(s) {
-  const t = [];
-  if (s.splashRadius) t.push(`splash ${s.splashRadius.toFixed(1)}`);
-  if (s.slowPct) t.push(`slow ${(s.slowPct * 100) | 0}%/${s.slowDur}s`);
-  if (s.dotDps) t.push(`poison ${s.dotDps.toFixed(0)}/s·${s.dotDur}s`);
-  if (s.chainTargets) t.push(`chain ${s.chainTargets}`);
-  if (s.multishot > 1) t.push(`${s.multishot}× shots`);
-  if (s.shatter) t.push(`shatter +${(s.shatter * 100) | 0}%`);
-  if (s.disrupt) t.push('dispels shields/regen');
-  if (s.contagion) t.push('poison spreads on kill');
-  if (s.cluster) t.push('cluster blasts');
-  return t.join(' · ');
-}
-
-// "strong vs Light, Unarmored · weak vs Fortified" line for a damage type.
-function matchupText(damageType) {
-  const sw = strongWeak(damageType);
-  const name = (id) => {
-    const a = CONFIG.ARMOR_TYPES[id];
-    return a ? `<span style="color:${a.color}">${a.name}</span>` : id;
-  };
-  const parts = [];
-  if (sw.strong.length) parts.push(`<span style="color:#5fce7a">strong vs</span> ${sw.strong.map(name).join(', ')}`);
-  if (sw.weak.length) parts.push(`<span style="color:#e24b4a">weak vs</span> ${sw.weak.map(name).join(', ')}`);
-  return parts.join(' · ');
-}
-
-function buildTooltip(x, y, px, py) {
-  // 1) enemy directly under the cursor
-  let near = null, nd = Infinity;
-  for (const e of state.enemies) {
-    if (!e.alive) continue;
-    const d = Math.hypot(e.x - px, e.y - py);
-    if (d <= e.radius + 5 && d < nd) { nd = d; near = e; }
-  }
-  if (near) {
-    const at = CONFIG.ARMOR_TYPES[near.armorType];
-    const traits = [];
-    if (near.flying) traits.push('flying');
-    if (at) traits.push(`<span style="color:${at.color}">${at.name} armor</span>`);
-    if (near.shieldHp > 0) traits.push(`shield ${Math.ceil(near.shieldHp)}`);
-    if (near.def.healPct) traits.push('heals allies');
-    if (near.slowTimer > 0) traits.push('slowed');
-    if (near.poison.length) traits.push('poisoned');
-    if (near.stunTimer > 0) traits.push('stunned');
-    return `<b style="color:${near.color}">${near.name}</b>${near.boss ? ' ★' : ''}<br>
-      HP ${Math.ceil(near.hp).toLocaleString()} / ${near.maxHp.toLocaleString()}<br>
-      ${traits.length ? traits.join(' · ') + '<br>' : ''}
-      <span class="muted" style="color:#9aa3b2">bounty ${near.bounty}g · ${near.damageToLives}♥ if leaked</span>`;
-  }
-
-  // 2) tower on the hovered cell
-  const t = (y >= 0 && x >= 0 && state.towerGrid[y] && state.towerGrid[y][x]) || null;
-  if (t) {
-    const s = t.stats;
-    if (t.def.aura) {
-      return `<b style="color:${t.def.color}">${t.def.glyph} ${t.def.name}</b> — L${t.level}${t.branch ? ' ' + t.def.branches[t.branch].name : ''}<br>
-        +${Math.round(s.auraDmg * 100)}% dmg · +${Math.round(s.auraSpeed * 100)}% atk speed · radius ${s.auraRange.toFixed(1)}<br>
-        <span class="muted">buffs nearby towers · strongest aura wins · sell +${Math.floor(t.invested * CONFIG.SELL_REFUND)}g</span>`;
-    }
-    const dps = (s.damage * (s.multishot || 1) / s.cooldown).toFixed(1);
-    const sp = specialText(s);
-    const next = t.canUpgrade() ? `<br><span style="color:#f2c14b">▲ upgrade: ${t.nextUpgradeCost()}g</span>` : '<br><span class="muted">max level</span>';
-    return `<b style="color:${t.def.color}">${t.def.glyph} ${t.def.name}</b> — L${t.level}${t.branch ? ' ' + t.def.branches[t.branch].name : ''}<br>
-      DMG ${s.damage.toFixed(1)} · RNG ${s.range.toFixed(1)} · CD ${s.cooldown.toFixed(2)}s<br>
-      ~DPS ${dps} · ${s.damageType}${s.targetsAir ? ' · hits air' : ''}<br>
-      ${matchupText(s.damageType) ? matchupText(s.damageType) + '<br>' : ''}
-      ${sp ? sp + '<br>' : ''}
-      <span class="muted">target: ${t.targetMode} · sell +${Math.floor(t.invested * CONFIG.SELL_REFUND)}g</span>${next}`;
-  }
-
-  // 3) build preview when a tower is armed
-  if (state.buildType) {
-    const def = CONFIG.TOWERS[state.buildType];
-    const s = getTowerStats(state.buildType, 1, null);
-    const legal = (y >= 0 && x >= 0) ? canBuildAtSafe(x, y) : false;
-    if (def.aura) {
-      const sealsA = legal && wouldSealAtSafe(x, y);
-      const verdictA = !legal
-        ? '<b style="color:#e24b4a">cannot build here</b>'
-        : sealsA
-          ? '<b style="color:#ffa500">⚠ Seals the maze — creeps will attack your towers!</b>'
-          : '<b style="color:#5fce7a">click to build</b>';
-      return `<b style="color:${def.color}">${def.glyph} ${def.name}</b> — ${def.cost}g<br>
-        +${Math.round(s.auraDmg * 100)}% dmg · +${Math.round(s.auraSpeed * 100)}% atk speed · radius ${s.auraRange.toFixed(1)}<br>
-        <span class="muted">${def.blurb}</span><br>
-        ${verdictA}`;
-    }
-    const dps = (s.damage / s.cooldown).toFixed(1);
-    const seals = legal && wouldSealAtSafe(x, y);
-    const verdict = !legal
-      ? '<b style="color:#e24b4a">cannot build here</b>'
-      : seals
-        ? '<b style="color:#ffa500">⚠ Seals the maze — creeps will attack your towers!</b>'
-        : '<b style="color:#5fce7a">click to build</b>';
-    return `<b style="color:${def.color}">${def.glyph} ${def.name}</b> — ${def.cost}g<br>
-      DMG ${s.damage} · RNG ${s.range} · CD ${s.cooldown}s · ~DPS ${dps}<br>
-      ${s.damageType}${s.targetsAir ? ' · hits air' : ''}<br>
-      ${matchupText(s.damageType) ? matchupText(s.damageType) + '<br>' : ''}
-      <span class="muted">${def.blurb}</span><br>
-      ${verdict}`;
-  }
-  return null;
-}
-
-// guard canBuildAt against exceptions during tooltip building
 function canBuildAtSafe(x, y) {
   try { return canBuildAt(state, x, y); } catch { return false; }
 }
-function wouldSealAtSafe(x, y) {
-  try { return wouldSealAt(state, x, y); } catch { return false; }
+
+// While a sheet is open the game auto-pauses; closing restores the player's
+// own pause choice.
+let pausedBySheet = false, pausedBefore = false;
+function setPausedBySheet(open) {
+  if (open && !pausedBySheet) { pausedBefore = loop.paused; loop.setPaused(true); pausedBySheet = true; }
+  else if (!open && pausedBySheet) { loop.setPaused(pausedBefore); pausedBySheet = false; }
 }
 
 // ---------------------------------------------------------------------------
 // high-level actions (shared by HUD buttons + keyboard + mouse)
 // ---------------------------------------------------------------------------
 const actions = {
+  openSettings: () => hud.sheets.openSettings(state, { speed: loop.gameSpeed, paused: loop.paused }),
+  openStore: () => hud.sheets.openStore(state),
+  closeSheet: () => hud.sheets.close(),
+  setPausedBySheet,
   setSpeed: (n) => loop.setSpeed(n),
   cycleSpeed: () => {
     const i = CONFIG.SPEEDS.indexOf(loop.gameSpeed);
@@ -357,7 +216,7 @@ function update(dt) {
 
   if (waveComplete(state)) {
     state.waveActive = false;
-    if (state.wave >= 1) finishTutorial();
+    if (state.wave >= 1) hints.finish();
     const pay = payWaveClear(state, state.wave);
     showBanner(`Wave ${state.wave} cleared!  +${pay.bonus}g${pay.interest ? ` (+${pay.interest} interest)` : ''}`, '', 2);
     state.buildTimer = CONFIG.BUILD_TIMER;
@@ -396,13 +255,34 @@ function draw() {
   ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
   render(ctx, state);
   hud.refresh(state, { speed: loop.gameSpeed, paused: loop.paused });
-  updateHint();
+  hints.update(state);
 }
 
 const loop = new GameLoop(update, draw);
-const hud = new HUD(document.getElementById('hud'), actions, { uiLayer, viewport });
+const hud = new HUD(null, actions, { uiLayer, viewport });
+const hints = createHints(overlay, hud);
 viewport.onResize = () => hud.onViewportResize();
 loop.start();
+
+// Portrait phones: the battlefield needs landscape — show the rotate overlay
+// and hold the sim while it's up. Desktop portrait windows just letterbox.
+(() => {
+  if (typeof window === 'undefined' || !window.matchMedia) return;
+  const portrait = window.matchMedia('(orientation: portrait)');
+  const coarse = window.matchMedia('(pointer: coarse)');
+  const el = document.getElementById('rotate');
+  if (!el) return;
+  let pausedByRotate = false;
+  const apply = () => {
+    const show = portrait.matches && coarse.matches;
+    el.classList.toggle('hidden', !show);
+    if (show && !loop.paused) { loop.setPaused(true); pausedByRotate = true; }
+    else if (!show && pausedByRotate) { loop.setPaused(false); pausedByRotate = false; }
+  };
+  const sub = (mq) => { if (mq.addEventListener) mq.addEventListener('change', apply); else if (mq.addListener) mq.addListener(apply); };
+  sub(portrait); sub(coarse);
+  apply();
+})();
 
 // Debug handle (dev tools / preview verification). `state` is a live getter
 // because load() replaces the whole state object.
@@ -416,8 +296,8 @@ loadSprites();   // async; art pops in when ready, shapes are the fallback
 // input
 // ---------------------------------------------------------------------------
 setupInput(canvas, {
-  onHover(x, y, px, py) { state.hover = { x, y }; tooltip.set(buildTooltip(x, y, px, py)); },
-  onHoverEnd() { state.hover = null; tooltip.set(null); },
+  onHover(x, y, px, py) { state.hover = { x, y }; if (hud.infocard) hud.infocard.showHover(hoverCardHtml(state, x, y, px, py)); },
+  onHoverEnd() { state.hover = null; if (hud.infocard) hud.infocard.clearHover(); },
   onLeftClick(x, y, px, py) {
     if (state.targetingAbility && state.hero) {
       state.hero.cast(state, state.targetingAbilityIndex, { x, y });
@@ -445,6 +325,12 @@ setupInput(canvas, {
       return;
     }
     state.heroSelected = false;
+    // tap an enemy -> inspect card (touch has no hover)
+    const ne = enemyAt(state, px, py);
+    if (ne && hud.infocard) {
+      hud.infocard.showTap(enemyCardHtml(ne));
+      return;
+    }
     // tap a tower -> tower ring (upgrade/sell/target); tap open ground -> build ring
     if (t) {
       hud.openTowerRing(state, t);
