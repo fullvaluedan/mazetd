@@ -128,6 +128,39 @@ gold-plating.
   `opencut-classic` placeholder there was why the preview kept failing on port
   3100. Added a `mazecore` config there pointing at this repo's `serve.cjs`.
 
+## Post-launch — WC3 matrix, Beacon aura & siege mode
+- **Damage×armor matrix replaces flat armor.** Every hit is scaled by
+  `DAMAGE_VS_ARMOR[damageType][armorType]` (0.5–1.5) in `takeDamage`; the old
+  flat-armor subtraction is gone. Magic keeps its shield bypass as a second
+  identity. Poison DoT is matrix-scaled once at application (contagion copies
+  the already-scaled dps to neighbours — accepted approximation). `damage.js`
+  exposes `matchup()`/`strongWeak()` so all UI badges derive from the table.
+- **Tuning the matrix vs the careless band:** post-matrix the careless build
+  died at w20 on two seeds. Root cause was the wave-20 BOSS: flat armor 8 had
+  cost a cannon only ~15% damage, while `boss: 0.75` cost 25% — so pierce/siege
+  vs boss went to 0.85 (matching the old effective value) and pierce vs
+  fortified softened 0.5→0.6. Final careless band w20–28 (seed 1's map just
+  builds a geometrically weak careless maze); reference 6/6 wins at 3–9 lives.
+- **Beacon stacking is per-stat MAX, never sum** — two Command auras give the
+  strongest one only, but Command + Haste combine (different stats). Kills
+  beacon-farm degeneracy. Buffs are cached per tower (`recomputeAuras`) on
+  build/sell/upgrade/load, not scanned per shot, and re-copied onto the stats
+  object every `refreshStats()` (stats replacement was the #1 staleness risk).
+  Aura radius deliberately ignores the shop range boost so the cache stays
+  valid and coverage reads honestly.
+- **Siege mode: sealing is allowed, punished in-fiction.** The legality check
+  didn't disappear — `wouldSealAt()` now powers an orange preview warning and
+  keeps the SIM's reference build seal-free. Besieged creeps follow a weighted
+  Dijkstra field where a tower cell costs 200 (an open detour is always
+  preferred until none exists), so the wave converges on the cheapest wall.
+  Creeps never enter a tower cell; they stop adjacent and chew (wave-scaled
+  dps, bosses ×4). Tower HP scales with invested gold and upgrades repair to
+  full — deliberate: a maxed wall is a real fortification. No refund on
+  destruction, so sealing is a calculated gamble, not free juggling insurance.
+- **Juggling stays a first-class technique:** `reroute()` clears `siegeTarget`
+  before re-pathing, so selling any wall snaps the whole wave back into
+  walking the same tick.
+
 ## Planned mechanics (decided up front, implemented in later phases)
 - **Pathfinding:** enemy routing uses a per-goal BFS **distance field** (uniform
   cost = shortest path on a 4-connected grid) rather than per-enemy A*. Enemies

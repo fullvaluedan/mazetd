@@ -28,13 +28,28 @@ open route. Place towers to force them down a long, winding maze so they spend a
 long as possible in range.
 
 - **Build a long maze.** The longer the path, the more your towers fire.
-- **You may not fully wall enemies off.** Every spawn must always keep a route to
-  its goal; illegal placements are rejected (red highlight).
+- **You CAN wall enemies off — at your peril.** Sealing every route is allowed
+  (the preview turns orange to warn you), but a sealed-out wave besieges your
+  maze: creeps swarm the cheapest wall and chew through it. Destroyed towers
+  pay no refund. Masters use this for *juggling* — open and close alternate
+  doors to walk a wave back and forth through the kill zone.
 - **Get anti-air before wave 15.** Flying enemies ignore your maze and fly
   straight to the goal — only air-capable towers (Archer, Frost, Arcane, Tesla)
   can hit them.
-- **Counter each enemy type:** swarm → splash (Cannon), tank → magic/poison
-  (Arcane/Venom), flyer → anti-air, shield → Arcane, healer → burst/Disrupt.
+- **Play the armor matchups.** Every tower has a damage type, every enemy an
+  armor type (shown in its tooltip and the wave preview):
+
+  | damage \ armor | Unarmored | Light | Medium | Heavy | Fortified | Boss |
+  |---|---|---|---|---|---|---|
+  | **Pierce** (Archer) | 1.25× | **1.5×** | 1× | 0.75× | *0.6×* | 0.85× |
+  | **Siege** (Cannon) | 1.25× | 0.75× | 1× | 1× | **1.5×** | 0.85× |
+  | **Magic** (Frost/Arcane/Tesla) | 1× | 1.25× | 1× | **1.5×** | *0.5×* | 1× |
+  | **Poison** (Venom) | 1× | 1× | **1.5×** | 0.75× | 1× | 1× |
+  | **Chaos** (hero, Archmage, Airstrike) | 1× | 1× | 1× | 1× | 1× | 1× |
+
+- **Drop a Beacon in the middle of your maze.** It doesn't attack — it grants
+  +damage and +attack speed to every tower in its radius (strongest aura wins;
+  same-type auras don't stack).
 - **Use your hero.** Command it with right-click, fire its two abilities, keep it
   alive, level it up.
 - **Survive all 100 waves to win.** Lose all 20 lives and it's over.

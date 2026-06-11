@@ -23,8 +23,9 @@ import { startWave, processSpawning, waveComplete, updateBosses } from '../game/
 import { tryBuild, tryUpgrade, tryConsumable } from '../game/shop.js';
 
 // Mix favouring anti-air (tesla/arcane/archer/frost can hit flyers). Ordered
-// cheap-first so the early maze fills out before pricey towers appear.
-const TYPE_CYCLE = ['archer', 'cannon', 'frost', 'arcane', 'venom', 'archer', 'tesla', 'frost', 'arcane', 'cannon'];
+// cheap-first so the early maze fills out before pricey towers appear. One
+// Beacon per cycle: inline in the wall, its aura covers the adjacent walls.
+const TYPE_CYCLE = ['archer', 'cannon', 'frost', 'arcane', 'venom', 'archer', 'tesla', 'beacon', 'frost', 'arcane', 'cannon'];
 
 function cheapestAffordable(budget) {
   let best = null, bestCost = Infinity;

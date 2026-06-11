@@ -108,8 +108,8 @@ export const CONFIG = {
     chaos:  { name: 'Chaos',  color: '#e8ecf3' },
   },
   DAMAGE_VS_ARMOR: {
-    pierce: { unarmored: 1.25, light: 1.5,  medium: 1.0, heavy: 0.75, fortified: 0.5,  boss: 0.75 },
-    siege:  { unarmored: 1.25, light: 0.75, medium: 1.0, heavy: 1.0,  fortified: 1.5,  boss: 0.75 },
+    pierce: { unarmored: 1.25, light: 1.5,  medium: 1.0, heavy: 0.75, fortified: 0.6,  boss: 0.85 },
+    siege:  { unarmored: 1.25, light: 0.75, medium: 1.0, heavy: 1.0,  fortified: 1.5,  boss: 0.85 },
     magic:  { unarmored: 1.0,  light: 1.25, medium: 1.0, heavy: 1.5,  fortified: 0.5,  boss: 1.0  },
     poison: { unarmored: 1.0,  light: 1.0,  medium: 1.5, heavy: 0.75, fortified: 1.0,  boss: 1.0  },
     chaos:  { unarmored: 1.0,  light: 1.0,  medium: 1.0, heavy: 1.0,  fortified: 1.0,  boss: 1.0  },
