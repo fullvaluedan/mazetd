@@ -157,6 +157,13 @@ export class HUD {
       this.el.preview.innerHTML = `<b>Wave ${nw}</b> &nbsp; ${icons} ${info.isBoss ? '&nbsp;<b style="color:#c65bd6">BOSS</b>' : ''} <span class="muted">(${info.count})</span>`;
       this.el.warn.textContent = info.hasFlying ? '⚠ FLYING incoming — bring anti-air!' : '';
     }
+    // siege overrides the warn line while any route is sealed
+    if (state.siege) {
+      this.el.warn.textContent = '⚠ Path sealed — enemies attack your towers!';
+      this.el.warn.style.color = CONFIG.COLORS.danger;
+    } else {
+      this.el.warn.style.color = CONFIG.COLORS.gold;
+    }
 
     // start button state + early-start bonus
     const bonus = Math.floor(state.buildTimer * CONFIG.EARLY_START_BONUS_PER_SEC);

@@ -12,7 +12,8 @@ import { CONFIG } from '../config.js';
 import { SIZE, cellCenter, cellCenterX, cellCenterY, cellDist } from '../engine/grid.js';
 import { fieldAt } from '../engine/pathfinding.js';
 import { onMazeChanged } from './state.js';
-import { spawnProjectile, applyTowerHit, applyChain, pushBeam } from './projectile.js';
+import { spawnProjectile, applyTowerHit, applyChain, pushBeam, pushSplash } from './projectile.js';
+import { addShake, addFloater } from './economy.js';
 
 // Resolve a tower's stats at a given level + branch choice.
 export function getTowerStats(typeId, level, branchId) {
@@ -113,6 +114,8 @@ export class Tower {
     this.invested = this.def.cost; // total gold sunk in (for sell refund)
     this.buffDmg = 0;              // strongest Beacon damage-aura covering us
     this.buffSpeed = 0;            // strongest Beacon speed-aura covering us
+    this.alive = true;             // false once besieging creeps destroy us
+    this.underAttack = 0;          // red-flash timer while being chewed
     this.refreshStats();
     this.muzzle = 0;               // brief flash timer for render
   }
@@ -122,6 +125,9 @@ export class Tower {
     // stats was just replaced — re-copy the received aura buff onto it
     // (projectiles/splash read the firing tower's stats, not the tower).
     if (!this.def.aura) this.stats.buffDmg = this.buffDmg || 0;
+    // Wall HP grows with the gold sunk in (siege mode).
+    this.maxHp = CONFIG.TOWER_HP.base + this.invested * CONFIG.TOWER_HP.perGold;
+    if (this.hp == null || this.hp > this.maxHp) this.hp = this.maxHp;
   }
 
   canUpgrade() { return this.level < 4; }
@@ -135,6 +141,7 @@ export class Tower {
     this.level += 1;
     if (this.level === 4) this.branch = branchId;
     this.refreshStats();
+    this.hp = this.maxHp;     // upgrading repairs the wall (gold sink perk)
     return true;
   }
 
@@ -190,6 +197,7 @@ export class Tower {
 
   // --- firing ---------------------------------------------------------------
   update(dt, state) {
+    if (this.underAttack > 0) this.underAttack -= dt;
     if (this.def.aura) return;     // Beacons never attack
     if (this.muzzle > 0) this.muzzle -= dt;
     this.cooldownLeft -= dt;
@@ -262,6 +270,16 @@ export function removeTower(state, tower) {
   if (i >= 0) state.towers.splice(i, 1);
   onMazeChanged(state);
   recomputeAuras(state);
+}
+
+// Besieging creeps chewed through this tower: gone for good, NO refund.
+export function destroyTower(state, tower) {
+  tower.alive = false;
+  if (state.selected === tower) state.selected = null;
+  removeTower(state, tower);    // grid + list + reroute + aura refresh
+  pushSplash(state, tower.px, tower.py, 1.0, '#e24b4a');
+  addShake(state, 5);
+  addFloater(state, tower.px, tower.py, 'DESTROYED', '#e24b4a');
 }
 
 export function updateTowers(state, dt) {

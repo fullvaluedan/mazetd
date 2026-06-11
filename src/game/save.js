@@ -19,7 +19,7 @@ function ls() { return (typeof localStorage !== 'undefined') ? localStorage : nu
 
 export function buildSnapshot(state) {
   return {
-    v: 1,
+    v: 2,                       // v2: towers carry hp (siege mode); v1 loads at full HP
     seed: state.seed,
     wave: state.wave,
     maxWave: state.maxWave,
@@ -36,6 +36,7 @@ export function buildSnapshot(state) {
     towers: state.towers.map((t) => ({
       type: t.type, cx: t.cx, cy: t.cy, level: t.level,
       branch: t.branch, targetMode: t.targetMode, invested: t.invested,
+      hp: Math.ceil(t.hp),
     })),
   };
 }
@@ -74,6 +75,8 @@ export function applySnapshot(snap) {
       t.level = tw.level; t.branch = tw.branch;
       t.targetMode = tw.targetMode; t.invested = tw.invested;
       t.refreshStats();
+      // v2 saves carry wall damage; v1 (no hp field) loads at full HP.
+      t.hp = Math.min(t.maxHp, tw.hp != null ? tw.hp : t.maxHp);
     }
   }
   if (snap.hero) {

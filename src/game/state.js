@@ -9,7 +9,7 @@
 
 import { CONFIG } from '../config.js';
 import { CELL, COLS, ROWS, inBounds } from '../engine/grid.js';
-import { bfsDistanceField, isReachable, tracePath, fieldAt, UNREACHABLE } from '../engine/pathfinding.js';
+import { bfsDistanceField, weightedDistanceField, isReachable, tracePath, fieldAt, UNREACHABLE } from '../engine/pathfinding.js';
 import { createMap } from './map.js';
 
 export function createState(rng, seed = 0) {
@@ -41,6 +41,8 @@ export function createState(rng, seed = 0) {
     fields: {},              // goalId -> distance field (Float64Array)
     routing: {},             // spawnId -> goalId
     paths: {},               // spawnId -> traced [{x,y}...] (for overlay)
+    siegeFields: {},         // goalId -> weighted breach field (only while sealed)
+    siege: false,            // true while any route is sealed (walls under threat)
 
     // economy
     gold: CONFIG.START_GOLD,
@@ -139,8 +141,9 @@ export function spawnsAllReachGoals(state, walk) {
   return true;
 }
 
-// Is a tower allowed on this cell? Must be empty buildable interior, with no
-// ground enemy standing on it, and must not seal off any spawn from any goal.
+// Is a tower allowed on this cell? Must be empty buildable interior with no
+// ground enemy standing on it. Sealing the path IS allowed (siege mode) — use
+// wouldSealAt() to warn the player before they do it.
 export function canBuildAt(state, x, y) {
   if (!inBounds(x, y)) return false;
   if (state.map.type(x, y) !== CELL.OPEN) return false;
@@ -150,15 +153,49 @@ export function canBuildAt(state, x, y) {
     if (!e.alive || e.flying) continue;
     if (e.cx === x && e.cy === y) return false;
   }
-  // Path-existence rule: with this cell blocked, all routes must survive.
-  return spawnsAllReachGoals(state, makeWalkable(state, x, y));
+  return true;
 }
 
-// Call whenever a tower is added or removed: refresh fields, default routing
-// stays as set, re-trace overlay paths, and nudge every live enemy onto a fresh
+// Would building here cut some spawn off from its goal? Drives the orange
+// build-preview warning and keeps the sim's reference build seal-free.
+export function wouldSealAt(state, x, y) {
+  return !spawnsAllReachGoals(state, makeWalkable(state, x, y));
+}
+
+// While a goal is sealed (any spawn or live ground enemy cut off from it),
+// publish a weighted breach field for it: open cell = 1, tower cell = big.
+// Besieged creeps follow it downhill to the cheapest wall and chew through.
+export function recomputeSiegeFields(state) {
+  const terrain = (x, y) => {
+    if (!inBounds(x, y)) return false;
+    const t = state.map.type(x, y);
+    return t !== CELL.BORDER && t !== CELL.OBSTACLE;   // towers ARE passable for costing
+  };
+  const costAt = (x, y) => (state.towerGrid[y][x] ? CONFIG.SIEGE.towerCellCost : 1);
+  let any = false;
+  for (const g of state.map.goals) {
+    const field = state.fields[g.id];
+    let sealed = state.map.spawns.some((s) => !isReachable(field, s.cx, s.cy));
+    if (!sealed) {
+      sealed = state.enemies.some((e) =>
+        e.alive && !e.flying && e.goalId === g.id && fieldAt(field, e.cx, e.cy) === UNREACHABLE);
+    }
+    if (sealed) {
+      state.siegeFields[g.id] = weightedDistanceField(terrain, costAt, g.cx, g.cy);
+      any = true;
+    } else {
+      delete state.siegeFields[g.id];
+    }
+  }
+  state.siege = any;
+}
+
+// Call whenever a tower is added or removed: refresh fields (+ siege breach
+// fields), re-trace overlay paths, and nudge every live enemy onto a fresh
 // next-step from the new field.
 export function onMazeChanged(state) {
   recomputeFields(state);
+  recomputeSiegeFields(state);
   recomputePaths(state);
   for (const e of state.enemies) {
     if (e.alive && !e.flying && typeof e.reroute === 'function') e.reroute(state);

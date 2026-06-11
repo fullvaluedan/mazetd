@@ -220,6 +220,21 @@ export const CONFIG = {
   TARGET_MODES: ['first', 'last', 'strongest', 'closest'],
 
   // ---------------------------------------------------------------------------
+  // SIEGE MODE — you MAY seal the maze, but cut-off creeps attack your walls.
+  // Besieged creeps follow a weighted breach field (open cell = 1, tower cell =
+  // towerCellCost) so the whole wave converges on the cheapest wall to chew
+  // through. Tower max HP = TOWER_HP.base + invested gold * TOWER_HP.perGold.
+  // ---------------------------------------------------------------------------
+  SIEGE: {
+    towerCellCost: 200,      // Dijkstra penalty per tower cell (>> any open path)
+    dpsBase: 5,              // creep wall-damage dps at wave 0...
+    dpsPerWave: 0.8,         // ...plus per wave; multiplied by ENEMIES[type].hpMult
+    bossDpsMult: 4,          // bosses smash walls much faster
+    underAttackFlash: 0.35,  // seconds of red flash on a tower that was just hit
+  },
+  TOWER_HP: { base: 60, perGold: 0.6 },
+
+  // ---------------------------------------------------------------------------
   // HEROES
   // ---------------------------------------------------------------------------
   HERO_XP_BASE: 50,
@@ -304,6 +319,7 @@ export const CONFIG = {
     border: '#11141c',
     hoverOk: 'rgba(0,212,255,0.18)',
     hoverBad: 'rgba(226,75,74,0.30)',
+    hoverSeal: 'rgba(255,165,0,0.35)',   // legal but seals the path (siege warning)
     obstacle: '#3a3f4b',
     obstacleHi: '#4a505e',
     spawn: '#4fd06a',

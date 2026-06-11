@@ -10,7 +10,7 @@
 
 import { CONFIG, CANVAS_W, CANVAS_H } from '../config.js';
 import { CELL, COLS, ROWS, SIZE, cellCenter, cellCenterX, cellCenterY } from '../engine/grid.js';
-import { canBuildAt } from '../game/state.js';
+import { canBuildAt, wouldSealAt } from '../game/state.js';
 import { getSprite } from './sprites.js';
 
 const C = CONFIG.COLORS;
@@ -327,6 +327,20 @@ function drawTowers(ctx, state) {
       ctx.fill();
     }
 
+    // siege: red outline while being chewed + HP bar once damaged
+    if (t.underAttack > 0) {
+      ctx.strokeStyle = `rgba(226,75,74,${Math.min(1, t.underAttack / 0.2)})`;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(px + 1.5, py + 1.5, SIZE - 3, SIZE - 3);
+    }
+    if (t.hp < t.maxHp) {
+      const frac = Math.max(0, t.hp / t.maxHp);
+      ctx.fillStyle = C.hpBack;
+      ctx.fillRect(px + 4, py + SIZE - 4, SIZE - 8, 3);
+      ctx.fillStyle = frac > 0.4 ? C.hpFront : C.danger;
+      ctx.fillRect(px + 4, py + SIZE - 4, (SIZE - 8) * frac, 3);
+    }
+
     // level pips along the bottom
     const pips = t.level;
     for (let i = 0; i < pips; i++) {
@@ -528,9 +542,11 @@ function drawHover(ctx, state) {
   if (x < 0 || y < 0 || x >= COLS || y >= ROWS) return;
 
   // If a tower is selected for building, colour by legality and show range.
+  // Orange = legal but seals the maze — the wave will attack your walls.
   if (state.buildType) {
     const legal = canBuildAt(state, x, y);
-    ctx.fillStyle = legal ? C.hoverOk : C.hoverBad;
+    const seals = legal && wouldSealAt(state, x, y);
+    ctx.fillStyle = !legal ? C.hoverBad : (seals ? C.hoverSeal : C.hoverOk);
     ctx.fillRect(x * SIZE, y * SIZE, SIZE, SIZE);
     const def = CONFIG.TOWERS[state.buildType];
     if (def) drawRangeRing(ctx, x, y, def.range);

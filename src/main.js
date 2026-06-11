@@ -10,7 +10,7 @@ import { CONFIG, CANVAS_W, CANVAS_H } from './config.js';
 import { GameLoop } from './engine/loop.js';
 import { makeRng } from './engine/rng.js';
 import { setupInput } from './engine/input.js';
-import { createState, canBuildAt } from './game/state.js';
+import { createState, canBuildAt, wouldSealAt } from './game/state.js';
 import { strongWeak } from './game/damage.js';
 import { updateEnemies } from './game/enemy.js';
 import { updateTowers } from './game/tower.js';
@@ -35,6 +35,7 @@ const modal = document.getElementById('modal');
 
 let state = createState(makeRng(CONFIG.SEED), CONFIG.SEED);
 let prevStatus = state.status;
+let prevSiege = false;
 const tooltip = new Tooltip();
 
 function clearTargeting() {
@@ -176,18 +177,30 @@ function buildTooltip(x, y, px, py) {
     const s = getTowerStats(state.buildType, 1, null);
     const legal = (y >= 0 && x >= 0) ? canBuildAtSafe(x, y) : false;
     if (def.aura) {
+      const sealsA = legal && wouldSealAtSafe(x, y);
+      const verdictA = !legal
+        ? '<b style="color:#e24b4a">cannot build here</b>'
+        : sealsA
+          ? '<b style="color:#ffa500">⚠ Seals the maze — creeps will attack your towers!</b>'
+          : '<b style="color:#5fce7a">click to build</b>';
       return `<b style="color:${def.color}">${def.glyph} ${def.name}</b> — ${def.cost}g<br>
         +${Math.round(s.auraDmg * 100)}% dmg · +${Math.round(s.auraSpeed * 100)}% atk speed · radius ${s.auraRange.toFixed(1)}<br>
         <span class="muted">${def.blurb}</span><br>
-        <b style="color:${legal ? '#5fce7a' : '#e24b4a'}">${legal ? 'click to build' : 'cannot build here'}</b>`;
+        ${verdictA}`;
     }
     const dps = (s.damage / s.cooldown).toFixed(1);
+    const seals = legal && wouldSealAtSafe(x, y);
+    const verdict = !legal
+      ? '<b style="color:#e24b4a">cannot build here</b>'
+      : seals
+        ? '<b style="color:#ffa500">⚠ Seals the maze — creeps will attack your towers!</b>'
+        : '<b style="color:#5fce7a">click to build</b>';
     return `<b style="color:${def.color}">${def.glyph} ${def.name}</b> — ${def.cost}g<br>
       DMG ${s.damage} · RNG ${s.range} · CD ${s.cooldown}s · ~DPS ${dps}<br>
       ${s.damageType}${s.targetsAir ? ' · hits air' : ''}<br>
       ${matchupText(s.damageType) ? matchupText(s.damageType) + '<br>' : ''}
       <span class="muted">${def.blurb}</span><br>
-      <b style="color:${legal ? '#5fce7a' : '#e24b4a'}">${legal ? 'click to build' : 'cannot build here'}</b>`;
+      ${verdict}`;
   }
   return null;
 }
@@ -195,6 +208,9 @@ function buildTooltip(x, y, px, py) {
 // guard canBuildAt against exceptions during tooltip building
 function canBuildAtSafe(x, y) {
   try { return canBuildAt(state, x, y); } catch { return false; }
+}
+function wouldSealAtSafe(x, y) {
+  try { return wouldSealAt(state, x, y); } catch { return false; }
 }
 
 // ---------------------------------------------------------------------------
@@ -330,6 +346,10 @@ function update(dt) {
     else if (waveInfo(state.wave + 1).hasFlying) showBanner('⚠ Flying next wave — get anti-air!', 'warn', 2.5);
   }
   if (state.lives <= 0) state.status = 'lost';
+
+  // siege alert: fires once each time the maze flips from open to sealed
+  if (state.siege && !prevSiege) showBanner("⚠ Path sealed — they're attacking your walls!", 'danger', 2.5);
+  prevSiege = state.siege;
 
   if (state.status !== prevStatus && (state.status === 'won' || state.status === 'lost')) showEndModal();
   prevStatus = state.status;

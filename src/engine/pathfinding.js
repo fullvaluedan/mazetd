@@ -53,6 +53,38 @@ export function bfsDistanceField(walkable, goalX, goalY) {
   return dist;
 }
 
+// Weighted distance field (Dijkstra) for siege mode: tower cells are passable
+// but expensive (costAt returns e.g. 200 for a tower, 1 for open ground), so
+// the downhill gradient leads besieged creeps to the CHEAPEST wall to breach.
+// `passable(x,y)` should admit tower cells (terrain-only check); creeps never
+// actually enter one — they stop adjacent and attack (enemy.js).
+export function weightedDistanceField(passable, costAt, goalX, goalY) {
+  const dist = new Float64Array(COLS * ROWS).fill(UNREACHABLE);
+  if (!inBounds(goalX, goalY)) return dist;
+  const idx = (x, y) => y * COLS + x;
+  const done = new Uint8Array(COLS * ROWS);
+  dist[idx(goalX, goalY)] = 0;
+  // Linear-scan open set (grid is <=504 cells; readability over heaps).
+  const open = new Set([idx(goalX, goalY)]);
+  while (open.size) {
+    let cur = -1, best = Infinity;
+    for (const n of open) { if (dist[n] < best) { best = dist[n]; cur = n; } }
+    open.delete(cur);
+    done[cur] = 1;
+    const cx = cur % COLS, cy = (cur / COLS) | 0;
+    for (let i = 0; i < 4; i++) {
+      const nx = cx + NEIGHBORS4[i][0];
+      const ny = cy + NEIGHBORS4[i][1];
+      if (!inBounds(nx, ny) || !passable(nx, ny)) continue;
+      const ni = idx(nx, ny);
+      if (done[ni]) continue;
+      const nd = dist[cur] + costAt(nx, ny);
+      if (nd < dist[ni]) { dist[ni] = nd; open.add(ni); }
+    }
+  }
+  return dist;
+}
+
 export function fieldAt(dist, x, y) {
   if (!inBounds(x, y)) return UNREACHABLE;
   return dist[y * COLS + x];

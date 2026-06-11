@@ -16,8 +16,9 @@
 
 import { CONFIG } from '../config.js';
 import { SIZE, COLS, ROWS, NEIGHBORS4, inBounds, cellCenter, worldToCell } from '../engine/grid.js';
-import { fieldAt } from '../engine/pathfinding.js';
+import { fieldAt, UNREACHABLE } from '../engine/pathfinding.js';
 import { matchup } from './damage.js';
+import { destroyTower } from './tower.js';
 
 let NEXT_ID = 1;
 
@@ -83,6 +84,7 @@ export class Enemy {
 
     this.alive = true;
     this.reachedGoal = false;
+    this.siegeTarget = null;    // tower being chewed while the path is sealed
 
     if (this.flying) {
       this.targetCenter = cellCenter(goal.cx, goal.cy);
@@ -140,11 +142,33 @@ export class Enemy {
 
     if (this.stunTimer > 0) return;     // frozen/taunted: no movement
 
+    // Siege mode: cut off from the goal, parked next to a wall tower — chew it.
+    if (!this.flying && this.siegeTarget) {
+      const t = this.siegeTarget;
+      if (!t.alive || state.towerGrid[t.cy][t.cx] !== t) {
+        this.siegeTarget = null;          // wall fell/sold between reroutes
+        this.advanceTarget(state);
+      } else {
+        this.attackTower(state, t, dt);
+        return;                           // no movement while attacking
+      }
+    }
+
     const slowFactor = this.slowTimer > 0 ? (1 - this.slowPct) : 1;
     const burst = this.burstLeft > 0 ? 1.5 : 1;
     const movePx = this.speed * slowFactor * burst * SIZE * dt;
     if (this.flying) this.moveStraight(movePx);
     else this.moveGrid(movePx, state);
+  }
+
+  // Wall-damage dps scales with wave and creep beefiness; bosses smash.
+  attackTower(state, tower, dt) {
+    const S = CONFIG.SIEGE;
+    let dps = (S.dpsBase + S.dpsPerWave * state.wave) * this.def.hpMult;
+    if (this.boss) dps *= S.bossDpsMult;
+    tower.hp -= dps * dt;
+    tower.underAttack = S.underAttackFlash;
+    if (tower.hp <= 0) destroyTower(state, tower);   // reroutes everyone via onMazeChanged
   }
 
   tickPoison(state, dt) {
@@ -208,8 +232,16 @@ export class Enemy {
   }
 
   // Pick the neighbour of (cx,cy) closest to the goal, using the live field.
+  // If our cell is cut off from the goal (the maze is sealed), fall back to the
+  // weighted breach field; when its downhill step lands on a tower cell, park
+  // here and mark that tower as our siege target instead of moving.
   advanceTarget(state) {
-    const field = state.fields[this.goalId];
+    let field = state.fields[this.goalId];
+    let sieging = false;
+    if (fieldAt(field, this.cx, this.cy) === UNREACHABLE && state.siegeFields && state.siegeFields[this.goalId]) {
+      field = state.siegeFields[this.goalId];
+      sieging = true;
+    }
     const here = fieldAt(field, this.cx, this.cy);
     if (here === 0) { this.reachedGoal = true; return; }
     let best = null, bestD = here;
@@ -220,6 +252,15 @@ export class Enemy {
       if (d < bestD) { bestD = d; best = { x: nx, y: ny }; }
     }
     if (best) {
+      const wall = sieging ? state.towerGrid[best.y][best.x] : null;
+      if (wall) {
+        // next step is a wall tower: stop adjacent and chew through it
+        this.siegeTarget = wall;
+        this.targetCell = { x: this.cx, y: this.cy };
+        this.targetCenter = cellCenter(this.cx, this.cy);
+        return;
+      }
+      this.siegeTarget = null;
       this.targetCell = best;
       this.targetCenter = cellCenter(best.x, best.y);
     } else {
@@ -230,7 +271,10 @@ export class Enemy {
   }
 
   // Called by onMazeChanged: re-derive the next step from the refreshed field.
+  // Clearing siegeTarget first means selling a wall resumes the walk instantly
+  // (juggling stays smooth) and a fallen wall hands off to the next one.
   reroute(state) {
+    this.siegeTarget = null;
     this.reachedGoal = false;
     this.advanceTarget(state);
   }

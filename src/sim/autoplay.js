@@ -13,7 +13,7 @@
 import { CONFIG, TICK_DT } from '../config.js';
 import { makeRng } from '../engine/rng.js';
 import { SIZE, cellDist, worldToCell } from '../engine/grid.js';
-import { createState, canBuildAt } from '../game/state.js';
+import { createState, canBuildAt, wouldSealAt } from '../game/state.js';
 import { updateEnemies } from '../game/enemy.js';
 import { updateTowers } from '../game/tower.js';
 import { updateProjectiles, updateEffects } from '../game/projectile.js';
@@ -67,7 +67,9 @@ function referenceBuild(state, reserve) {
     let type = TYPE_CYCLE[state._ti % TYPE_CYCLE.length];
     if (CONFIG.TOWERS[type].cost > budget) type = cheapestAffordable(budget);
     if (!type) break;                       // can't afford anything
-    if (canBuildAt(state, c.x, c.y) && tryBuild(state, type, c.x, c.y)) state._ti++;
+    // wouldSealAt guard: canBuildAt now ALLOWS sealing (siege mode); the
+    // reference player must never wall itself in.
+    if (canBuildAt(state, c.x, c.y) && !wouldSealAt(state, c.x, c.y) && tryBuild(state, type, c.x, c.y)) state._ti++;
   }
   let guard = 0;
   while (guard++ < 1000) {
@@ -91,7 +93,7 @@ function carelessBuild(state) {
     if (state.towerGrid[c.y][c.x]) continue;
     const type = (state._cti % 2 === 0) ? 'archer' : 'cannon';
     if (state.gold < CONFIG.TOWERS[type].cost) continue;
-    if (canBuildAt(state, c.x, c.y) && tryBuild(state, type, c.x, c.y)) state._cti++;
+    if (canBuildAt(state, c.x, c.y) && !wouldSealAt(state, c.x, c.y) && tryBuild(state, type, c.x, c.y)) state._cti++;
   }
   // deliberately never upgrades
 }
