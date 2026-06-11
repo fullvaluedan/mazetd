@@ -75,7 +75,7 @@ function currentHint() {
       : 'Tap a tower in the shop (Archer is a great start), then tap the map to build.';
   }
   if (state.wave === 0 && state.towers.length > 0 && !state.waveActive) {
-    return 'Build a few more, then press Start Wave. Starting early pays bonus gold!';
+    return 'Build a few more, then hit NEXT WAVE. Starting early pays bonus gold!';
   }
   if (state.wave === 1 && state.waveActive) return 'Enemies follow the dotted path. Tap your hero, then a cell, to move them.';
   return '';
@@ -221,6 +221,10 @@ function wouldSealAtSafe(x, y) {
 // ---------------------------------------------------------------------------
 const actions = {
   setSpeed: (n) => loop.setSpeed(n),
+  cycleSpeed: () => {
+    const i = CONFIG.SPEEDS.indexOf(loop.gameSpeed);
+    loop.setSpeed(CONFIG.SPEEDS[(i + 1) % CONFIG.SPEEDS.length]);
+  },
   togglePause: () => loop.togglePause(),
   togglePath: () => { state.showPath = !state.showPath; },
   toggleArt: () => { toggleSprites(); },
@@ -384,7 +388,8 @@ function draw() {
 }
 
 const loop = new GameLoop(update, draw);
-const hud = new HUD(document.getElementById('hud'), actions);
+const hud = new HUD(document.getElementById('hud'), actions, { uiLayer, viewport });
+viewport.onResize = () => hud.onViewportResize();
 loop.start();
 showStartModal();
 loadSprites();   // async; art pops in when ready, shapes are the fallback

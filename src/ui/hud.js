@@ -12,9 +12,9 @@ import { CONFIG } from '../config.js';
 import { waveInfo } from '../game/wave.js';
 import { strongWeak } from '../game/damage.js';
 import { heroUpgradeCost, heroUpgradeMaxed, consumableCost, towerBoostCost, towerBoostMaxed } from '../game/shop.js';
-
-// Tiny glyphs for the next-wave preview.
-const EGLYPH = { normal: '●', fast: '»', tank: '▣', swarm: '∴', flyer: '▲', healer: '✚', shield: '◈', boss: '★' };
+import { div, btn, bar, stat, EGLYPH } from './components.js';
+import { TopBar } from './topbar.js';
+import { WaveBar } from './wavebar.js';
 
 // Compact strong/weak armor badges for a damage type (e.g. "▲L U  ▼F H").
 function badgeHtml(damageType) {
@@ -30,11 +30,24 @@ function badgeHtml(damageType) {
 }
 
 export class HUD {
-  constructor(root, actions) {
+  // scene (optional): { uiLayer, viewport } — mounts the in-scene widgets
+  // (top bar, wave control) over the canvas. Omitted in DOM-shim tests.
+  constructor(root, actions, scene = null) {
     this.root = root;
     this.actions = actions;   // { setSpeed, togglePause, togglePath, startWave, ... }
     this.el = {};
+    this.topbar = null;
+    this.wavebar = null;
     this.build();
+    if (scene && scene.uiLayer) {
+      this.topbar = new TopBar(scene.uiLayer, actions);
+      this.wavebar = new WaveBar(scene.uiLayer, scene.viewport, actions);
+    }
+  }
+
+  // Called when the viewport letterbox changes: re-anchor world-pinned widgets.
+  onViewportResize() {
+    if (this.wavebar) this.wavebar.position();
   }
 
   build() {
@@ -46,25 +59,13 @@ export class HUD {
       <div class="muted">Build the maze. Survive 100 waves.</div>`;
     this.root.appendChild(title);
 
-    // --- stat readout ---
-    const stats = div('hud-row');
-    this.el.gold = stat(stats, 'Gold', 'gold');
-    this.el.lives = stat(stats, 'Lives', 'lives');
-    this.el.wave = stat(stats, 'Wave', '');
-    this.root.appendChild(stats);
+    // (gold/lives/wave + pause/speed + start-wave moved to the in-scene
+    //  top bar and wave button — see topbar.js / wavebar.js)
 
-    // --- controls: pause + speeds ---
+    // --- controls ---
     const controls = div('section');
     controls.innerHTML = `<h3>Controls</h3>`;
-    const row = div('speed-row');
-    this.el.pause = btn('▮▮', () => this.actions.togglePause());
-    this.el.s1 = btn('1×', () => this.actions.setSpeed(1));
-    this.el.s2 = btn('2×', () => this.actions.setSpeed(2));
-    this.el.s3 = btn('3×', () => this.actions.setSpeed(3));
-    row.append(this.el.pause, this.el.s1, this.el.s2, this.el.s3);
-    controls.appendChild(row);
     const row2 = div('speed-row');
-    row2.style.marginTop = '6px';
     this.el.path = btn('Path (P)', () => this.actions.togglePath());
     this.el.art = btn('Art', () => this.actions.toggleArt());
     this.el.save = btn('Save', () => this.actions.save());
@@ -73,21 +74,17 @@ export class HUD {
     controls.appendChild(row2);
     this.root.appendChild(controls);
 
-    // --- next wave + start ---
+    // --- next wave preview ---
     const waveSec = div('section');
     waveSec.innerHTML = `<h3>Next Wave</h3>`;
     this.el.preview = div('muted');
     this.el.preview.style.minHeight = '20px';
     this.el.warn = div('muted');
     this.el.warn.style.color = CONFIG.COLORS.gold;
-    this.el.start = btn('Start Wave (S)', () => this.actions.startWave());
-    this.el.start.className = 'primary';
-    this.el.start.style.width = '100%';
-    this.el.start.style.marginTop = '6px';
     this.el.auto = btn('Auto-start: OFF', () => this.actions.toggleAuto());
     this.el.auto.style.width = '100%';
     this.el.auto.style.marginTop = '6px';
-    waveSec.append(this.el.preview, this.el.warn, this.el.start, this.el.auto);
+    waveSec.append(this.el.preview, this.el.warn, this.el.auto);
     this.root.appendChild(waveSec);
 
     // --- tower shop ---
@@ -131,15 +128,9 @@ export class HUD {
   }
 
   refresh(state, ui) {
-    this.el.gold.textContent = Math.floor(state.gold);
-    this.el.lives.textContent = state.lives;
-    this.el.wave.textContent = `${state.wave}/${CONFIG.WIN_WAVE}`;
+    if (this.topbar) this.topbar.refresh(state, ui);
+    if (this.wavebar) this.wavebar.refresh(state);
 
-    // active speed/pause highlighting
-    this.el.pause.classList.toggle('active', ui.paused);
-    this.el.s1.classList.toggle('active', !ui.paused && ui.speed === 1);
-    this.el.s2.classList.toggle('active', !ui.paused && ui.speed === 2);
-    this.el.s3.classList.toggle('active', !ui.paused && ui.speed === 3);
     this.el.path.classList.toggle('active', state.showPath);
 
     // next-wave preview + flying warning
@@ -165,12 +156,6 @@ export class HUD {
       this.el.warn.style.color = CONFIG.COLORS.gold;
     }
 
-    // start button state + early-start bonus
-    const bonus = Math.floor(state.buildTimer * CONFIG.EARLY_START_BONUS_PER_SEC);
-    this.el.start.disabled = state.waveActive || state.status === 'won' || state.status === 'lost';
-    this.el.start.textContent = state.waveActive
-      ? 'Wave in progress…'
-      : (bonus > 0 ? `Start Wave (S)  +${bonus}g` : 'Start Wave (S)');
     this.el.auto.classList.toggle('active', state.autoStart);
     this.el.auto.textContent = 'Auto-start: ' + (state.autoStart ? 'ON' : 'OFF');
 
@@ -454,22 +439,4 @@ export class HUD {
   mount(node) { this.el.shopMount.appendChild(node); }
 }
 
-// ---- tiny DOM helpers ----
-function div(cls) { const d = document.createElement('div'); if (cls) d.className = cls; return d; }
-function btn(label, onClick) { const b = document.createElement('button'); b.textContent = label; b.addEventListener('click', onClick); return b; }
-function bar(kind) {
-  const wrap = div('bar' + (kind ? ' ' + kind : ''));
-  wrap.style.margin = '3px 0';
-  const fill = document.createElement('div');
-  fill.style.width = '100%';
-  wrap.appendChild(fill);
-  return { wrap, fill };
-}
-function stat(parent, label, valueClass) {
-  const s = div('stat');
-  const l = div('label'); l.textContent = label;
-  const v = div('value' + (valueClass ? ' ' + valueClass : '')); v.textContent = '0';
-  s.append(l, v);
-  parent.appendChild(s);
-  return v;
-}
+// (DOM helpers div/btn/bar/stat + EGLYPH now live in components.js)
