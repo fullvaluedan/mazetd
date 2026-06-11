@@ -28,6 +28,7 @@ export function createState(rng, seed = 0) {
     time: 0,                 // seconds of sim time (for animations)
     shake: 0,                // screen-shake intensity (juice)
     particles: [],           // transient death particles (juice)
+    events: [],              // plain-data sound/feedback events, drained by the UI
 
     // entities
     towers: [],
@@ -209,4 +210,12 @@ export function onMazeChanged(state) {
 // Distance from a cell to a goal's exit (used by enemy stepping).
 export function distanceToGoal(state, goalId, x, y) {
   return fieldAt(state.fields[goalId], x, y);
+}
+
+// Cosmetic event queue (sounds, future haptics). Plain data, capped so
+// headless runs (which never drain it) stay bounded; the sim never reads it.
+const EVENT_CAP = 64;
+export function pushEvent(state, t, d) {
+  if (!state.events || state.events.length >= EVENT_CAP) return;
+  state.events.push({ t, d });
 }

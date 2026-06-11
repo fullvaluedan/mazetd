@@ -11,7 +11,7 @@
 import { CONFIG } from '../config.js';
 import { SIZE, cellCenter, cellCenterX, cellCenterY, cellDist } from '../engine/grid.js';
 import { fieldAt } from '../engine/pathfinding.js';
-import { onMazeChanged } from './state.js';
+import { onMazeChanged, pushEvent } from './state.js';
 import { spawnProjectile, applyTowerHit, applyChain, pushBeam, pushSplash } from './projectile.js';
 import { addShake, addFloater } from './economy.js';
 
@@ -212,6 +212,7 @@ export class Tower {
     this.muzzle = 0.08;
 
     if (this.stats.hitscan) {
+      pushEvent(state, 'shot', this.stats.damageType);   // beams spawn no projectile
       if (this.stats.chainTargets > 0) {
         applyChain(state, primary, this.stats, { x: this.px, y: this.py }, this.def.color);
       } else {
@@ -280,6 +281,7 @@ export function destroyTower(state, tower) {
   pushSplash(state, tower.px, tower.py, 1.0, '#e24b4a');
   addShake(state, 5);
   addFloater(state, tower.px, tower.py, 'DESTROYED', '#e24b4a');
+  pushEvent(state, 'walldown');
 }
 
 export function updateTowers(state, dt) {

@@ -13,6 +13,7 @@ import { CONFIG } from '../config.js';
 import { SIZE, cellDist } from '../engine/grid.js';
 import { addFloater } from './economy.js';
 import { matchup } from './damage.js';
+import { pushEvent } from './state.js';
 
 // Global tower-damage multipliers: the Frenzy consumable + permanent shop boosts.
 function frenzy(state) {
@@ -86,6 +87,7 @@ function nearestUnhit(state, from, hit, rangeCells, targetsAir) {
 
 // --- travelling projectiles -------------------------------------------------
 export function spawnProjectile(state, x, y, target, stats, color) {
+  pushEvent(state, 'shot', stats.damageType);
   state.projectiles.push({
     x, y,
     tx: target.x, ty: target.y,

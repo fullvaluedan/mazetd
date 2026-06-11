@@ -7,6 +7,7 @@
 // =============================================================================
 
 import { CONFIG } from '../config.js';
+import { pushEvent } from './state.js';
 
 export function canAfford(state, cost) { return state.gold >= cost; }
 
@@ -45,6 +46,7 @@ export function onEnemyKilled(state, e) {
   addGold(state, e.bounty);
   addFloater(state, e.x, e.y - e.radius, '+' + e.bounty, CONFIG.COLORS.gold);
   spawnParticles(state, e.x, e.y, e.color, e.boss ? 18 : 4);
+  pushEvent(state, 'death');
   if (e.boss) addShake(state, 8);
   // Hero XP (Phase 6): the hero, if present, earns XP for kills near it / overall.
   if (state.hero && typeof state.hero.gainXp === 'function') {
@@ -67,6 +69,7 @@ function spreadContagion(state, e) {
 export function onEnemyLeaked(state, e) {
   state.lives -= e.damageToLives;
   addFloater(state, e.x, e.y, '-' + e.damageToLives + '♥', CONFIG.COLORS.danger);
+  pushEvent(state, 'leak');
   state.flash = Math.min(1, (state.flash || 0) + 0.5);   // red screen flash
   addShake(state, 3 + e.damageToLives);
   if (state.lives <= 0) {

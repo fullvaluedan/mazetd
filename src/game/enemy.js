@@ -19,6 +19,7 @@ import { SIZE, COLS, ROWS, NEIGHBORS4, inBounds, cellCenter, worldToCell } from 
 import { fieldAt, UNREACHABLE } from '../engine/pathfinding.js';
 import { matchup } from './damage.js';
 import { destroyTower } from './tower.js';
+import { pushEvent } from './state.js';
 
 let NEXT_ID = 1;
 
@@ -168,6 +169,8 @@ export class Enemy {
     if (this.boss) dps *= S.bossDpsMult;
     tower.hp -= dps * dt;
     tower.underAttack = S.underAttackFlash;
+    // chewing noise, deterministically throttled on sim time
+    if (state.time - (state._wallSfxAt || 0) > 0.25) { state._wallSfxAt = state.time; pushEvent(state, 'wallhit'); }
     if (tower.hp <= 0) destroyTower(state, tower);   // reroutes everyone via onMazeChanged
   }
 

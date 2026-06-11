@@ -26,6 +26,7 @@ import { Viewport } from './ui/viewport.js';
 import { createHints } from './ui/hints.js';
 import { hoverCardHtml, enemyCardHtml, enemyAt } from './ui/infocard.js';
 import { Screens } from './ui/screens.js';
+import * as sfx from './services/sfx.js';
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -80,6 +81,8 @@ const actions = {
   openStore: () => hud.sheets.openStore(state),
   closeSheet: () => hud.sheets.close(),
   setPausedBySheet,
+  toggleSfx: () => sfx.toggleMuted(),
+  sfxMuted: () => sfx.isMuted(),
   setSpeed: (n) => loop.setSpeed(n),
   cycleSpeed: () => {
     const i = CONFIG.SPEEDS.indexOf(loop.gameSpeed);
@@ -105,12 +108,12 @@ const actions = {
   },
   // ---- radial-ring actions (the in-scene build/manage flow) ----
   buildAt: (typeId, x, y) => {
-    if (tryBuild(state, typeId, x, y)) hud.closeRadial();   // one-shot: build closes the ring
+    if (tryBuild(state, typeId, x, y)) { sfx.play('build'); hud.closeRadial(); }   // one-shot: build closes the ring
   },
   upgradeTower: (tower, branch) => {
-    if (tryUpgrade(state, tower, branch)) hud.openTowerRing(state, tower);  // rebuilt with new level/prices
+    if (tryUpgrade(state, tower, branch)) { sfx.play('upgrade'); hud.openTowerRing(state, tower); }  // rebuilt with new level/prices
   },
-  sellTower: (tower) => { hud.closeRadial(); trySell(state, tower); },
+  sellTower: (tower) => { hud.closeRadial(); trySell(state, tower); sfx.play('sell'); },
   cycleTargetAndRefresh: (tower) => { tower.cycleTargetMode(); hud.openTowerRing(state, tower); },
   cancel: () => {
     if (hud.radialOpen) { hud.closeRadial(); return; }      // Esc unwinds one layer at a time
@@ -153,6 +156,7 @@ const actions = {
       state.buildType = null; state.targetingConsumable = null; state.targetingConsumableKey = null;
     } else {
       h.cast(state, i);
+      sfx.play('cast');
     }
   },
   restart: () => location.reload(),
@@ -197,10 +201,13 @@ function update(dt) {
   if (state.lives <= 0) state.status = 'lost';
 
   // siege alert: fires once each time the maze flips from open to sealed
-  if (state.siege && !prevSiege) showBanner("⚠ Path sealed — they're attacking your walls!", 'danger', 2.5);
+  if (state.siege && !prevSiege) { showBanner("⚠ Path sealed — they're attacking your walls!", 'danger', 2.5); sfx.play('alarm'); }
   prevSiege = state.siege;
 
-  if (state.status !== prevStatus && (state.status === 'won' || state.status === 'lost')) showEndModal();
+  if (state.status !== prevStatus && (state.status === 'won' || state.status === 'lost')) {
+    sfx.play(state.status === 'won' ? 'win' : 'lose');
+    showEndModal();
+  }
   prevStatus = state.status;
 }
 
@@ -212,10 +219,21 @@ function showEndModal() {
 // ---------------------------------------------------------------------------
 // render step
 // ---------------------------------------------------------------------------
+// sim event queue -> sounds (the sim never imports sfx; it only pushes data)
+const SHOT_SOUND = { pierce: 'shot_pierce', siege: 'shot_siege', magic: 'shot_magic', poison: 'shot_poison', chaos: 'shot_magic' };
+function drainEvents() {
+  if (!state.events || state.events.length === 0) return;
+  for (const ev of state.events) {
+    sfx.play(ev.t === 'shot' ? (SHOT_SOUND[ev.d] || 'shot_magic') : ev.t);
+  }
+  state.events.length = 0;
+}
+
 function draw() {
   viewport.applyTransform(ctx);     // world px -> device px (letterbox + DPR)
   ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
   render(ctx, state);
+  drainEvents();
   hud.refresh(state, { speed: loop.gameSpeed, paused: loop.paused });
   hints.update(state);
 }
@@ -238,6 +256,10 @@ const screens = new Screens(modal, {
 });
 viewport.onResize = () => hud.onViewportResize();
 loop.start();
+
+// Audio unlock must happen inside the FIRST user gesture (iOS requirement).
+['pointerdown', 'keydown', 'touchstart'].forEach((evt) =>
+  window.addEventListener(evt, () => sfx.initAudio(), { once: true, passive: true }));
 
 // Portrait phones: the battlefield needs landscape — show the rotate overlay
 // and hold the sim while it's up. Desktop portrait windows just letterbox.
@@ -276,6 +298,7 @@ setupInput(canvas, {
   onLeftClick(x, y, px, py) {
     if (state.targetingAbility && state.hero) {
       state.hero.cast(state, state.targetingAbilityIndex, { x, y });
+      sfx.play('cast');
       clearTargeting();
       return;
     }

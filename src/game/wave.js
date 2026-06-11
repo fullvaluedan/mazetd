@@ -17,7 +17,7 @@ import { CONFIG } from '../config.js';
 import { makeRng } from '../engine/rng.js';
 import { cellCenter } from '../engine/grid.js';
 import { Enemy } from './enemy.js';
-import { defaultRouting, recomputePaths } from './state.js';
+import { defaultRouting, recomputePaths, pushEvent } from './state.js';
 
 // ---- scaling formulas ------------------------------------------------------
 export function baseHp(w) {
@@ -169,6 +169,7 @@ export function startWave(state, w) {
   state.spawnElapsed = 0;
   state.waveActive = true;
   state.status = 'playing';
+  pushEvent(state, 'horn');
 }
 
 export function processSpawning(state, dt) {
