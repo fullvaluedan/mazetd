@@ -84,7 +84,7 @@ function drawHero(ctx, state) {
   }
 
   // move-mode indicator: pulsing ring + "tap to move" affordance
-  if (state.heroMoveMode) {
+  if (state.heroSelected) {
     ctx.strokeStyle = 'rgba(255,224,138,0.9)';
     ctx.lineWidth = 2.5;
     ctx.beginPath();

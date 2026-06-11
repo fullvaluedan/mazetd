@@ -254,9 +254,9 @@ const actions = {
   cycleTargetAndRefresh: (tower) => { tower.cycleTargetMode(); hud.openTowerRing(state, tower); },
   cancel: () => {
     if (hud.radialOpen) { hud.closeRadial(); return; }      // Esc unwinds one layer at a time
-    state.buildType = null; state.selected = null; state.heroMoveMode = false; clearTargeting();
+    state.buildType = null; state.selected = null; state.heroSelected = false; clearTargeting();
   },
-  heroMove: () => { if (state.hero && !state.hero.downed) state.heroMoveMode = !state.heroMoveMode; },
+  selectHero: () => { if (state.hero && !state.hero.downed) { state.heroSelected = !state.heroSelected; hud.closeRadial(); } },
   heroUpgrade: (key) => { tryHeroUpgrade(state, key); },
   towerBoost: (key) => { tryTowerBoost(state, key); },
   consumable: (key) => {
@@ -429,22 +429,23 @@ setupInput(canvas, {
       clearTargeting();
       return;
     }
-    // touch flow: hero-move mode armed -> this tap is the destination
-    if (state.heroMoveMode && state.hero && !state.hero.downed) {
-      state.hero.commandMove(state, x, y);
-      state.heroMoveMode = false;
-      return;
-    }
-    // tapping the hero arms move mode (mobile has no right-click)
+    // tapping the hero selects it (KR style; mobile has no right-click)
     const h = state.hero;
     if (h && !h.downed && Math.hypot(px - h.x, py - h.y) <= 20) {
-      state.heroMoveMode = true;
+      state.heroSelected = !state.heroSelected;
       state.selected = null;
       hud.closeRadial();
       return;
     }
-    // tap a tower -> tower ring (upgrade/sell/target); tap open ground -> build ring
     const t = (y >= 0 && x >= 0 && state.towerGrid[y] && state.towerGrid[y][x]) || null;
+    // hero selected: taps on open ground are move commands and the hero STAYS
+    // selected (chain orders); tapping a tower hands control to the tower ring.
+    if (state.heroSelected && h && !h.downed && !t) {
+      h.commandMove(state, x, y);
+      return;
+    }
+    state.heroSelected = false;
+    // tap a tower -> tower ring (upgrade/sell/target); tap open ground -> build ring
     if (t) {
       hud.openTowerRing(state, t);
       return;
@@ -467,7 +468,7 @@ setupInput(canvas, {
       case 's': case 'S': actions.startWave(); return true;
       case 'q': case 'Q': actions.castAbility(0); return true;
       case 'w': case 'W': actions.castAbility(1); return true;
-      case 'm': case 'M': actions.heroMove(); return true;
+      case 'm': case 'M': actions.selectHero(); return true;
       case 'Escape': actions.cancel(); return true;
     }
     return false;

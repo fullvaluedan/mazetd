@@ -72,7 +72,7 @@ export function createState(rng, seed = 0) {
     targetingConsumableKey: null,
     targetingAbility: null,  // hero ability awaiting a target cell
     targetingAbilityIndex: -1,
-    heroMoveMode: false,     // touch flow: tap hero (or Move btn) -> tap a cell
+    heroSelected: false,     // KR control: hero selected -> taps on ground move it
 
     // modifiers
     frenzyTimer: 0,          // seconds of +damage frenzy remaining

@@ -16,6 +16,7 @@ import { div, btn, bar, stat, EGLYPH } from './components.js';
 import { TopBar } from './topbar.js';
 import { WaveBar } from './wavebar.js';
 import { Radial, buildRingItems, towerRingItems } from './radial.js';
+import { HeroBar } from './herobar.js';
 
 // Compact strong/weak armor badges for a damage type (e.g. "▲L U  ▼F H").
 function badgeHtml(damageType) {
@@ -40,11 +41,13 @@ export class HUD {
     this.topbar = null;
     this.wavebar = null;
     this.radial = null;
+    this.herobar = null;
     this.build();
     if (scene && scene.uiLayer) {
       this.topbar = new TopBar(scene.uiLayer, actions);
       this.wavebar = new WaveBar(scene.uiLayer, scene.viewport, actions);
       this.radial = new Radial(scene.uiLayer, scene.viewport);
+      this.herobar = new HeroBar(scene.uiLayer, actions);
     }
   }
 
@@ -119,8 +122,7 @@ export class HUD {
     // (tower shop + selected-tower card replaced by the in-scene radial
     //  menus — tap an empty cell to build, tap a tower to manage it)
 
-    // --- hero panel (hidden until a hero is chosen) ---
-    this.buildHeroPanel();
+    // (hero panel moved to the in-scene hero bar — herobar.js)
 
     // --- shop: hero upgrades + consumables ---
     this.buildShop();
@@ -169,7 +171,7 @@ export class HUD {
     this.el.auto.textContent = 'Auto-start: ' + (state.autoStart ? 'ON' : 'OFF');
 
     if (this.radial) this.radial.refresh(state);   // live affordability in open rings
-    this.refreshHero(state);
+    if (this.herobar) this.herobar.refresh(state);
     this.refreshShop(state);
   }
 
@@ -251,77 +253,7 @@ export class HUD {
     }
   }
 
-  buildHeroPanel() {
-    const p = div('section');
-    p.classList.add('hidden');
-    p.innerHTML = `<h3>Hero</h3>`;
-    const head = div('');
-    head.style.cssText = 'display:flex;gap:8px;align-items:center';
-    this.el.heroGlyph = div('');
-    this.el.heroGlyph.style.cssText = 'font-size:26px;width:34px;text-align:center';
-    const info = div(''); info.style.flex = '1';
-    this.el.heroName = div(''); this.el.heroName.style.fontWeight = '700';
-    this.el.heroHpBar = bar('hp'); this.el.heroXpBar = bar('xp');
-    this.el.heroHpText = div('muted'); this.el.heroHpText.style.fontSize = '11px';
-    info.append(this.el.heroName, this.el.heroHpBar.wrap, this.el.heroHpText, this.el.heroXpBar.wrap);
-    head.append(this.el.heroGlyph, info);
-    p.appendChild(head);
-
-    const abRow = div('ability-row'); abRow.style.marginTop = '8px';
-    this.el.abBtns = [];
-    for (let i = 0; i < 2; i++) {
-      const b = document.createElement('button');
-      b.className = 'ability-btn';
-      const label = document.createElement('span');
-      const cd = document.createElement('div'); cd.className = 'cd';
-      b.append(label, cd);
-      b.addEventListener('click', () => this.actions.castAbility(i));
-      abRow.appendChild(b);
-      this.el.abBtns.push({ btn: b, label, cd });
-    }
-    p.appendChild(abRow);
-
-    // Move command — the touch-friendly substitute for right-click
-    this.el.heroMove = btn('Move (M) — then tap the map', () => this.actions.heroMove());
-    this.el.heroMove.style.cssText = 'width:100%;margin-top:6px';
-    p.appendChild(this.el.heroMove);
-    this.el.heroPanel = p;
-    this.root.appendChild(p);
-  }
-
-  refreshHero(state) {
-    const h = state.hero;
-    if (!h) { this.el.heroPanel.classList.add('hidden'); return; }
-    this.el.heroPanel.classList.remove('hidden');
-    // portrait: generated art if available, glyph fallback
-    if (this._heroPortraitFor !== h.id) {
-      this._heroPortraitFor = h.id;
-      this.el.heroGlyph.innerHTML = '';
-      const img = document.createElement('img');
-      img.alt = '';
-      img.style.cssText = 'width:34px;height:34px;display:block;margin:auto';
-      img.addEventListener('error', () => { this.el.heroGlyph.textContent = h.def.glyph; });
-      img.src = `assets/heroes/${h.id}.png`;
-      this.el.heroGlyph.appendChild(img);
-    }
-    this.el.heroGlyph.style.color = h.def.color;
-    this.el.heroName.textContent = `${h.def.name} — L${h.level}` + (h.downed ? `  (down ${Math.ceil(h.respawnLeft)}s)` : '') + (h.buffLeft > 0 ? '  ⤴buffed' : '');
-    this.el.heroHpBar.fill.style.width = Math.max(0, 100 * h.hp / h.maxHp) + '%';
-    this.el.heroHpText.textContent = `HP ${Math.max(0, Math.ceil(h.hp))}/${h.maxHp}`;
-    this.el.heroXpBar.fill.style.width = (h.level >= 10 ? 100 : 100 * h.xp / h.xpToNext()) + '%';
-    for (let i = 0; i < 2; i++) {
-      const ab = h.abilities[i], ui = this.el.abBtns[i];
-      ui.label.textContent = ab.name;
-      const frac = ab.cdLeft > 0 ? Math.min(1, ab.cdLeft / (ab.cooldown * h.abilityCdMult)) : 0;
-      ui.cd.style.height = (frac * 100) + '%';
-      ui.btn.disabled = h.downed || ab.cdLeft > 0;
-      ui.btn.classList.toggle('active', state.targetingAbility === ab);
-    }
-    this.el.heroMove.disabled = h.downed;
-    this.el.heroMove.classList.toggle('active', !!state.heroMoveMode);
-    this.el.heroMove.textContent = state.heroMoveMode ? 'Tap the map to move…' : 'Move (M) — then tap the map';
-  }
-
+  // (hero panel replaced by the in-scene hero bar — see herobar.js)
 
   // Lets later phases drop their sections into the panel.
   mount(node) { this.el.shopMount.appendChild(node); }
