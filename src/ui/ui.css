@@ -518,6 +518,76 @@
 .end-stats b { color: var(--ui-text); }
 .end-buttons { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; min-width: 250px; }
 
+/* ---- campaign map (level select) -------------------------------------------- */
+.map-screen {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  background: radial-gradient(ellipse at 50% 20%, #233048 0%, #11151f 70%);
+  overflow: hidden;
+}
+.map-hero {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--ui-panel);
+  border: 1px solid var(--ui-line);
+  border-radius: var(--ui-radius);
+  padding: 8px 12px;
+}
+.map-hero .mh-face {
+  width: 46px; height: 46px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--ui-panel-solid);
+  display: flex; align-items: center; justify-content: center;
+}
+.map-hero .mh-face img { width: 100%; height: 100%; object-fit: cover; }
+.map-hero .mh-info { display: flex; flex-direction: column; font-size: 14px; }
+.map-hero .mh-stars { color: var(--ui-gold); font-weight: 800; font-size: 13px; }
+.map-upgrades { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.star-up { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 6px 10px; font-size: 12px; }
+.star-up span { font-weight: 400; color: var(--ui-gold); font-size: 11px; }
+.map-path {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.map-node {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--ui-panel);
+  border: 2px solid var(--ui-line);
+  border-radius: var(--ui-radius);
+  color: var(--ui-text);
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  text-align: left;
+}
+.map-node:hover:not(:disabled) { border-color: var(--ui-gold); }
+.map-node.locked { opacity: 0.55; cursor: not-allowed; }
+.map-node.endless { border-color: var(--ui-blue); }
+.map-node .mn-num {
+  min-width: 30px; height: 30px;
+  border-radius: 50%;
+  background: var(--ui-panel-solid);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800;
+}
+.map-node .mn-name { flex: 1; font-weight: 700; }
+.map-node .mn-stars .ms { color: #3a4258; font-size: 15px; }
+.map-node .mn-stars .ms.lit { color: var(--ui-gold); }
+
 /* ---- simulated rewarded-ad overlay ------------------------------------------ */
 .ad-overlay {
   position: fixed;

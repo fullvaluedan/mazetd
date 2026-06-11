@@ -8,9 +8,12 @@
 // =============================================================================
 
 import { makeRng } from '../engine/rng.js';
+import { setGridSize } from '../engine/grid.js';
+import { CONFIG } from '../config.js';
 import { createState, onMazeChanged } from './state.js';
 import { addTower, recomputeAuras } from './tower.js';
 import { createHero } from './hero.js';
+import { getLevel } from './levels.js';
 
 const SAVE_KEY = 'mazecore_save_v1';
 const HS_KEY = 'mazecore_highscore_v1';
@@ -20,6 +23,7 @@ function ls() { return (typeof localStorage !== 'undefined') ? localStorage : nu
 export function buildSnapshot(state) {
   return {
     v: 2,                       // v2: towers carry hp (siege mode); v1 loads at full HP
+    levelId: state.level ? state.level.id : null,   // 'endless' or null (classic)
     seed: state.seed,
     wave: state.wave,
     maxWave: state.maxWave,
@@ -58,9 +62,11 @@ export function loadSnapshot() {
   catch { return null; }
 }
 
-// Rebuild a full game state from a snapshot.
+// Rebuild a full game state from a snapshot (sizing the grid for its level).
 export function applySnapshot(snap) {
-  const state = createState(makeRng(snap.seed), snap.seed);
+  const level = snap.levelId ? getLevel(snap.levelId) : null;
+  setGridSize(level ? level.cols : CONFIG.GRID_COLS, level ? level.rows : CONFIG.GRID_ROWS);
+  const state = createState(makeRng(snap.seed), snap.seed, level);
   state.wave = snap.wave;
   state.maxWave = snap.maxWave;
   state.gold = snap.gold;

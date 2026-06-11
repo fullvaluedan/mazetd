@@ -12,6 +12,7 @@ import { CONFIG } from '../config.js';
 import { getTowerStats } from '../game/tower.js';
 import { wouldSealAt } from '../game/state.js';
 import { sellRefund } from '../game/shop.js';
+import { towersUnlockedAt, unlockLevelFor } from '../game/levels.js';
 import { div } from './components.js';
 import { getSpriteUrl } from './sprites.js';
 
@@ -109,22 +110,35 @@ export class Radial {
 
 // ---- the two ring configurators ---------------------------------------------
 
-// Empty buildable cell: one item per tower type.
+// Empty buildable cell: one item per tower type. In campaign levels, towers
+// beyond the unlock schedule show as locked slots ("unlocks at level N").
 export function buildRingItems(state, cell, gameActions) {
   const seals = safeSeal(state, cell.x, cell.y);
-  return Object.entries(CONFIG.TOWERS).map(([id, def]) => ({
-    icon: getSpriteUrl('tower-' + id),
-    glyph: def.glyph,
-    color: def.color,
-    label: `${def.name} — ${def.cost}g · ${def.blurb}${seals ? ' ⚠ seals the maze!' : ''}`,
-    price: def.cost,
-    warn: seals,
-    disabled: (s) => s.gold < def.cost,
-    onTap: () => gameActions.buildAt(id, cell.x, cell.y),
-    onHover: (on) => {
-      state.pendingBuild = on ? id : null;
-    },
-  }));
+  const allowed = (state.level && !state.level.endless) ? towersUnlockedAt(state.level.num) : null;
+  return Object.entries(CONFIG.TOWERS).map(([id, def]) => {
+    if (allowed && !allowed.includes(id)) {
+      return {
+        glyph: '🔒', color: '#9aa3b2',
+        label: `${def.name} — unlocks at level ${unlockLevelFor(id)}`,
+        sub: `L${unlockLevelFor(id)}`,
+        disabled: () => true,
+        onTap: () => {},
+      };
+    }
+    return {
+      icon: getSpriteUrl('tower-' + id),
+      glyph: def.glyph,
+      color: def.color,
+      label: `${def.name} — ${def.cost}g · ${def.blurb}${seals ? ' ⚠ seals the maze!' : ''}`,
+      price: def.cost,
+      warn: seals,
+      disabled: (s) => s.gold < def.cost,
+      onTap: () => gameActions.buildAt(id, cell.x, cell.y),
+      onHover: (on) => {
+        state.pendingBuild = on ? id : null;
+      },
+    };
+  });
 }
 
 // Existing tower: upgrade (or the L3 fork), target mode, sell.

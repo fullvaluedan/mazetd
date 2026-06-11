@@ -30,6 +30,8 @@ import { hoverCardHtml, enemyCardHtml, enemyAt } from './ui/infocard.js';
 import { Screens } from './ui/screens.js';
 import * as sfx from './services/sfx.js';
 import * as ads from './services/ads.js';
+import * as profile from './services/profile.js';
+import { starsFor } from './ui/screens.js';
 import { addGold } from './game/economy.js';
 
 const canvas = document.getElementById('game');
@@ -184,12 +186,12 @@ const actions = {
   upgrade: (branch) => { if (state.selected) tryUpgrade(state, state.selected, branch); },
   sell: () => { if (state.selected) trySell(state, state.selected); },
   save: () => {
-    if (state.level) { showBanner('Saving is for Endless runs (campaign levels are short)', 'warn', 1.8); return; }
+    if (state.level && !state.level.endless) { showBanner('Saving is for Endless runs (campaign levels are short)', 'warn', 1.8); return; }
     if (state.waveActive) { showBanner('Save between waves only', 'warn', 1.4); return; }
     if (saveGame(state)) showBanner('Game saved', '', 1.4);
   },
   load: () => {
-    if (state.level) { showBanner('Loading is for Endless runs', 'warn', 1.6); return; }
+    if (state.level && !state.level.endless) { showBanner('Loading is for Endless runs', 'warn', 1.6); return; }
     const snap = loadSnapshot();
     if (!snap) { showBanner('No save found', 'warn', 1.4); return; }
     state = applySnapshot(snap);
@@ -264,6 +266,11 @@ function update(dt) {
 
 function showEndModal() {
   recordHighScore(state.maxWave);
+  // campaign: bank stars + the hero's earned progression
+  if (state.level && !state.level.endless && state.status === 'won') {
+    profile.recordStars(state.level.id, starsFor(state));
+  }
+  profile.recordHeroProgress(state.hero);
   screens.showEnd(state);
 }
 
@@ -294,9 +301,14 @@ const hud = new HUD(null, actions, { uiLayer, viewport });
 const hints = createHints(overlay, hud);
 const screens = new Screens(modal, {
   pickHero: (id) => {
-    const def = CONFIG.HEROES[id];
-    createHero(state, id);
-    showBanner(`${def.name} ready!`, '', 1.5);
+    profile.setHeroId(id);
+    if (bootLevel) {
+      const h = createHero(state, id);
+      profile.applyHeroProfile(h);
+      showBanner(`${CONFIG.HEROES[id].name} L${h.level} ready!`, '', 1.5);
+    } else {
+      screens.showMap();             // title flow continues to the campaign map
+    }
   },
   continueRun: () => actions.load(),
   openSettings: () => actions.openSettings(),
@@ -338,7 +350,20 @@ loop.start();
 if (typeof window !== 'undefined') {
   window.__mz = { get state() { return state; }, hud, loop, actions, viewport, screens };
 }
-screens.showTitle();
+// Boot: with ?level= go straight into the level (hero from the profile,
+// first-run picks one in place); without it, the title/menu shell.
+if (bootLevel) {
+  const heroId = profile.getProfile().hero.id;
+  if (heroId) {
+    const h = createHero(state, heroId);
+    profile.applyHeroProfile(h);
+    showBanner(`${bootLevel.name} — ${CONFIG.HEROES[heroId].name} L${h.level} ready!`, '', 2.2);
+  } else {
+    screens.showHeroSelect();
+  }
+} else {
+  screens.showTitle();
+}
 loadSprites().then(() => screens.refreshArt());   // art pops in when ready; shapes are the fallback
 
 // ---------------------------------------------------------------------------
