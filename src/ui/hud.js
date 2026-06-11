@@ -10,10 +10,24 @@
 
 import { CONFIG } from '../config.js';
 import { waveInfo } from '../game/wave.js';
+import { strongWeak } from '../game/damage.js';
 import { heroUpgradeCost, heroUpgradeMaxed, consumableCost, towerBoostCost, towerBoostMaxed } from '../game/shop.js';
 
 // Tiny glyphs for the next-wave preview.
 const EGLYPH = { normal: '●', fast: '»', tank: '▣', swarm: '∴', flyer: '▲', healer: '✚', shield: '◈', boss: '★' };
+
+// Compact strong/weak armor badges for a damage type (e.g. "▲L U  ▼F H").
+function badgeHtml(damageType) {
+  const sw = strongWeak(damageType);
+  const chip = (id) => {
+    const a = CONFIG.ARMOR_TYPES[id];
+    return a ? `<span style="color:${a.color}">${a.short}</span>` : '';
+  };
+  const parts = [];
+  if (sw.strong.length) parts.push(`<span style="color:#5fce7a">▲</span>${sw.strong.map(chip).join('')}`);
+  if (sw.weak.length) parts.push(`<span style="color:#e24b4a">▼</span>${sw.weak.map(chip).join('')}`);
+  return parts.join('&nbsp; ');
+}
 
 export class HUD {
   constructor(root, actions) {
@@ -84,9 +98,10 @@ export class HUD {
     for (const [id, def] of Object.entries(CONFIG.TOWERS)) {
       const b = document.createElement('button');
       b.className = 'tower-btn';
+      const badges = badgeHtml(def.damageType);
       b.innerHTML = `<span class="t-name">${def.glyph} ${def.name}</span>
         <span class="t-cost">${def.cost}g</span>
-        <span class="t-blurb">${def.blurb}</span>`;
+        <span class="t-blurb">${def.blurb}${badges ? '<br>' + badges : ''}</span>`;
       b.addEventListener('click', () => this.actions.selectBuild(id));
       this.el.towerBtns[id] = b;
       grid.appendChild(b);
@@ -134,7 +149,11 @@ export class HUD {
       this.el.warn.textContent = '';
     } else {
       const info = waveInfo(nw);
-      const icons = info.types.map((t) => `<span style="color:${CONFIG.ENEMIES[t].color}">${EGLYPH[t] || '?'}</span>`).join(' ');
+      const icons = info.types.map((t) => {
+        const e = CONFIG.ENEMIES[t];
+        const a = CONFIG.ARMOR_TYPES[e.armorType];
+        return `<span style="color:${e.color}">${EGLYPH[t] || '?'}</span><sub style="color:${a ? a.color : '#888'}">${a ? a.short : ''}</sub>`;
+      }).join(' ');
       this.el.preview.innerHTML = `<b>Wave ${nw}</b> &nbsp; ${icons} ${info.isBoss ? '&nbsp;<b style="color:#c65bd6">BOSS</b>' : ''} <span class="muted">(${info.count})</span>`;
       this.el.warn.textContent = info.hasFlying ? '⚠ FLYING incoming — bring anti-air!' : '';
     }
@@ -359,7 +378,7 @@ export class HUD {
     card.innerHTML = `<h3>${t.def.glyph} ${t.def.name} — L${t.level}${t.branch ? ' ' + t.def.branches[t.branch].name : ''}</h3>
       <div class="muted" style="line-height:1.6">
         DMG ${s.damage.toFixed(1)} · RNG ${s.range.toFixed(1)} · CD ${s.cooldown.toFixed(2)}s<br>
-        ~DPS ${dps.toFixed(1)} · ${s.damageType}${s.targetsAir ? ' · air✔' : ' · ground'}<br>
+        ~DPS ${dps.toFixed(1)} · ${s.damageType}${s.targetsAir ? ' · air✔' : ' · ground'} ${badgeHtml(s.damageType)}<br>
         ${special.length ? special.join(' · ') : '—'}
       </div>`;
 

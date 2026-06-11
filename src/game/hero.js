@@ -199,7 +199,7 @@ export class Hero {
     };
     switch (ab.id) {
       case 'whirlwind': {
-        const stats = { damage: dmg, damageType: 'physical', targetsAir: false };
+        const stats = { damage: dmg, damageType: 'chaos', targetsAir: false };
         applySplash(state, this.x, this.y, ab.radius, stats);
         pushSplash(state, this.x, this.y, ab.radius, '#e0773b');
         break;

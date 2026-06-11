@@ -117,7 +117,7 @@ export function tryConsumable(state, key, targetCell) {
     case 'airstrike': {
       const dmg = baseHp(Math.max(1, state.wave)) * def.dmgWaveMult;
       const px = cellCenterX(targetCell.x), py = cellCenterY(targetCell.y);
-      applySplash(state, px, py, def.radius, { damage: dmg, damageType: 'magic', targetsAir: true });
+      applySplash(state, px, py, def.radius, { damage: dmg, damageType: 'chaos', targetsAir: true });
       state.effects.push({ kind: 'splash', x: px, y: py, r: def.radius, color: '#f2c14b', life: 0.5, max: 0.5 });
       break;
     }

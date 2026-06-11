@@ -73,17 +73,49 @@ export const CONFIG = {
   // ---------------------------------------------------------------------------
   // ENEMY TYPES
   // hpMult/speedMult multiply the per-wave base values. `lives` = damageToLives.
+  // armorType indexes into DAMAGE_VS_ARMOR below (WC3-style matchup matrix).
   // ---------------------------------------------------------------------------
   ENEMIES: {
-    normal: { name: 'Grunt',     hpMult: 1.0,  speedMult: 1.0, armor: 0, flying: false, lives: 1,  bountyMult: 1.0, radius: 9,  color: '#9aa3b2' },
-    fast:   { name: 'Runner',    hpMult: 0.55, speedMult: 1.9, armor: 0, flying: false, lives: 1,  bountyMult: 0.8, radius: 8,  color: '#f2d24b' },
-    tank:   { name: 'Brute',     hpMult: 2.6,  speedMult: 0.7, armor: 6, flying: false, lives: 2,  bountyMult: 1.7, radius: 12, color: '#d98a4b' },
-    swarm:  { name: 'Spawnling', hpMult: 0.25, speedMult: 1.2, armor: 0, flying: false, lives: 1,  bountyMult: 0.5, radius: 5,  color: '#aab0bc' },
-    flyer:  { name: 'Wisp',      hpMult: 0.8,  speedMult: 1.3, armor: 0, flying: true,  lives: 1,  bountyMult: 1.1, radius: 9,  color: '#4fd6e0' },
-    healer: { name: 'Mender',    hpMult: 1.4,  speedMult: 0.9, armor: 2, flying: false, lives: 2,  bountyMult: 1.6, radius: 10, color: '#5fce7a', healPct: 0.03, healRadius: 2.6 },
-    shield: { name: 'Warden',    hpMult: 1.6,  speedMult: 0.9, armor: 0, flying: false, lives: 2,  bountyMult: 1.6, radius: 10, color: '#5b8bd6', shieldPct: 0.25 },
-    boss:   { name: 'Boss',      hpMult: 1.0,  speedMult: 0.6, armor: 8, flying: false, lives: 10, bountyMult: 8.0, radius: 18, color: '#c65bd6', boss: true },
+    normal: { name: 'Grunt',     hpMult: 1.0,  speedMult: 1.0, armorType: 'medium',    flying: false, lives: 1,  bountyMult: 1.0, radius: 9,  color: '#9aa3b2' },
+    fast:   { name: 'Runner',    hpMult: 0.55, speedMult: 1.9, armorType: 'light',     flying: false, lives: 1,  bountyMult: 0.8, radius: 8,  color: '#f2d24b' },
+    tank:   { name: 'Brute',     hpMult: 2.6,  speedMult: 0.7, armorType: 'fortified', flying: false, lives: 2,  bountyMult: 1.7, radius: 12, color: '#d98a4b' },
+    swarm:  { name: 'Spawnling', hpMult: 0.25, speedMult: 1.2, armorType: 'unarmored', flying: false, lives: 1,  bountyMult: 0.5, radius: 5,  color: '#aab0bc' },
+    flyer:  { name: 'Wisp',      hpMult: 0.8,  speedMult: 1.3, armorType: 'light',     flying: true,  lives: 1,  bountyMult: 1.1, radius: 9,  color: '#4fd6e0' },
+    healer: { name: 'Mender',    hpMult: 1.4,  speedMult: 0.9, armorType: 'medium',    flying: false, lives: 2,  bountyMult: 1.6, radius: 10, color: '#5fce7a', healPct: 0.03, healRadius: 2.6 },
+    shield: { name: 'Warden',    hpMult: 1.6,  speedMult: 0.9, armorType: 'heavy',     flying: false, lives: 2,  bountyMult: 1.6, radius: 10, color: '#5b8bd6', shieldPct: 0.25 },
+    boss:   { name: 'Boss',      hpMult: 1.0,  speedMult: 0.6, armorType: 'boss',      flying: false, lives: 10, bountyMult: 8.0, radius: 18, color: '#c65bd6', boss: true },
   },
+
+  // ---------------------------------------------------------------------------
+  // DAMAGE TYPE vs ARMOR TYPE (WC3-style rock-paper-scissors).
+  // The multiplier is applied to every hit in Enemy.takeDamage. Kept within
+  // 0.5–1.5 so no matchup is a hard wall. 'chaos' is the neutral type (heroes'
+  // whirlwind, Archmage L4, airstrike) — full damage against everything.
+  // ---------------------------------------------------------------------------
+  ARMOR_TYPES: {
+    unarmored: { name: 'Unarmored', short: 'U', color: '#9aa3b2' },
+    light:     { name: 'Light',     short: 'L', color: '#f2d24b' },
+    medium:    { name: 'Medium',    short: 'M', color: '#aab0bc' },
+    heavy:     { name: 'Heavy',     short: 'H', color: '#5b8bd6' },
+    fortified: { name: 'Fortified', short: 'F', color: '#d98a4b' },
+    boss:      { name: 'Boss',      short: '★', color: '#c65bd6' },
+  },
+  DAMAGE_TYPES: {
+    pierce: { name: 'Pierce', color: '#7fd66b' },
+    siege:  { name: 'Siege',  color: '#d98a4b' },
+    magic:  { name: 'Magic',  color: '#9a6bd6' },
+    poison: { name: 'Poison', color: '#6fc34b' },
+    chaos:  { name: 'Chaos',  color: '#e8ecf3' },
+  },
+  DAMAGE_VS_ARMOR: {
+    pierce: { unarmored: 1.25, light: 1.5,  medium: 1.0, heavy: 0.75, fortified: 0.5,  boss: 0.75 },
+    siege:  { unarmored: 1.25, light: 0.75, medium: 1.0, heavy: 1.0,  fortified: 1.5,  boss: 0.75 },
+    magic:  { unarmored: 1.0,  light: 1.25, medium: 1.0, heavy: 1.5,  fortified: 0.5,  boss: 1.0  },
+    poison: { unarmored: 1.0,  light: 1.0,  medium: 1.5, heavy: 0.75, fortified: 1.0,  boss: 1.0  },
+    chaos:  { unarmored: 1.0,  light: 1.0,  medium: 1.0, heavy: 1.0,  fortified: 1.0,  boss: 1.0  },
+  },
+  // UI thresholds: a matchup >= strong shows a green badge, <= weak a red one.
+  MATRIX_BADGES: { strong: 1.25, weak: 0.75 },
 
   // Boss hp multiplier scales from ~18 (wave 10) to ~30 (wave 100).
   BOSS_HP_MULT_MIN: 18,
@@ -107,7 +139,7 @@ export const CONFIG = {
   TOWERS: {
     archer: {
       name: 'Archer', glyph: 'A', color: '#7fd66b', cost: 70,
-      damage: 6, range: 2.6, cooldown: 0.55, damageType: 'physical',
+      damage: 6, range: 2.6, cooldown: 0.55, damageType: 'pierce',
       targetsAir: true, projectileSpeed: 12,
       blurb: 'Cheap all-rounder. Hits air.',
       branches: {
@@ -117,7 +149,7 @@ export const CONFIG = {
     },
     cannon: {
       name: 'Cannon', glyph: 'C', color: '#d98a4b', cost: 110,
-      damage: 18, range: 2.3, cooldown: 1.6, damageType: 'splash',
+      damage: 18, range: 2.3, cooldown: 1.6, damageType: 'siege',
       targetsAir: false, projectileSpeed: 7, splashRadius: 1.2,
       blurb: 'Splash damage. Great vs swarm.',
       branches: {
@@ -139,9 +171,9 @@ export const CONFIG = {
       name: 'Arcane', glyph: 'M', color: '#9a6bd6', cost: 145,
       damage: 14, range: 2.9, cooldown: 0.9, damageType: 'magic',
       targetsAir: true, projectileSpeed: 11,
-      blurb: 'Ignores armor. Counters tanks.',
+      blurb: 'Bypasses shields. Melts Heavy.',
       branches: {
-        A: { id: 'archmage', name: 'Archmage', desc: '+160% dmg', mods: { damageMult: 2.6 } },
+        A: { id: 'archmage', name: 'Archmage', desc: '+160% dmg, pure chaos damage', mods: { damageMult: 2.6, damageType: 'chaos' } },
         B: { id: 'disrupt',  name: 'Disrupt',  desc: 'removes shields & dispels regen', mods: { disrupt: true } },
       },
     },
@@ -192,7 +224,7 @@ export const CONFIG = {
       name: 'Warrior', color: '#e0773b', glyph: '⚔',
       role: 'Melee bruiser. High HP, holds a chokepoint.',
       maxHp: 320, damage: 26, range: 1.5, cooldown: 0.8,
-      attackType: 'physical', targetsAir: false, speed: 3.2,
+      attackType: 'chaos', targetsAir: false, speed: 3.2,
       abilities: [
         { id: 'whirlwind', name: 'Whirlwind', desc: 'AoE physical burst around the hero', cooldown: 7, radius: 2.2, dmgMult: 2.4, targetCell: false },
         { id: 'taunt',     name: 'Taunt',     desc: 'Pull nearby enemies in + brief stun', cooldown: 14, radius: 3.0, stun: 1.2, targetCell: false },

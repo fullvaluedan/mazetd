@@ -12,6 +12,7 @@
 import { CONFIG } from '../config.js';
 import { SIZE, cellDist } from '../engine/grid.js';
 import { addFloater } from './economy.js';
+import { matchup } from './damage.js';
 
 // Global tower-damage multipliers: the Frenzy consumable + permanent shop boosts.
 function frenzy(state) {
@@ -30,7 +31,8 @@ export function dealDamage(state, enemy, amount, stats) {
   if (!enemy.alive) return 0;
   const dealt = enemy.takeDamage(amount, stats.damageType);
   if (stats.slowPct > 0) enemy.applySlow(stats.slowPct, stats.slowDur);
-  if (stats.dotDps > 0) enemy.applyPoison(stats.dotDps, stats.dotDur, state);
+  // DoT is matrix-scaled once here; tickPoison stays armor/shield-free.
+  if (stats.dotDps > 0) enemy.applyPoison(stats.dotDps * matchup('poison', enemy.armorType), stats.dotDur, state);
   if (stats.shatter > 0) enemy.applyShatter(stats.shatter, Math.max(1, stats.slowDur || 1.5));
   if (stats.disrupt) { enemy.removeShield(); enemy.disrupted = true; }
   if (stats.contagion) enemy._contagion = true;

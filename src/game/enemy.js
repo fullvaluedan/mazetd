@@ -6,17 +6,18 @@
 // means they reroute for free whenever the field is rebuilt after a build/sell.
 // Flying enemies ignore the maze entirely and fly straight to the goal.
 //
-// Damage model (see BUILD_PROMPT §4):
-//   - physical / splash : reduced by armor (flat, min 1 per hit)
-//   - magic             : ignores armor AND ignores shields
-//   - poison            : DoT, ignores armor, stacks capped
-//   - shield            : absorbs non-magic damage until depleted
+// Damage model (WC3-style matchup matrix, see damage.js + CONFIG.DAMAGE_VS_ARMOR):
+//   - every hit  : dmg = raw * matchup(damageType, armorType)   (0.5x .. 1.5x)
+//   - magic      : additionally bypasses shields
+//   - poison DoT : matrix-scaled once at application, ticks ignore shields
+//   - shield     : absorbs non-magic damage until depleted (post-matrix)
 //   - shatter (Frost L4B): victim takes +50% from ALL sources while debuffed
 // =============================================================================
 
 import { CONFIG } from '../config.js';
 import { SIZE, COLS, ROWS, NEIGHBORS4, inBounds, cellCenter, worldToCell } from '../engine/grid.js';
 import { fieldAt } from '../engine/pathfinding.js';
+import { matchup } from './damage.js';
 
 let NEXT_ID = 1;
 
@@ -31,7 +32,7 @@ export class Enemy {
     this.def = def;
     this.name = def.name;
     this.flying = (opts.flying != null) ? opts.flying : def.flying;
-    this.armor = def.armor;
+    this.armorType = def.armorType;
     this.radius = def.radius;
     this.color = def.color;
     this.boss = !!def.boss;
@@ -110,9 +111,8 @@ export class Enemy {
   // Apply a hit. Returns the actual damage dealt to hp (for floating numbers).
   takeDamage(raw, type) {
     if (!this.alive) return 0;
-    let dmg = raw;
+    let dmg = raw * matchup(type, this.armorType);
     if (this.shatterTimer > 0) dmg *= (1 + this.shatterMult);
-    if (type === 'physical' || type === 'splash') dmg = Math.max(1, dmg - this.armor);
     // shields absorb everything except magic
     if (type !== 'magic' && this.shieldHp > 0) {
       const absorbed = Math.min(this.shieldHp, dmg);

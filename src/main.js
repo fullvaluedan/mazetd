@@ -11,6 +11,7 @@ import { GameLoop } from './engine/loop.js';
 import { makeRng } from './engine/rng.js';
 import { setupInput } from './engine/input.js';
 import { createState, canBuildAt } from './game/state.js';
+import { strongWeak } from './game/damage.js';
 import { updateEnemies } from './game/enemy.js';
 import { updateTowers } from './game/tower.js';
 import { updateProjectiles, updateEffects } from './game/projectile.js';
@@ -112,6 +113,19 @@ function specialText(s) {
   return t.join(' · ');
 }
 
+// "strong vs Light, Unarmored · weak vs Fortified" line for a damage type.
+function matchupText(damageType) {
+  const sw = strongWeak(damageType);
+  const name = (id) => {
+    const a = CONFIG.ARMOR_TYPES[id];
+    return a ? `<span style="color:${a.color}">${a.name}</span>` : id;
+  };
+  const parts = [];
+  if (sw.strong.length) parts.push(`<span style="color:#5fce7a">strong vs</span> ${sw.strong.map(name).join(', ')}`);
+  if (sw.weak.length) parts.push(`<span style="color:#e24b4a">weak vs</span> ${sw.weak.map(name).join(', ')}`);
+  return parts.join(' · ');
+}
+
 function buildTooltip(x, y, px, py) {
   // 1) enemy directly under the cursor
   let near = null, nd = Infinity;
@@ -121,9 +135,10 @@ function buildTooltip(x, y, px, py) {
     if (d <= e.radius + 5 && d < nd) { nd = d; near = e; }
   }
   if (near) {
+    const at = CONFIG.ARMOR_TYPES[near.armorType];
     const traits = [];
     if (near.flying) traits.push('flying');
-    if (near.armor) traits.push('armor ' + near.armor);
+    if (at) traits.push(`<span style="color:${at.color}">${at.name} armor</span>`);
     if (near.shieldHp > 0) traits.push(`shield ${Math.ceil(near.shieldHp)}`);
     if (near.def.healPct) traits.push('heals allies');
     if (near.slowTimer > 0) traits.push('slowed');
@@ -145,6 +160,7 @@ function buildTooltip(x, y, px, py) {
     return `<b style="color:${t.def.color}">${t.def.glyph} ${t.def.name}</b> — L${t.level}${t.branch ? ' ' + t.def.branches[t.branch].name : ''}<br>
       DMG ${s.damage.toFixed(1)} · RNG ${s.range.toFixed(1)} · CD ${s.cooldown.toFixed(2)}s<br>
       ~DPS ${dps} · ${s.damageType}${s.targetsAir ? ' · hits air' : ''}<br>
+      ${matchupText(s.damageType) ? matchupText(s.damageType) + '<br>' : ''}
       ${sp ? sp + '<br>' : ''}
       <span class="muted">target: ${t.targetMode} · sell +${Math.floor(t.invested * CONFIG.SELL_REFUND)}g</span>${next}`;
   }
@@ -158,6 +174,7 @@ function buildTooltip(x, y, px, py) {
     return `<b style="color:${def.color}">${def.glyph} ${def.name}</b> — ${def.cost}g<br>
       DMG ${s.damage} · RNG ${s.range} · CD ${s.cooldown}s · ~DPS ${dps}<br>
       ${s.damageType}${s.targetsAir ? ' · hits air' : ''}<br>
+      ${matchupText(s.damageType) ? matchupText(s.damageType) + '<br>' : ''}
       <span class="muted">${def.blurb}</span><br>
       <b style="color:${legal ? '#5fce7a' : '#e24b4a'}">${legal ? 'click to build' : 'cannot build here'}</b>`;
   }

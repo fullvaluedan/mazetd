@@ -51,6 +51,7 @@ export function getTowerStats(typeId, level, branchId) {
 
   if (level >= 4 && branchId && def.branches[branchId]) {
     const m = def.branches[branchId].mods;
+    if (m.damageType) s.damageType = m.damageType;
     if (m.damageMult) s.damage *= m.damageMult;
     if (m.rangeMult) s.range *= m.rangeMult;
     if (m.multishot) s.multishot = m.multishot;
