@@ -9,7 +9,7 @@
 
 import { makeRng } from '../engine/rng.js';
 import { createState, onMazeChanged } from './state.js';
-import { addTower } from './tower.js';
+import { addTower, recomputeAuras } from './tower.js';
 import { createHero } from './hero.js';
 
 const SAVE_KEY = 'mazecore_save_v1';
@@ -84,6 +84,7 @@ export function applySnapshot(snap) {
     h.hp = Math.min(h.maxHp, snap.hero.hp);
   }
   onMazeChanged(state);
+  recomputeAuras(state);   // replayed levels/branches change Beacon strengths
   return state;
 }
 

@@ -49,8 +49,21 @@ export function getTowerStats(typeId, level, branchId) {
     cluster: 0,
   };
 
+  // Aura towers (Beacon): strength/radius come from auraByLevel, not the
+  // generic level multipliers. These are the EMITTED values; the buff a tower
+  // RECEIVES lives in stats.buffDmg (written by recomputeAuras).
+  if (def.aura) {
+    const a = def.auraByLevel[Math.min(level, 3) - 1];
+    s.auraDmg = a.dmg;
+    s.auraSpeed = a.speed;
+    s.auraRange = a.range;
+    s.range = a.range;          // so generic range displays/rings read sanely
+  }
+
   if (level >= 4 && branchId && def.branches[branchId]) {
     const m = def.branches[branchId].mods;
+    if (m.auraDmg) s.auraDmg = m.auraDmg;
+    if (m.auraSpeed) s.auraSpeed = m.auraSpeed;
     if (m.damageType) s.damageType = m.damageType;
     if (m.damageMult) s.damage *= m.damageMult;
     if (m.rangeMult) s.range *= m.rangeMult;
@@ -98,11 +111,18 @@ export class Tower {
     this.cooldownLeft = 0;
     this.angle = -Math.PI / 2;     // facing up by default
     this.invested = this.def.cost; // total gold sunk in (for sell refund)
+    this.buffDmg = 0;              // strongest Beacon damage-aura covering us
+    this.buffSpeed = 0;            // strongest Beacon speed-aura covering us
     this.refreshStats();
     this.muzzle = 0;               // brief flash timer for render
   }
 
-  refreshStats() { this.stats = getTowerStats(this.type, this.level, this.branch); }
+  refreshStats() {
+    this.stats = getTowerStats(this.type, this.level, this.branch);
+    // stats was just replaced — re-copy the received aura buff onto it
+    // (projectiles/splash read the firing tower's stats, not the tower).
+    if (!this.def.aura) this.stats.buffDmg = this.buffDmg || 0;
+  }
 
   canUpgrade() { return this.level < 4; }
   // At L3->L4 the player must pick a branch; below that, upgrade is straight.
@@ -170,6 +190,7 @@ export class Tower {
 
   // --- firing ---------------------------------------------------------------
   update(dt, state) {
+    if (this.def.aura) return;     // Beacons never attack
     if (this.muzzle > 0) this.muzzle -= dt;
     this.cooldownLeft -= dt;
     if (this.cooldownLeft > 0) return;
@@ -196,9 +217,32 @@ export class Tower {
         spawnProjectile(state, this.px, this.py, tgt, this.stats, this.def.color);
       }
     }
-    // attack-speed shop boost shortens the effective cooldown
+    // attack-speed shop boost + Beacon haste aura shorten the effective cooldown
     const spdTier = (state.towerBoosts && state.towerBoosts.speed) || 0;
-    this.cooldownLeft = this.stats.cooldown / (1 + spdTier * CONFIG.TOWER_BOOSTS.speed.amount);
+    this.cooldownLeft = this.stats.cooldown /
+      ((1 + spdTier * CONFIG.TOWER_BOOSTS.speed.amount) * (1 + (this.buffSpeed || 0)));
+  }
+}
+
+// Recompute the strongest-aura buff each tower receives. Called whenever the
+// tower set or a tower's stats change (build/sell/upgrade/load) — NOT per shot.
+// Stacking rule: per-stat MAX across all Beacons in range; same-stat auras
+// never stack (kills aura farms, mixed Command+Haste still combines).
+export function recomputeAuras(state) {
+  const auras = state.towers.filter((t) => t.def.aura);
+  for (const t of state.towers) {
+    let d = 0, s = 0;
+    if (!t.def.aura) {
+      for (const a of auras) {
+        if (cellDist(t.cx, t.cy, a.cx, a.cy) <= a.stats.auraRange) {
+          d = Math.max(d, a.stats.auraDmg || 0);
+          s = Math.max(s, a.stats.auraSpeed || 0);
+        }
+      }
+    }
+    t.buffDmg = d;
+    t.buffSpeed = s;
+    if (!t.def.aura && t.stats) t.stats.buffDmg = d;
   }
 }
 
@@ -208,6 +252,7 @@ export function addTower(state, typeId, x, y) {
   state.towerGrid[y][x] = t;
   state.towers.push(t);
   onMazeChanged(state);   // rebuild fields + reroute every enemy
+  recomputeAuras(state);
   return t;
 }
 
@@ -216,6 +261,7 @@ export function removeTower(state, tower) {
   const i = state.towers.indexOf(tower);
   if (i >= 0) state.towers.splice(i, 1);
   onMazeChanged(state);
+  recomputeAuras(state);
 }
 
 export function updateTowers(state, dt) {

@@ -23,7 +23,9 @@ function boostMult(state) {
   return 1 + tier * CONFIG.TOWER_BOOSTS.dmg.amount;
 }
 function baseDamage(state, stats, scale) {
-  return stats.damage * scale * frenzy(state) * boostMult(state);
+  // buffDmg = strongest Beacon damage-aura covering the firing tower
+  // (0 / undefined for hero & consumable ad-hoc stats objects).
+  return stats.damage * scale * frenzy(state) * boostMult(state) * (1 + (stats.buffDmg || 0));
 }
 
 // The single place damage + on-hit effects are applied to an enemy.

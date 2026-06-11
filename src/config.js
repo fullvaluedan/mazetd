@@ -197,6 +197,23 @@ export const CONFIG = {
         B: { id: 'storm',    name: 'Storm',    desc: '6 chains, no falloff', mods: { chainTargets: 6, chainFalloff: 1.0 } },
       },
     },
+    beacon: {
+      name: 'Beacon', glyph: 'B', color: '#e08ac8', cost: 150,
+      aura: true,                    // non-attacking: buffs towers in radius instead
+      damage: 0, range: 2.0, cooldown: 0, damageType: 'none',
+      targetsAir: false, projectileSpeed: 0,
+      // L1..L3 aura strength/radius (the UPGRADE multipliers don't apply here).
+      auraByLevel: [
+        { dmg: 0.10, speed: 0.05, range: 2.0 },
+        { dmg: 0.15, speed: 0.08, range: 2.4 },
+        { dmg: 0.20, speed: 0.10, range: 2.8 },
+      ],
+      blurb: 'Buffs nearby towers. Does not attack.',
+      branches: {
+        A: { id: 'command', name: 'Command', desc: '+35% damage aura', mods: { auraDmg: 0.35 } },
+        B: { id: 'haste',   name: 'Haste',   desc: '+25% attack speed aura', mods: { auraSpeed: 0.25 } },
+      },
+    },
   },
 
   DOT_MAX_STACKS: 3,

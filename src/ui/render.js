@@ -342,6 +342,20 @@ function drawTowers(ctx, state) {
       ctx.textAlign = 'right';
       ctx.fillText(t.branch, px + SIZE - 4, py + 9);
     }
+    // Beacons pulse softly; buffed towers get a small pink pip
+    if (t.def.aura) {
+      const pulse = 0.25 + 0.15 * Math.sin(state.time * 3);
+      ctx.strokeStyle = withAlpha(t.def.color, pulse);
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(cx, cy, SIZE * 0.62, 0, Math.PI * 2);
+      ctx.stroke();
+    } else if (t.buffDmg > 0 || t.buffSpeed > 0) {
+      ctx.fillStyle = '#e08ac8';
+      ctx.beginPath();
+      ctx.arc(px + SIZE - 6, py + SIZE - 6, 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
   ctx.textBaseline = 'alphabetic';
   ctx.textAlign = 'left';
@@ -396,6 +410,19 @@ function drawSelected(ctx, state) {
   ctx.strokeStyle = C.rangeRing;
   ctx.lineWidth = 2;
   ctx.strokeRect(t.cx * SIZE + 1, t.cy * SIZE + 1, SIZE - 2, SIZE - 2);
+  if (t.def.aura) {
+    // aura coverage (NOT affected by the shop range boost) + a faint fill
+    const r = t.stats.auraRange * SIZE;
+    const cx = cellCenterX(t.cx), cy = cellCenterY(t.cy);
+    ctx.fillStyle = withAlpha(t.def.color, 0.10 + 0.04 * Math.sin(state.time * 3));
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = withAlpha(t.def.color, 0.6);
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    return;
+  }
   // show the boosted range, matching what targeting actually uses
   drawRangeRing(ctx, t.cx, t.cy, t.effectiveRange ? t.effectiveRange(state) : t.stats.range);
 }

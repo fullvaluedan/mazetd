@@ -154,6 +154,11 @@ function buildTooltip(x, y, px, py) {
   const t = (y >= 0 && x >= 0 && state.towerGrid[y] && state.towerGrid[y][x]) || null;
   if (t) {
     const s = t.stats;
+    if (t.def.aura) {
+      return `<b style="color:${t.def.color}">${t.def.glyph} ${t.def.name}</b> — L${t.level}${t.branch ? ' ' + t.def.branches[t.branch].name : ''}<br>
+        +${Math.round(s.auraDmg * 100)}% dmg · +${Math.round(s.auraSpeed * 100)}% atk speed · radius ${s.auraRange.toFixed(1)}<br>
+        <span class="muted">buffs nearby towers · strongest aura wins · sell +${Math.floor(t.invested * CONFIG.SELL_REFUND)}g</span>`;
+    }
     const dps = (s.damage * (s.multishot || 1) / s.cooldown).toFixed(1);
     const sp = specialText(s);
     const next = t.canUpgrade() ? `<br><span style="color:#f2c14b">▲ upgrade: ${t.nextUpgradeCost()}g</span>` : '<br><span class="muted">max level</span>';
@@ -170,6 +175,12 @@ function buildTooltip(x, y, px, py) {
     const def = CONFIG.TOWERS[state.buildType];
     const s = getTowerStats(state.buildType, 1, null);
     const legal = (y >= 0 && x >= 0) ? canBuildAtSafe(x, y) : false;
+    if (def.aura) {
+      return `<b style="color:${def.color}">${def.glyph} ${def.name}</b> — ${def.cost}g<br>
+        +${Math.round(s.auraDmg * 100)}% dmg · +${Math.round(s.auraSpeed * 100)}% atk speed · radius ${s.auraRange.toFixed(1)}<br>
+        <span class="muted">${def.blurb}</span><br>
+        <b style="color:${legal ? '#5fce7a' : '#e24b4a'}">${legal ? 'click to build' : 'cannot build here'}</b>`;
+    }
     const dps = (s.damage / s.cooldown).toFixed(1);
     return `<b style="color:${def.color}">${def.glyph} ${def.name}</b> — ${def.cost}g<br>
       DMG ${s.damage} · RNG ${s.range} · CD ${s.cooldown}s · ~DPS ${dps}<br>

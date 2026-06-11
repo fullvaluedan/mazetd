@@ -9,7 +9,7 @@
 import { CONFIG } from '../config.js';
 import { canAfford, spendGold, addGold, addFloater } from './economy.js';
 import { canBuildAt } from './state.js';
-import { addTower, removeTower } from './tower.js';
+import { addTower, removeTower, recomputeAuras } from './tower.js';
 import { applySplash } from './projectile.js';
 import { baseHp } from './wave.js';
 import { cellCenterX, cellCenterY } from '../engine/grid.js';
@@ -41,6 +41,9 @@ export function tryUpgrade(state, tower, branchId) {
   if (!canAfford(state, cost)) return false;
   spendGold(state, cost);
   tower.applyUpgrade(branchId);
+  // upgrading replaces the tower's stats object (and may change a Beacon's
+  // aura strength/radius) — refresh every tower's received buff
+  recomputeAuras(state);
   return true;
 }
 

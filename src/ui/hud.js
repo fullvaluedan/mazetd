@@ -375,22 +375,32 @@ export class HUD {
     if (s.contagion) special.push('contagion');
     if (s.cluster) special.push('cluster');
 
-    card.innerHTML = `<h3>${t.def.glyph} ${t.def.name} — L${t.level}${t.branch ? ' ' + t.def.branches[t.branch].name : ''}</h3>
-      <div class="muted" style="line-height:1.6">
-        DMG ${s.damage.toFixed(1)} · RNG ${s.range.toFixed(1)} · CD ${s.cooldown.toFixed(2)}s<br>
-        ~DPS ${dps.toFixed(1)} · ${s.damageType}${s.targetsAir ? ' · air✔' : ' · ground'} ${badgeHtml(s.damageType)}<br>
-        ${special.length ? special.join(' · ') : '—'}
-      </div>`;
+    if (t.def.aura) {
+      // Beacon: no damage/targeting — show what the aura grants instead.
+      card.innerHTML = `<h3>${t.def.glyph} ${t.def.name} — L${t.level}${t.branch ? ' ' + t.def.branches[t.branch].name : ''}</h3>
+        <div class="muted" style="line-height:1.6">
+          <span style="color:${t.def.color}">+${Math.round(s.auraDmg * 100)}% damage</span> ·
+          <span style="color:${t.def.color}">+${Math.round(s.auraSpeed * 100)}% atk speed</span><br>
+          aura radius ${s.auraRange.toFixed(1)} · buffs nearby towers
+        </div>`;
+    } else {
+      card.innerHTML = `<h3>${t.def.glyph} ${t.def.name} — L${t.level}${t.branch ? ' ' + t.def.branches[t.branch].name : ''}</h3>
+        <div class="muted" style="line-height:1.6">
+          DMG ${s.damage.toFixed(1)} · RNG ${s.range.toFixed(1)} · CD ${s.cooldown.toFixed(2)}s<br>
+          ~DPS ${dps.toFixed(1)} · ${s.damageType}${s.targetsAir ? ' · air✔' : ' · ground'} ${badgeHtml(s.damageType)}<br>
+          ${special.length ? special.join(' · ') : '—'}
+        </div>`;
 
-    // target mode toggle
-    const tmRow = div('speed-row');
-    tmRow.style.marginTop = '6px';
-    const tmBtn = document.createElement('button');
-    tmBtn.style.flex = '1';
-    tmBtn.textContent = 'Target: ' + t.targetMode;
-    tmBtn.addEventListener('click', () => this.actions.cycleTarget());
-    tmRow.appendChild(tmBtn);
-    card.appendChild(tmRow);
+      // target mode toggle (attacking towers only)
+      const tmRow = div('speed-row');
+      tmRow.style.marginTop = '6px';
+      const tmBtn = document.createElement('button');
+      tmBtn.style.flex = '1';
+      tmBtn.textContent = 'Target: ' + t.targetMode;
+      tmBtn.addEventListener('click', () => this.actions.cycleTarget());
+      tmRow.appendChild(tmBtn);
+      card.appendChild(tmRow);
+    }
 
     // upgrade button(s)
     if (t.canUpgrade()) {
