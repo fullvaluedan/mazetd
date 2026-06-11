@@ -51,7 +51,10 @@ const bootLevel = (() => {
     return id ? getLevel(id) : null;
   } catch { return null; }
 })();
-if (bootLevel) setGridSize(bootLevel.cols, bootLevel.rows);
+if (bootLevel) {
+  setGridSize(bootLevel.cols, bootLevel.rows);
+  viewport.resize();   // the viewport was built against the default world size
+}
 
 let state = createState(makeRng(CONFIG.SEED), CONFIG.SEED, bootLevel);
 let prevStatus = state.status;

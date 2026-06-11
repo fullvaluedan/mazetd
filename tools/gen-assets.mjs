@@ -110,6 +110,10 @@ function buildManifest() {
     prompt: 'Square mobile game app icon for a colorful anime maze tower-defense game: one cute crystal tower emblem with a winding path swirling around its base, bright cheerful isekai-anime style, simple bold cel-shaded shapes, fills the frame edge to edge, no text, no border.' });
   items.push({ id: 'misc-background', out: 'misc/background.png', size: '1536x1024', transparent: false,
     prompt: 'Top-down fantasy meadow battlefield terrain for a cheerful anime tower-defense map: soft green grass with scattered light stone tiles, tiny flowers and pebbles, bright friendly colors with simple flat shading, evenly lit, LOW CONTRAST and slightly muted so game pieces stay readable on top, no characters, no buildings, no text, no UI, no grid lines.' });
+  items.push({ id: 'misc-spawn', out: 'misc/spawn.png', size: '1024x1024',
+    prompt: 'Game map marker seen from above: a small swirling dark-purple portal mouth in the grass, gentle magic wisps curling out, ominous but cute. ' + STYLE });
+  items.push({ id: 'misc-camp', out: 'misc/camp.png', size: '1024x1024',
+    prompt: 'Game map marker seen from above: a cozy little campfire with crossed logs, warm orange flames and a tiny cooking pot beside it, inviting and warm. ' + STYLE });
   items.push({ id: 'misc-falcon', out: 'misc/falcon.png', size: '1024x1024',
     prompt: 'Game sprite of a small hunting falcon in flight, wings spread mid-glide, seen slightly from above, fierce but cute. ' + STYLE });
   items.push({ id: 'misc-worldmap', out: 'misc/worldmap.png', size: '1024x1536', transparent: false,

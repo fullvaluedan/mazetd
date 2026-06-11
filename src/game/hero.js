@@ -152,12 +152,15 @@ export class Hero {
     const stats = this.attackStats();
     if (this.melee) {
       dealDamage(state, tgt, stats.damage, stats);
-      this.lunge = 0.18;                                  // visible swing (renderer)
-      pushBeam(state, this.x, this.y, tgt.x, tgt.y, this.def.color);
+      // a real swing: big lunge toward the target + a sweeping slash arc
+      this.lunge = 0.18; this.lungeDir = 1;
+      state.effects.push({ kind: 'slash', x: this.x, y: this.y, angle: this.angle, color: '#fff3d6', life: 0.18, max: 0.18 });
       pushSpark(state, tgt.x, tgt.y, this.def.color);
     } else {
       stats.projectileSpeed = CONFIG.HERO_PROJECTILE_SPEED;
-      this.lunge = 0.1;
+      // ranged: kick back from the shot + a muzzle flash at the bow/staff
+      this.lunge = 0.12; this.lungeDir = -0.5;
+      pushSpark(state, this.x + Math.cos(this.angle) * 12, this.y + Math.sin(this.angle) * 12, this.def.color);
       spawnProjectile(state, this.x, this.y, tgt, stats, this.def.color);
     }
   }

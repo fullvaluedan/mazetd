@@ -106,7 +106,8 @@ function drawHero(ctx, state) {
   const heroBob = heroMoving
     ? -Math.abs(Math.sin(state.time * 9)) * 2.5
     : Math.sin(state.time * 2) * 1.1;
-  const lungeK = h.lunge > 0 ? (h.lunge / 0.18) * 6 : 0;
+  // attack motion: melee lunges INTO the swing (12px), ranged kicks back
+  const lungeK = h.lunge > 0 ? (h.lunge / 0.18) * 12 * (h.lungeDir || 1) : 0;
   const lx = Math.cos(h.angle) * lungeK, ly = Math.sin(h.angle) * lungeK;
   if (h.hitFlash > 0) {
     ctx.strokeStyle = `rgba(255,90,80,${Math.min(1, h.hitFlash / 0.08)})`;
@@ -202,8 +203,9 @@ function drawBackground(ctx) {
   const bgImg = getSprite('misc-background');
   if (bgImg) {
     ctx.drawImage(bgImg, 0, 0, worldW(), worldH());
-    // dim slightly so entities and the grid stay readable on painted terrain
-    ctx.fillStyle = 'rgba(18,21,29,0.35)';
+    // golden-hour wash: keeps the meadow warm and bright (the old dark-blue
+    // dim turned it olive — the single biggest "muddy board" offender)
+    ctx.fillStyle = 'rgba(255, 214, 140, 0.08)';
     ctx.fillRect(0, 0, worldW(), worldH());
   } else {
     ctx.fillStyle = C.bg;
@@ -239,17 +241,41 @@ function drawMap(ctx, state) {
   }
 }
 
+// Obstacles are scenery now, not UI panels: alternating sun-bleached rocks
+// and leafy bushes (deterministic per cell so the map never shimmers).
 function drawObstacle(ctx, x, y) {
-  const px = x * SIZE, py = y * SIZE, pad = 2, r = 5;
-  roundRect(ctx, px + pad, py + pad, SIZE - pad * 2, SIZE - pad * 2, r);
-  ctx.fillStyle = C.obstacle;
+  const cx = cellCenterX(x), cy = cellCenterY(y);
+  const isBush = ((x * 7 + y * 13) % 3) !== 0;
+  // soft contact shadow
+  ctx.fillStyle = 'rgba(60, 42, 20, 0.22)';
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + 9, 13, 5, 0, 0, Math.PI * 2);
   ctx.fill();
-  // subtle inner highlight
-  ctx.fillStyle = C.obstacleHi;
-  roundRect(ctx, px + pad + 2, py + pad + 2, SIZE - pad * 2 - 4, (SIZE - pad * 2) / 2.4, 3);
-  ctx.globalAlpha = 0.35;
-  ctx.fill();
-  ctx.globalAlpha = 1;
+  if (isBush) {
+    // three overlapping leafy lobes + highlight
+    ctx.fillStyle = C.bush;
+    for (const [ox, oy, r] of [[-7, 2, 8], [7, 2, 8], [0, -4, 10]]) {
+      ctx.beginPath(); ctx.arc(cx + ox, cy + oy, r, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.fillStyle = C.bushHi;
+    ctx.globalAlpha = 0.6;
+    ctx.beginPath(); ctx.arc(cx - 3, cy - 6, 5.5, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+  } else {
+    // rounded boulder with a lit top
+    ctx.fillStyle = C.obstacle;
+    ctx.beginPath();
+    ctx.moveTo(cx - 12, cy + 9);
+    ctx.quadraticCurveTo(cx - 14, cy - 6, cx - 4, cy - 10);
+    ctx.quadraticCurveTo(cx + 8, cy - 13, cx + 12, cy - 2);
+    ctx.quadraticCurveTo(cx + 14, cy + 9, cx, cy + 10);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = C.obstacleHi;
+    ctx.globalAlpha = 0.55;
+    ctx.beginPath(); ctx.ellipse(cx - 2, cy - 6, 7, 4, -0.4, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+  }
 }
 
 function drawPaths(ctx, state) {
@@ -279,31 +305,58 @@ function drawSpawnGoalMarkers(ctx, state) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
+  // SPAWNS: a swirling dark portal mouth (sprite when generated)
   for (const s of state.map.spawns) {
     const c = cellCenter(s.cx, s.cy);
-    // green diamond
-    ctx.fillStyle = C.spawn;
-    ctx.beginPath();
-    ctx.moveTo(c.x, c.y - 9);
-    ctx.lineTo(c.x + 9, c.y);
-    ctx.lineTo(c.x, c.y + 9);
-    ctx.lineTo(c.x - 9, c.y);
-    ctx.closePath();
-    ctx.fill();
-    ctx.fillStyle = '#0c0e14';
-    ctx.fillText(s.id, c.x, c.y + 0.5);
+    const img = getSprite('misc-spawn');
+    if (img) {
+      ctx.drawImage(img, c.x - 19, c.y - 19, 38, 38);
+    } else {
+      ctx.fillStyle = '#2b1f3a';
+      ctx.beginPath(); ctx.ellipse(c.x, c.y, 13, 11, 0, 0, Math.PI * 2); ctx.fill();
+      for (let i = 0; i < 2; i++) {                  // rotating swirl arms
+        const a0 = state.time * 2.4 + i * Math.PI;
+        ctx.strokeStyle = `rgba(168, 120, 255, ${0.7 - i * 0.25})`;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(c.x, c.y, 6 + i * 3.5, a0, a0 + 2.1);
+        ctx.stroke();
+      }
+    }
   }
 
+  // EXITS: the camp you're protecting — a crackling little campfire
   for (const g of state.map.goals) {
     const c = cellCenter(g.cx, g.cy);
-    // red ring
-    ctx.strokeStyle = C.goal;
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(c.x, c.y, 10, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.fillStyle = C.goal;
-    ctx.fillText(g.id, c.x, c.y + 0.5);
+    const img = getSprite('misc-camp');
+    if (img) {
+      ctx.drawImage(img, c.x - 19, c.y - 19, 38, 38);
+    } else {
+      // crossed logs
+      ctx.strokeStyle = '#7a5230';
+      ctx.lineWidth = 4;
+      ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(c.x - 9, c.y + 9); ctx.lineTo(c.x + 9, c.y + 4); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(c.x + 9, c.y + 9); ctx.lineTo(c.x - 9, c.y + 4); ctx.stroke();
+      ctx.lineCap = 'butt';
+      // flickering flame (two licks + glow)
+      const f = Math.sin(state.time * 9 + g.cx) * 2;
+      const glow = 0.25 + 0.1 * Math.sin(state.time * 6);
+      ctx.fillStyle = `rgba(255, 176, 60, ${glow})`;
+      ctx.beginPath(); ctx.arc(c.x, c.y, 15, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#ff9e2e';
+      ctx.beginPath();
+      ctx.moveTo(c.x - 6, c.y + 6);
+      ctx.quadraticCurveTo(c.x - 7, c.y - 4 + f, c.x, c.y - 11 - f);
+      ctx.quadraticCurveTo(c.x + 7, c.y - 4 - f, c.x + 6, c.y + 6);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#ffd35c';
+      ctx.beginPath();
+      ctx.moveTo(c.x - 3, c.y + 6);
+      ctx.quadraticCurveTo(c.x - 3, c.y - 1 - f, c.x, c.y - 5 + f);
+      ctx.quadraticCurveTo(c.x + 3, c.y - 1 + f, c.x + 3, c.y + 6);
+      ctx.closePath(); ctx.fill();
+    }
   }
 
   // checkpoint flags (Gem TD): gold banner on a pole, numbered, gentle wave
@@ -526,6 +579,22 @@ function drawEffects(ctx, state) {
       ctx.beginPath();
       ctx.arc(e.x, e.y, 3 * a + 1, 0, Math.PI * 2);
       ctx.fill();
+    } else if (e.kind === 'slash') {
+      // hero sword swing: a bright crescent sweeping across the attack line
+      const p = 1 - a;                                    // 0 -> 1 over the swing
+      const sweep = -1.2 + p * 2.4;                       // rotate across the arc
+      ctx.strokeStyle = withAlpha(e.color, 0.95 * a + 0.05);
+      ctx.lineWidth = 5 * a + 1.5;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, 19, e.angle + sweep - 0.8, e.angle + sweep + 0.8);
+      ctx.stroke();
+      ctx.strokeStyle = withAlpha(e.color, 0.4 * a);      // ghost trail
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, 14, e.angle + sweep - 0.6, e.angle + sweep + 0.6);
+      ctx.stroke();
+      ctx.lineCap = 'butt';
     }
   }
 }
@@ -609,6 +678,14 @@ function drawEnemies(ctx, state) {
 
     const frame = moving ? Math.floor(state.time * stepHz * 4 + e.bob) % 4 : 0;
     const sprite = getSprite('enemy-' + e.type, frame);
+
+    // soft contact shadow grounds the walkers (flyers already cast one)
+    if (!e.flying) {
+      ctx.fillStyle = 'rgba(60, 42, 20, 0.20)';
+      ctx.beginPath();
+      ctx.ellipse(e.x, ey + e.radius * 0.85, e.radius * 0.85, e.radius * 0.32, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
     ctx.save();
     ctx.translate(e.x + lungeX, ey + bobY + lungeY);

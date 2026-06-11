@@ -152,22 +152,22 @@ export const CONFIG = {
     },
     // -- the starter three ----------------------------------------------------
     cannon: {
-      name: 'Cannon', glyph: 'C', color: '#d98a4b', cost: 20,
-      damage: 8, range: 2.2, cooldown: 1.7, damageType: 'siege',
+      name: 'Cannon', glyph: 'C', color: '#d98a4b', cost: 15,
+      damage: 6, range: 2.2, cooldown: 1.7, damageType: 'siege',
       targetsAir: false, projectileSpeed: 7, splashRadius: 1.0,
       blurb: 'Small splash. Land only.',
       branches: {},
     },
     magic: {
-      name: 'Magic', glyph: 'M', color: '#9a6bd6', cost: 30,
-      damage: 4, range: 2.4, cooldown: 1.0, damageType: 'magic',
+      name: 'Magic', glyph: 'M', color: '#9a6bd6', cost: 22,
+      damage: 3, range: 2.4, cooldown: 1.0, damageType: 'magic',
       targetsAir: true, hitscan: true, slowPct: 0.3, slowDur: 1.2,
       blurb: 'Slows. Hits land AND air.',
       branches: {},
     },
     falcon: {
-      name: 'Falcon', glyph: 'F', color: '#4fa3d6', cost: 25,
-      damage: 7, range: 3.2, cooldown: 0.9, damageType: 'pierce',
+      name: 'Falcon', glyph: 'F', color: '#4fa3d6', cost: 18,
+      damage: 5, range: 3.2, cooldown: 0.9, damageType: 'pierce',
       targetsAir: true, airOnly: true, hitscan: true, falcon: true,
       blurb: 'A hunting falcon. AIR only.',
       branches: {},
@@ -348,19 +348,19 @@ export const CONFIG = {
   // PALETTE — flat colors so placeholder shapes look intentional
   // ---------------------------------------------------------------------------
   COLORS: {
-    bg: '#1b1f2a',
-    gridLine: '#262b38',
-    border: '#11141c',
-    hoverOk: 'rgba(0,212,255,0.18)',
+    bg: '#9fbf72',            // warm meadow green (no-art fallback)
+    gridLine: 'rgba(92, 72, 40, 0.16)',   // soft warm hairlines
+    border: '#4a3a26',        // warm timber frame
+    hoverOk: 'rgba(255, 204, 92, 0.30)',
     hoverBad: 'rgba(226,75,74,0.30)',
     hoverSeal: 'rgba(255,165,0,0.35)',   // legal but seals the path (siege warning)
-    obstacle: '#3a3f4b',
-    obstacleHi: '#4a505e',
+    obstacle: '#b59f72',      // sun-bleached rock
+    obstacleHi: '#d8c49a', bush: '#5e9c4f', bushHi: '#79b865',
     spawn: '#4fd06a',
     goal: '#e24b4a',
-    path: 'rgba(120,200,255,0.35)',
-    rangeRing: 'rgba(0,212,255,0.45)',
-    hpBack: '#2a2f3c',
+    path: 'rgba(255, 246, 222, 0.60)',
+    rangeRing: 'rgba(255, 190, 80, 0.70)',
+    hpBack: 'rgba(42, 30, 18, 0.55)',
     hpFront: '#5fce7a',
     text: '#e8ecf3',
     textDim: '#9aa3b2',
