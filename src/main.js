@@ -25,13 +25,16 @@ import { render } from './ui/render.js';
 import { HUD } from './ui/hud.js';
 import { Tooltip } from './ui/tooltips.js';
 import { loadSprites, toggleSprites } from './ui/sprites.js';
+import { Viewport } from './ui/viewport.js';
 
 const canvas = document.getElementById('game');
-canvas.width = CANVAS_W;
-canvas.height = CANVAS_H;
 const ctx = canvas.getContext('2d');
 const overlay = document.getElementById('overlay');
 const modal = document.getElementById('modal');
+const uiLayer = document.getElementById('ui');
+// Letterbox + DPR: viewport owns the canvas backing store and CSS box from
+// here on; all draw code keeps working in fixed 896x576 world coordinates.
+const viewport = new Viewport(canvas, uiLayer, document.getElementById('stage'));
 
 let state = createState(makeRng(CONFIG.SEED), CONFIG.SEED);
 let prevStatus = state.status;
@@ -373,6 +376,8 @@ function showEndModal() {
 // render step
 // ---------------------------------------------------------------------------
 function draw() {
+  viewport.applyTransform(ctx);     // world px -> device px (letterbox + DPR)
+  ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
   render(ctx, state);
   hud.refresh(state, { speed: loop.gameSpeed, paused: loop.paused });
   updateHint();

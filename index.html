@@ -47,12 +47,17 @@
     #game {
       display: block;
       background: var(--bg);
-      image-rendering: pixelated;
       box-shadow: 0 0 0 1px var(--line);
-      max-width: 100%;
-      max-height: 100%;
       touch-action: none;            /* the canvas owns its gestures (no scroll/zoom) */
       -webkit-tap-highlight-color: transparent;
+      /* size + position are owned by viewport.js (letterbox + DPR) */
+    }
+    /* DOM widgets anchored over the canvas; viewport.js keeps it on the same box */
+    #ui {
+      position: absolute;
+      pointer-events: none;          /* children opt back in individually */
+      z-index: 10;
+      overflow: visible;
     }
     /* Overlay banners drawn over the canvas (HTML, not canvas) */
     #overlay {
@@ -172,8 +177,7 @@
     /* Narrow or portrait screens: stack the HUD under the canvas */
     @media (max-width: 900px), (orientation: portrait) {
       #app { flex-direction: column; }
-      #stage { flex: 0 0 auto; width: 100%; }
-      #game { width: 100%; height: auto; }
+      #stage { flex: 0 0 auto; width: 100%; aspect-ratio: 896 / 576; }
       #hud {
         flex: 1 1 auto; width: 100%;
         border-left: none; border-top: 1px solid var(--line);
@@ -188,6 +192,7 @@
   <div id="app">
     <div id="stage">
       <canvas id="game" width="896" height="576"></canvas>
+      <div id="ui"><!-- world-anchored DOM widgets (viewport.js positions this) --></div>
       <div id="overlay"></div>
       <div id="modal" class="hidden"><!-- start screen / game over injected here --></div>
     </div>

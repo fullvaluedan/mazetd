@@ -7,16 +7,20 @@
 // stays ignorant of game rules.
 // =============================================================================
 
-import { SIZE } from './grid.js';
+import { SIZE, COLS, ROWS } from './grid.js';
+
+// World dimensions are fixed; the canvas BACKING STORE is not (it scales with
+// devicePixelRatio). Never derive world coords from canvas.width — only from
+// the world constants and the element's CSS rect.
+const WORLD_W = COLS * SIZE;
+const WORLD_H = ROWS * SIZE;
 
 export function setupInput(canvas, handlers) {
   function toCell(ev) {
     const rect = canvas.getBoundingClientRect();
-    // Map client px -> canvas px (account for CSS scaling), then -> cell.
-    const sx = canvas.width / rect.width;
-    const sy = canvas.height / rect.height;
-    const px = (ev.clientX - rect.left) * sx;
-    const py = (ev.clientY - rect.top) * sy;
+    // Map client px -> WORLD px (account for CSS scaling + DPR), then -> cell.
+    const px = (ev.clientX - rect.left) / rect.width * WORLD_W;
+    const py = (ev.clientY - rect.top) / rect.height * WORLD_H;
     return { x: Math.floor(px / SIZE), y: Math.floor(py / SIZE), px, py };
   }
 
