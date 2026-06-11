@@ -115,7 +115,7 @@ export class Radial {
 export function buildRingItems(state, cell, gameActions) {
   const seals = safeSeal(state, cell.x, cell.y);
   const allowed = (state.level && !state.level.endless) ? towersUnlockedAt(state.level.num) : null;
-  return Object.entries(CONFIG.TOWERS).map(([id, def]) => {
+  return Object.entries(CONFIG.TOWERS).filter(([, def]) => !def.hidden).map(([id, def]) => {
     if (allowed && !allowed.includes(id)) {
       return {
         glyph: '🔒', color: '#9aa3b2',

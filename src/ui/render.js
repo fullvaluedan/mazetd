@@ -420,6 +420,42 @@ function drawTowers(ctx, state) {
       ctx.textAlign = 'right';
       ctx.fillText(t.branch, px + SIZE - 4, py + 9);
     }
+    // Falcon towers: a summoned bird circles the perch and swoops along the
+    // attack direction when the tower fires. Pure cosmetics on muzzle timing.
+    if (t.def.falcon) {
+      const orbitA = state.time * 2.2 + t.uid * 1.7;
+      let fx, fy, fa;
+      if (t.muzzle > 0) {
+        const k = 1 - t.muzzle / 0.08;                 // 0 -> 1 across the flash
+        const swoop = Math.sin(k * Math.PI) * 16;      // out and back
+        fx = cx + Math.cos(t.angle) * (10 + swoop);
+        fy = cy + Math.sin(t.angle) * (10 + swoop) - 8;
+        fa = t.angle;
+      } else {
+        fx = cx + Math.cos(orbitA) * 16;
+        fy = cy + Math.sin(orbitA) * 9 - 14;           // flat ellipse above the perch
+        fa = orbitA + Math.PI / 2;
+      }
+      const bird = getSprite('misc-falcon');
+      ctx.save();
+      ctx.translate(fx, fy);
+      ctx.scale(Math.cos(fa) < 0 ? -1 : 1, 1);
+      if (bird) {
+        ctx.drawImage(bird, -9, -9, 18, 18);
+      } else {
+        ctx.fillStyle = t.def.color;
+        ctx.beginPath();                                // simple wing chevron
+        ctx.moveTo(-7, 2); ctx.lineTo(0, -4); ctx.lineTo(7, 2); ctx.lineTo(0, 0);
+        ctx.closePath(); ctx.fill();
+      }
+      ctx.restore();
+      // soft shadow under the bird
+      ctx.fillStyle = 'rgba(0,0,0,0.18)';
+      ctx.beginPath();
+      ctx.ellipse(fx, cy + 10, 5, 2, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
     // Beacons pulse softly; buffed towers get a small pink pip
     if (t.def.aura) {
       const pulse = 0.25 + 0.15 * Math.sin(state.time * 3);

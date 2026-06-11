@@ -15,15 +15,13 @@
 import { CONFIG } from '../config.js';
 
 // Which towers a player has at a given campaign level (1-based, cumulative).
+// The roster starts tiny on purpose: Cannon (land), Magic (slow, land+air),
+// Falcon (air only) — more towers join the pool in later content drops.
 export const UNLOCK_SCHEDULE = [
   { level: 1, tower: 'wall' },
-  { level: 1, tower: 'archer' },
-  { level: 3, tower: 'cannon' },
-  { level: 5, tower: 'frost' },
-  { level: 7, tower: 'beacon' },
-  { level: 9, tower: 'venom' },
-  { level: 11, tower: 'arcane' },
-  { level: 13, tower: 'tesla' },
+  { level: 1, tower: 'cannon' },
+  { level: 3, tower: 'magic' },
+  { level: 7, tower: 'falcon' },   // one level before the first flying wave
 ];
 
 export function towersUnlockedAt(levelNum) {
@@ -67,11 +65,14 @@ function rect(x0, y0, x1, y1) {
 // ----------------------------------------------------------------------------
 export const LEVELS = [
   // -- Act 1: learn to maze ---------------------------------------------------
+  // Level 1 is HALF the old size: one spawn top-left, one exit bottom-right,
+  // diagonal corners — the shortest path is a straight diagonal walk unless
+  // you bend it. Pure mazing tutorial.
   L(1, 'First Steps', {
-    cols: 9, rows: 12,
-    spawns: [{ id: 'S1', cx: 4, cy: 0 }],
-    goals: [{ id: 'G1', cx: 4, cy: 11 }],
-    startGold: 140,
+    cols: 7, rows: 9,
+    spawns: [{ id: 'S1', cx: 1, cy: 0 }],
+    goals: [{ id: 'G1', cx: 5, cy: 8 }],
+    startGold: 70,
     waves: { count: 8, types: ['normal'], hpMult: 0.5 },
     stars: [10, 7],
   }),
@@ -83,7 +84,7 @@ export const LEVELS = [
     startGold: 170,
     waves: { count: 10, types: ['normal', 'fast'], hpMult: 0.6 },
   }),
-  L(3, 'Cannon Fodder', {                       // unlock: cannon
+  L(3, 'A Touch of Magic', {                    // unlock: magic tower
     cols: 10, rows: 14,
     spawns: [{ id: 'S1', cx: 5, cy: 0 }],
     goals: [{ id: 'G1', cx: 5, cy: 13 }],
@@ -98,7 +99,7 @@ export const LEVELS = [
     startGold: 220,
     waves: { count: 11, types: ['normal', 'fast', 'swarm'], swarmFrom: 5, hpMult: 0.85 },
   }),
-  L(5, 'Cold Snap', {                           // unlock: frost
+  L(5, 'Cold Snap', {
     cols: 11, rows: 15,
     spawns: [{ id: 'S1', cx: 5, cy: 0 }],
     goals: [{ id: 'G1', cx: 5, cy: 14 }],
@@ -116,7 +117,7 @@ export const LEVELS = [
     waves: { count: 12, types: ['normal', 'fast', 'swarm', 'tank'], swarmFrom: 4, hpMult: 1.2 },
   }),
   // -- Act 2: the sky and the siege -------------------------------------------
-  L(7, 'Light the Beacon', {                    // unlock: beacon
+  L(7, "The Falcon's Watch", {                  // unlock: falcon (flyers next level)
     cols: 11, rows: 17,
     spawns: [{ id: 'S1', cx: 5, cy: 0 }],
     goals: [{ id: 'G1', cx: 5, cy: 16 }],
@@ -132,7 +133,7 @@ export const LEVELS = [
     startGold: 320,
     waves: { count: 13, types: ['normal', 'fast', 'swarm', 'tank', 'flyer'], swarmFrom: 4, flyerFrom: 6, hpMult: 1.9 },
   }),
-  L(9, 'Venom Garden', {                        // unlock: venom
+  L(9, 'Verdant Garden', {
     cols: 12, rows: 18,
     spawns: [{ id: 'S1', cx: 2, cy: 0 }],
     goals: [{ id: 'G1', cx: 9, cy: 17 }],
@@ -150,7 +151,7 @@ export const LEVELS = [
     waves: { count: 15, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'flyer'], swarmFrom: 4, flyerFrom: 7, bossWaves: [15], hpMult: 2.6 },
   }),
   // -- Act 3: the long roads ---------------------------------------------------
-  L(11, 'Arcane Lessons', {                     // unlock: arcane
+  L(11, 'The Long Descent', {
     cols: 12, rows: 19,
     spawns: [{ id: 'S1', cx: 3, cy: 0 }],
     goals: [{ id: 'G1', cx: 8, cy: 18 }],

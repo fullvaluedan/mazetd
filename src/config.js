@@ -123,18 +123,20 @@ export const CONFIG = {
   BOSS_HP_MULT_MAX: 30,
 
   // ---------------------------------------------------------------------------
-  // TOWERS
-  // range is in cells (Euclidean). cooldown in seconds. projectileSpeed in
-  // cells/second (hitscan towers ignore it). Branch `mods` are applied on top of
-  // the level-3 stats when the player picks a level-4 specialization.
+  // TOWERS — the player roster is deliberately SMALL and WEAK: walls + three
+  // starter towers. Mazing wins games, not tower stats. Towers cap at LEVEL 3
+  // and each upgrade costs more than the tower did (costMultL2/L3 below).
+  // Defs marked `hidden: true` are the legacy set — kept for the headless
+  // regression sims and as a pool for future unlocks, never shown in the ring.
   // ---------------------------------------------------------------------------
+  MAX_TOWER_LEVEL: 3,
   UPGRADE: {
-    dmgMultPerLevel: 2.0,     // applied at L2 and again at L3 (tuned Phase 8: 1.6 -> 2.0)
+    dmgMultPerLevel: 2.0,     // applied at L2 and again at L3
     rangeMultPerLevel: 1.08,  // applied at L2 and again at L3
     cooldownMultPerLevel: 0.9,// applied at L2 and again at L3
-    costMultL2: 1.0,          // L2 cost = round(baseCost * 1.0)
-    costMultL3: 1.8,
-    costMultL4: 3.2,
+    costMultL2: 2.0,          // upgrades cost MORE than the tower: L2 = 2x base
+    costMultL3: 4.0,          // ...and L3 = 4x base (7x total invested at L3)
+    costMultL4: 8.0,          // (legacy towers only; the roster caps at L3)
   },
 
   TOWERS: {
@@ -148,7 +150,31 @@ export const CONFIG = {
       blurb: 'Cheap maze block. Sells back 100%.',
       branches: {},
     },
+    // -- the starter three ----------------------------------------------------
+    cannon: {
+      name: 'Cannon', glyph: 'C', color: '#d98a4b', cost: 20,
+      damage: 8, range: 2.2, cooldown: 1.7, damageType: 'siege',
+      targetsAir: false, projectileSpeed: 7, splashRadius: 1.0,
+      blurb: 'Small splash. Land only.',
+      branches: {},
+    },
+    magic: {
+      name: 'Magic', glyph: 'M', color: '#9a6bd6', cost: 30,
+      damage: 4, range: 2.4, cooldown: 1.0, damageType: 'magic',
+      targetsAir: true, hitscan: true, slowPct: 0.3, slowDur: 1.2,
+      blurb: 'Slows. Hits land AND air.',
+      branches: {},
+    },
+    falcon: {
+      name: 'Falcon', glyph: 'F', color: '#4fa3d6', cost: 25,
+      damage: 7, range: 3.2, cooldown: 0.9, damageType: 'pierce',
+      targetsAir: true, airOnly: true, hitscan: true, falcon: true,
+      blurb: 'A hunting falcon. AIR only.',
+      branches: {},
+    },
+    // -- legacy pool (hidden; future unlocks + sim regression) ----------------
     archer: {
+      hidden: true,
       name: 'Archer', glyph: 'A', color: '#7fd66b', cost: 35,
       damage: 6, range: 2.6, cooldown: 0.55, damageType: 'pierce',
       targetsAir: true, projectileSpeed: 12,
@@ -158,18 +184,9 @@ export const CONFIG = {
         B: { id: 'volley',   name: 'Volley',   desc: '3 arrows, 0.6x dmg each (anti-swarm/air)', mods: { multishot: 3, damageMult: 0.6 } },
       },
     },
-    cannon: {
-      name: 'Cannon', glyph: 'C', color: '#d98a4b', cost: 55,
-      damage: 18, range: 2.3, cooldown: 1.6, damageType: 'siege',
-      targetsAir: false, projectileSpeed: 7, splashRadius: 1.2,
-      blurb: 'Splash damage. Great vs swarm.',
-      branches: {
-        A: { id: 'siege',   name: 'Siege',   desc: '+150% dmg, splash 1.6', mods: { damageMult: 2.5, splashRadius: 1.6 } },
-        B: { id: 'cluster', name: 'Cluster', desc: '3 mini-blasts that re-splash', mods: { cluster: 3 } },
-      },
-    },
     frost: {
-      name: 'Frost', glyph: 'F', color: '#5bb8d6', cost: 45,
+      hidden: true,
+      name: 'Frost', glyph: 'Fr', color: '#5bb8d6', cost: 45,
       damage: 3, range: 2.4, cooldown: 1.0, damageType: 'magic',
       targetsAir: true, hitscan: true, slowPct: 0.35, slowDur: 1.5,
       blurb: 'Slows enemies. Hits air.',
@@ -179,7 +196,8 @@ export const CONFIG = {
       },
     },
     arcane: {
-      name: 'Arcane', glyph: 'M', color: '#9a6bd6', cost: 70,
+      hidden: true,
+      name: 'Arcane', glyph: 'Ar', color: '#9a6bd6', cost: 70,
       damage: 14, range: 2.9, cooldown: 0.9, damageType: 'magic',
       targetsAir: true, projectileSpeed: 11,
       blurb: 'Bypasses shields. Melts Heavy.',
@@ -189,6 +207,7 @@ export const CONFIG = {
       },
     },
     venom: {
+      hidden: true,
       name: 'Venom', glyph: 'V', color: '#6fc34b', cost: 60,
       damage: 4, range: 2.5, cooldown: 1.2, damageType: 'poison',
       targetsAir: false, projectileSpeed: 9, dotDps: 8, dotDur: 3,
@@ -199,6 +218,7 @@ export const CONFIG = {
       },
     },
     tesla: {
+      hidden: true,
       name: 'Tesla', glyph: 'T', color: '#e0c84f', cost: 100,
       damage: 40, range: 3.6, cooldown: 1.4, damageType: 'magic',
       targetsAir: true, hitscan: true, chainTargets: 3, chainFalloff: 0.6, chainRange: 1.6,
@@ -209,6 +229,7 @@ export const CONFIG = {
       },
     },
     beacon: {
+      hidden: true,
       name: 'Beacon', glyph: 'B', color: '#e08ac8', cost: 75,
       aura: true,                    // non-attacking: buffs towers in radius instead
       damage: 0, range: 2.0, cooldown: 0, damageType: 'none',

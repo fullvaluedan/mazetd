@@ -33,6 +33,7 @@ export function getTowerStats(typeId, level, branchId) {
     damage, range, cooldown,
     damageType: def.damageType,
     targetsAir: !!def.targetsAir,
+    airOnly: !!def.airOnly,        // Falcon: can't touch ground enemies
     hitscan: !!def.hitscan,
     projectileSpeed: def.projectileSpeed || 10,
     splashRadius: def.splashRadius || 0,
@@ -132,7 +133,14 @@ export class Tower {
     if (this.hp == null || this.hp > this.maxHp) this.hp = this.maxHp;
   }
 
-  canUpgrade() { return !this.def.wall && this.level < 4; }
+  // Roster towers cap at L3 (upgrades cost more than the tower itself, so a
+  // maxed tower is a real investment). Hidden legacy towers keep their L4
+  // branch tier — they only exist for the headless regression sims now.
+  canUpgrade() {
+    if (this.def.wall) return false;
+    const max = this.def.hidden ? 4 : CONFIG.MAX_TOWER_LEVEL;
+    return this.level < max;
+  }
   // At L3->L4 the player must pick a branch; below that, upgrade is straight.
   nextUpgradeCost() { return this.canUpgrade() ? upgradeCostFor(this.type, this.level + 1) : 0; }
 
@@ -173,6 +181,7 @@ export class Tower {
     for (const e of state.enemies) {
       if (!e.alive) continue;
       if (e.flying && !this.stats.targetsAir) continue;
+      if (!e.flying && this.stats.airOnly) continue;   // Falcon hunts the skies only
       const d = cellDist(this.px / SIZE, this.py / SIZE, e.x / SIZE, e.y / SIZE);
       if (d <= r) list.push({ e, d });
     }
