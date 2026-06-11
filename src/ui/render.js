@@ -98,12 +98,24 @@ function drawHero(ctx, state) {
   ctx.beginPath(); ctx.arc(h.x, h.y, h.range * SIZE, 0, Math.PI * 2); ctx.stroke();
   ctx.setLineDash([]);
 
-  const heroSprite = getSprite('hero-' + h.id);
+  // cosmetic: walk bob while moving, gentle idle breathe, facing flip
+  const heroMoving = !!h.moveTarget;
+  if (h._lastX != null && Math.abs(h.x - h._lastX) > 0.2) h._face = h.x < h._lastX ? -1 : 1;
+  h._lastX = h.x;
+  const heroBob = heroMoving
+    ? -Math.abs(Math.sin(state.time * 9)) * 2.5
+    : Math.sin(state.time * 2) * 1.1;
+  const heroFrame = heroMoving ? Math.floor(state.time * 7) % 4 : 0;
+  const heroSprite = getSprite('hero-' + h.id, heroFrame);
   if (heroSprite) {
+    ctx.save();
+    ctx.translate(h.x, h.y + heroBob);
+    ctx.scale(h._face || 1, 1);
     const s = 34;
-    ctx.drawImage(heroSprite, h.x - s / 2, h.y - s / 2, s, s);
+    ctx.drawImage(heroSprite, -s / 2, -s / 2, s, s);
+    ctx.restore();
   } else {
-    drawHeroShape(ctx, h.x, h.y, h.def.color, h.angle);
+    drawHeroShape(ctx, h.x, h.y + heroBob, h.def.color, h.angle);
   }
 
   // HP bar + level
@@ -290,10 +302,26 @@ function drawTowers(ctx, state) {
     const cx = cellCenterX(t.cx), cy = cellCenterY(t.cy);
     const sprite = getSprite('tower-' + t.type);
 
+    // cosmetic: build pop-in + recoil kick opposite the shot direction
+    const age = state.time - (t.builtAt != null ? t.builtAt : -10);
+    const pop = age < 0.22 ? 0.55 + 0.45 * (age / 0.22) : 1;
+    let rx = 0, ry = 0;
+    if (t.muzzle > 0 && !t.def.aura) {
+      const r = (t.muzzle / 0.08) * 2.2;
+      rx = -Math.cos(t.angle) * r; ry = -Math.sin(t.angle) * r;
+    }
+    if (age >= 0 && age < 0.3) {                  // build dust ring
+      ctx.strokeStyle = `rgba(255,255,255,${0.45 * (1 - age / 0.3)})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 6 + (age / 0.3) * 14, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
     if (sprite) {
       // sprite art: draw slightly larger than the cell for presence
-      const s = SIZE + 6;
-      ctx.drawImage(sprite, cx - s / 2, cy - s / 2 - 2, s, s);
+      const s = (SIZE + 6) * pop;
+      ctx.drawImage(sprite, cx - s / 2 + rx, cy - s / 2 - 2 + ry, s, s);
     } else {
       const pad = 3, r = 6;
       // base body
@@ -378,9 +406,20 @@ function drawTowers(ctx, state) {
 
 function drawProjectiles(ctx, state) {
   for (const p of state.projectiles) {
+    // oriented streak along the velocity + bright head
+    const dx = p.tx - p.x, dy = p.ty - p.y;
+    const d = Math.hypot(dx, dy) || 1;
+    const heavy = p.stats.splashRadius > 0;
+    const len = heavy ? 7 : 10;
+    ctx.strokeStyle = withAlpha(p.color, 0.5);
+    ctx.lineWidth = heavy ? 4 : 2;
+    ctx.beginPath();
+    ctx.moveTo(p.x - (dx / d) * len, p.y - (dy / d) * len);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
     ctx.fillStyle = p.color;
     ctx.beginPath();
-    ctx.arc(p.x, p.y, p.stats.splashRadius > 0 ? 4 : 2.5, 0, Math.PI * 2);
+    ctx.arc(p.x, p.y, heavy ? 4 : 2.5, 0, Math.PI * 2);
     ctx.fill();
   }
 }
@@ -465,18 +504,54 @@ function drawEnemies(ctx, state) {
       ctx.stroke();
     }
 
-    // body: generated sprite when available, colored circle otherwise
-    const sprite = getSprite('enemy-' + e.type);
+    // --- animated body ------------------------------------------------------
+    // All purely cosmetic, driven by state.time + per-enemy phase (e.bob):
+    // walk bob/waddle, horizontal facing, hit squash, spawn pop, siege chomp.
+    const slowF = e.slowTimer > 0 ? (1 - e.slowPct) : 1;
+    const stepHz = 1.6 * e.speed * slowF;
+    const phase = state.time * stepHz * Math.PI * 2 + e.bob * 7;
+    const moving = !e.flying && !e.siegeTarget && e.stunTimer <= 0 &&
+      (Math.abs(e.targetCenter.x - e.x) > 0.5 || Math.abs(e.targetCenter.y - e.y) > 0.5);
+
+    // facing: remember the last meaningful horizontal direction
+    const fdx = e.targetCenter.x - e.x;
+    if (Math.abs(fdx) > 0.5) e._face = fdx < 0 ? -1 : 1;
+
+    // spawn pop-in with a slight overshoot
+    const age = state.time - (e.spawnedAt || 0);
+    const pop = age < 0.25 ? (age / 0.25) * (1.25 - 0.25 * (age / 0.25)) : 1;
+
+    // hit squash + walk bob/tilt + siege lunge
+    let sqX = 1, sqY = 1, bobY = 0, tilt = 0, lungeX = 0, lungeY = 0;
+    if (e.hitFlash > 0) { const f = e.hitFlash / 0.12; sqX = 1 + 0.22 * f; sqY = 1 - 0.26 * f; }
+    if (moving) {
+      bobY = -Math.abs(Math.sin(phase)) * Math.min(3, e.radius * 0.28);
+      tilt = Math.sin(phase) * 0.09;
+    }
+    if (e.siegeTarget) {
+      const a = Math.atan2(e.siegeTarget.py - ey, e.siegeTarget.px - e.x);
+      const l = Math.max(0, Math.sin(state.time * 7 + e.bob)) * 4;
+      lungeX = Math.cos(a) * l; lungeY = Math.sin(a) * l;
+    }
+
+    const frame = moving ? Math.floor(state.time * stepHz * 4 + e.bob) % 4 : 0;
+    const sprite = getSprite('enemy-' + e.type, frame);
+
+    ctx.save();
+    ctx.translate(e.x + lungeX, ey + bobY + lungeY);
+    if (tilt) ctx.rotate(tilt);
+    ctx.scale((e._face || 1) * pop * sqX, pop * sqY);
     if (sprite) {
       const s = e.radius * 2.6;   // sprites carry whitespace; oversize a bit
-      ctx.drawImage(sprite, e.x - s / 2, ey - s / 2, s, s);
+      ctx.drawImage(sprite, -s / 2, -s / 2, s, s);
     } else {
       ctx.fillStyle = e.color;
       ctx.beginPath();
-      ctx.arc(e.x, ey, e.radius, 0, Math.PI * 2);
+      ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
       ctx.fill();
       if (e.boss) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke(); }
     }
+    ctx.restore();
 
     // boss name (both modes)
     if (e.boss) {

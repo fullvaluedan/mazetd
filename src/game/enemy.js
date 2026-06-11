@@ -86,6 +86,8 @@ export class Enemy {
     this.alive = true;
     this.reachedGoal = false;
     this.siegeTarget = null;    // tower being chewed while the path is sealed
+    this.hitFlash = 0;          // cosmetic: squash/flash timer (renderer only)
+    this.spawnedAt = state.time || 0;   // cosmetic: spawn pop-in
 
     if (this.flying) {
       this.targetCenter = cellCenter(goal.cx, goal.cy);
@@ -124,6 +126,7 @@ export class Enemy {
     }
     const before = this.hp;
     this.hp -= dmg;
+    if (dmg > 0) this.hitFlash = 0.12;   // cosmetic only — never read by the sim
     return before - this.hp;
   }
 
@@ -138,6 +141,7 @@ export class Enemy {
     if (this.slowTimer > 0) { this.slowTimer -= dt; if (this.slowTimer <= 0) this.slowPct = 0; }
     if (this.shatterTimer > 0) this.shatterTimer -= dt;
     if (this.burstLeft > 0) this.burstLeft -= dt;
+    if (this.hitFlash > 0) this.hitFlash -= dt;
     this.tickPoison(state, dt);
     if (this.hp <= 0) return;
 

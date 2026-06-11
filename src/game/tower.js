@@ -258,6 +258,7 @@ export function recomputeAuras(state) {
 // --- lifecycle (no gold logic here — that's shop.js) ------------------------
 export function addTower(state, typeId, x, y) {
   const t = new Tower(typeId, x, y);
+  t.builtAt = state.time || 0;   // cosmetic: build pop-in (renderer only)
   state.towerGrid[y][x] = t;
   state.towers.push(t);
   onMazeChanged(state);   // rebuild fields + reroute every enemy

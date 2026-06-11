@@ -56,25 +56,35 @@ long as possible in range.
 
 ## Controls
 
-| Input | Action |
-|-------|--------|
-| Left-click | Select tower / place tower / target an ability or cell |
+The whole interface lives over the battlefield, Kingdom-Rush style:
+
+- **Tap any open cell** → a radial ring of all 7 towers appears; tap one to
+  build it. **Tap a tower** → upgrade / choose its L4 specialization / cycle
+  targeting / sell.
+- **Tap your hero** (or its portrait, bottom-left) to select it; while
+  selected, every tap on open ground is a move order. The two buttons next to
+  the portrait cast its abilities.
+- **NEXT WAVE** (bottom-right) or the bouncing chevrons at the spawn mouths
+  call the wave in early for bonus gold.
+- The **top bar** holds gold/lives/wave, a 📺 FREE GOLD rewarded-ad button,
+  speed, pause, the 🛒 Store (hero upgrades, tower boosts, consumables) and ⚙
+  Settings (save/load, art, sound, auto-start, restart).
+- Lose a run? The defeat screen offers a **once-per-run ad revive** (+5 ♥).
+
+Desktop shortcuts still work:
+
+| Key | Action |
+|-----|--------|
 | Right-click | Command the hero to move |
-| `P` | Toggle the enemy path overlay |
-| `Space` | Pause / resume |
-| `1` / `2` / `3` | Game speed 1× / 2× / 3× |
-| `S` | Start the next wave (early-start = bonus gold) |
+| `P` / `Space` / `1` `2` `3` | Path overlay / pause / game speed |
+| `S` | Start the next wave |
 | `Q` / `W` | Cast hero ability 1 / 2 (targeted ones then click a cell) |
-| `M` | Arm hero move, then click/tap a destination |
-| `Esc` | Cancel current build/target action |
+| `M` | Select / deselect the hero |
+| `Esc` | Close ring → cancel selection (one layer at a time) |
 
-**On touch devices:** tap your hero (or the *Move* button), then tap where it
-should go. The layout stacks vertically on phones, and you can add the game to
-your home screen (PWA).
-
-The HUD also has **Save** / **Load** buttons (save is allowed between waves;
-your best wave reached is kept as a high score), an **Auto-start** toggle, and a
-full tower shop, hero panel and consumables shop. Hover anything for a tooltip.
+Phones play in landscape (a rotate prompt appears in portrait) and the game
+installs to the home screen as a PWA. Victory is scored in stars: finish with
+18+ lives for ★★★, 10+ for ★★.
 
 ## Where to tune the game
 
@@ -86,11 +96,13 @@ palette. There are no magic numbers in the gameplay code. The key balance knobs
 
 ## Generated art (optional)
 
-The repo plays fully with built-in shape graphics. To switch to hand-painted
-Warcraft-III-style sprites, generate them once with your own OpenAI key (see
+The repo plays fully with built-in shape graphics. To switch to the bright
+cel-shaded anime sprite set (towers, enemies, heroes, 4-frame walk-cycle
+sheets, title key art), generate it once with your own OpenAI key (see
 [`tools/README.md`](tools/README.md)) — the game auto-loads anything in
-`assets/` and falls back to shapes for whatever's missing. The HUD's **Art**
-button toggles between sprites and shapes.
+`assets/` and falls back to shapes for whatever's missing. Walk sheets that
+come out misaligned are dropped automatically in favour of procedural motion.
+The **Art** toggle lives in Settings.
 
 ## Balance simulation
 

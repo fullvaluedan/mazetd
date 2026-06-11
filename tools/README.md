@@ -37,7 +37,7 @@ node tools/gen-assets.mjs --force         # regenerate everything
 Output lands in `assets/towers/`, `assets/enemies/`, `assets/heroes/`,
 `assets/misc/` (all gitignored — they're regenerable).
 
-⚠️ This calls a **paid** API (~17 images for the full set). Generate a few first.
+⚠️ This calls a **paid** API (~31 images for the full set incl. walk-cycle sheets). Generate a few first.
 
 ## Config
 

@@ -40,29 +40,44 @@ async function loadEnv() {
 
 // --- per-type art hints (kept short; the shared style does the heavy lifting) -
 const TOWER_HINT = {
-  archer: 'a wooden elven guard tower with a mounted ballista, rope and timber details',
-  cannon: 'a squat dwarven cannon emplacement, riveted iron and stone, smoking barrel',
-  frost: 'a tower of jagged blue ice crystals on a frozen stone base, cold mist swirling',
-  arcane: 'an ornate violet arcane spire with a levitating glowing rune orb and floating stones',
-  venom: 'a twisted organic spitter tower of fungal green flesh, dripping toxic ooze',
-  tesla: 'a brass-and-copper storm tower with a crackling lightning coil at its crown',
+  archer: 'a cozy wooden watchtower with a cute mounted crossbow, rope and timber details',
+  cannon: 'a squat round cannon turret with a friendly chunky barrel, riveted plates',
+  frost: 'a sparkly tower of pale-blue ice crystals with gentle snowflake glints',
+  arcane: 'a violet wizard spire with a floating glowing rune orb and tiny stars',
+  venom: 'a quirky mushroom-like spitter tower dripping bubbly green goo',
+  tesla: 'a copper storm tower with a crackling lightning coil and little sparks',
+  beacon: 'a white-and-gold shrine tower radiating a soft circular blessing aura, floating runic halo',
 };
 const ENEMY_HINT = {
-  normal: 'a stocky orc-like grunt warrior with crude leather armor and an axe',
-  fast: 'a lean feral ghoul sprinting low to the ground, claws out',
-  tank: 'a hulking armored ogre brute with massive pauldrons and a tower shield back',
-  swarm: 'a tiny skittering spiderling creature, one of a hatchling swarm',
-  flyer: 'a glowing ethereal wisp spirit trailing faint blue wings of light',
-  healer: 'a hooded acolyte mender robed in green, hands glowing with healing light',
-  shield: 'a stern warden knight wrapped in a shimmering blue energy barrier',
-  boss: 'a colossal demonic pit-lord boss with horns, burning eyes and heavy armor',
+  normal: 'a stocky goblin grunt warrior with simple leather armor and a small axe',
+  fast: 'a lean speedy imp sprinting low to the ground, big grin',
+  tank: 'a big round armored ogre with chunky pauldrons, slow and sturdy',
+  swarm: 'a tiny cute skittering spiderling, one of a hatchling swarm',
+  flyer: 'a glowing friendly wisp spirit with little light wings',
+  healer: 'a hooded acolyte in green robes, hands glowing with warm healing light',
+  shield: 'a knight wrapped in a shimmering blue bubble barrier',
+  boss: 'a huge horned demon-king boss, imposing but stylish, heavy ornate armor',
 };
 
+// Anime / lighthearted-isekai art direction (describes the look — image models
+// don't reliably know show titles): bright, simple, cel-shaded, friendly.
 const STYLE =
-  'Hand-painted fantasy game art in the style of early-2000s RTS classics (Warcraft III: The Frozen Throne era): ' +
-  'painterly brushwork, rich saturated colors, chunky exaggerated proportions, dramatic rim lighting, ' +
-  'gritty heroic dark-fantasy mood, slight 3/4 top-down perspective, strong readable silhouette, centered single subject. ' +
+  'Clean modern anime game art in a lighthearted isekai-fantasy style: ' +
+  'bright cheerful saturated colors, simple flat cel shading with soft dark outlines, ' +
+  'slightly chibi proportions, friendly readable silhouette, minimal clean detail, ' +
+  'soft ambient lighting, slight 3/4 top-down view, centered single subject. ' +
   'No text, no letters, no watermark, no UI, no frame or border. Fully transparent background.';
+
+// 4-frame walk cycles as one 2x2 sheet (sliced + auto-centered at load by
+// src/ui/sprites.js; a sheet that comes out misaligned is simply dropped).
+const SHEET_TYPES = ['normal', 'fast', 'tank', 'swarm', 'healer', 'shield', 'boss'];
+function sheetPrompt(hint) {
+  return 'Sprite sheet, EXACTLY 4 frames arranged in a 2x2 grid on one image: ' +
+    `the SAME character — ${hint} — drawn in 4 sequential walk-cycle poses ` +
+    '(contact, down, passing, up). Identical character design and scale in every frame, ' +
+    'each frame centered in its quadrant, same camera angle and lighting throughout, equal spacing, ' +
+    'no frame borders or grid lines. ' + STYLE;
+}
 
 function buildManifest() {
   const items = [];
@@ -78,10 +93,22 @@ function buildManifest() {
     items.push({ id: `hero-${id}`, out: `heroes/${id}.png`, size: '1024x1024',
       prompt: `Heroic character sprite of "${h.name}" — ${h.role}. Primary colour ${h.color}. ${STYLE}` });
   }
+  for (const id of SHEET_TYPES) {
+    items.push({ id: `sheet-enemy-${id}`, out: `sheets/enemy-${id}.png`, size: '1024x1024',
+      frames: 4, grid: [2, 2],
+      prompt: sheetPrompt(ENEMY_HINT[id] || 'a creature') });
+  }
+  for (const [id, h] of Object.entries(CONFIG.HEROES)) {
+    items.push({ id: `sheet-hero-${id}`, out: `sheets/hero-${id}.png`, size: '1024x1024',
+      frames: 4, grid: [2, 2],
+      prompt: sheetPrompt(`the hero "${h.name}" (${h.role.toLowerCase()})`) });
+  }
   items.push({ id: 'misc-icon', out: 'misc/icon.png', size: '1024x1024', transparent: false,
-    prompt: 'Square mobile game app icon for a dark-fantasy maze tower-defense game: a single bold ice-crystal tower emblem on a dark slate rune-ring background, hand-painted Warcraft III Frozen Throne style, rich color, dramatic lighting, fills the frame edge to edge, no text, no border.' });
+    prompt: 'Square mobile game app icon for a colorful anime maze tower-defense game: one cute crystal tower emblem with a winding path swirling around its base, bright cheerful isekai-anime style, simple bold cel-shaded shapes, fills the frame edge to edge, no text, no border.' });
   items.push({ id: 'misc-background', out: 'misc/background.png', size: '1536x1024', transparent: false,
-    prompt: 'Top-down hand-painted dark fantasy battlefield terrain for a tower-defense map: weathered dark slate stone ground with subtle cracks, moss and snow patches, muted cool tones around #1b1f2a, painterly Warcraft III Frozen Throne style, evenly lit, low contrast so game pieces stay readable on top, no characters, no buildings, no text, no UI, no grid lines.' });
+    prompt: 'Top-down fantasy meadow battlefield terrain for a cheerful anime tower-defense map: soft green grass with scattered light stone tiles, tiny flowers and pebbles, bright friendly colors with simple flat shading, evenly lit, LOW CONTRAST and slightly muted so game pieces stay readable on top, no characters, no buildings, no text, no UI, no grid lines.' });
+  items.push({ id: 'misc-title', out: 'misc/title.png', size: '1536x1024', transparent: false,
+    prompt: 'Wide key art for a colorful anime tower-defense game: a cheerful fantasy valley with a winding stone maze path, one cute crystal tower at its heart, playful monster silhouettes marching in from the far left, rolling green hills and a bright warm sky, clean modern anime style with simple cel shading, calm uncluttered sky at the top center reserved for a logo, no text, no letters, no UI, no watermark.' });
   return items;
 }
 
@@ -125,7 +152,12 @@ async function generateOne(item, ctx) {
 async function writeManifest(items) {
   await mkdir(ASSET_DIR, { recursive: true });
   const map = {};
-  for (const it of items) map[it.id] = 'assets/' + it.out;
+  for (const it of items) {
+    // sprite sheets carry slicing metadata; plain assets stay simple strings
+    map[it.id] = it.frames
+      ? { src: 'assets/' + it.out, frames: it.frames, grid: it.grid }
+      : 'assets/' + it.out;
+  }
   await writeFile(path.join(ASSET_DIR, 'manifest.json'), JSON.stringify(map, null, 2));
   console.log(`  manifest       assets/manifest.json (${items.length} entries)`);
 }

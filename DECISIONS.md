@@ -161,6 +161,41 @@ gold-plating.
   before re-pathing, so selling any wall snaps the whole wave back into
   walking the same tick.
 
+## Post-launch — Kingdom Rush UI, anime art, SFX & ads
+- **World coordinates are frozen at 896×576 forever.** viewport.js letterboxes
+  that world into any window at devicePixelRatio sharpness (capped ×2) with one
+  setTransform per frame — zero draw-code changes. The #ui overlay div is held
+  to the exact canvas box so DOM widgets anchor to world objects via
+  worldToUi(). Input always derives world coords from the CSS rect + world
+  constants, never canvas.width (that was a latent DPR bug).
+- **DOM over canvas, not canvas UI.** Radial rings, bars, sheets and cards are
+  DOM: crisp text, native buttons, CSS animation, accessibility. Per-frame
+  updates are textContent-diff writes only.
+- **One-shot build rings** (KR semantics) replaced the armed-build mode; the
+  ring caches its wouldSealAt verdict at open instead of re-BFSing per frame.
+- **Hero control is persistent selection** (tap hero → taps move it, stays
+  selected) — chain orders beat the old one-shot move mode on touch.
+- **Sheets auto-pause and restore the player's own pause choice**; same
+  pattern for the ad overlay and the portrait rotate guard.
+- **SFX is a hand-rolled synth, not audio files** (zero deps): param sets
+  rendered once into cached AudioBuffers; the sim pushes plain-data events into
+  state.events (capped, deterministically throttled) and main.js drains them —
+  game code never imports the audio module, so headless runs stay silent.
+- **Ads are UI-layer only and double-gated.** grants exist solely in main.js
+  actions + the defeat screen (a headless sim can't earn); FREE GOLD needs BOTH
+  3 waves elapsed (snapshot) and 4 wall-clock minutes (localStorage) so neither
+  restart-scumming nor idle-farming works. The simulated provider mirrors the
+  AdMob ready()/show() shape for a drop-in swap later.
+- **Anime restyle prompts describe the look, never name the show** (models
+  don't reliably know titles): bright cel shading, chibi proportions, soft
+  outlines. The logo stays CSS text — image models garble lettering.
+- **Walk cycles: procedural first, sheets as a bonus.** Every unit animates
+  procedurally (speed-scaled bob/waddle, facing flip, hit squash, spawn pop,
+  siege chomp); AI-generated 2×2 sheets are sliced with alpha-bbox centering
+  and ONE shared scale (largest frame wins, so characters don't pulse), and a
+  sheet with an empty/full-bleed quadrant is dropped — misaligned AI frames
+  must never look worse than no sheet at all.
+
 ## Planned mechanics (decided up front, implemented in later phases)
 - **Pathfinding:** enemy routing uses a per-goal BFS **distance field** (uniform
   cost = shortest path on a 4-connected grid) rather than per-enemy A*. Enemies

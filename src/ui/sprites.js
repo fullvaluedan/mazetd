@@ -13,16 +13,25 @@
 
 const images = new Map();   // id -> HTMLImageElement (only set once fully loaded)
 const urls = new Map();     // id -> manifest path (for DOM <img> icons)
+const sheets = new Map();   // base id (e.g. 'enemy-normal') -> [frame canvases]
 let enabled = true;          // user toggle (HUD "Art" button)
 
 export function spritesEnabled() { return enabled; }
 export function toggleSprites() { enabled = !enabled; return enabled; }
 
-// Returns the loaded image for an id (e.g. 'tower-archer'), or null.
-export function getSprite(id) {
+// Returns the loaded image for an id (e.g. 'tower-archer'), or null. With a
+// frame index, returns that walk-cycle frame when a sheet survived loading.
+export function getSprite(id, frame) {
   if (!enabled) return null;
+  if (frame != null) {
+    const f = sheets.get(id);
+    if (f) return f[((frame % f.length) + f.length) % f.length];
+  }
   return images.get(id) || null;
 }
+
+// Whether an id has an animated walk-cycle sheet.
+export function hasSheet(id) { return enabled && sheets.has(id); }
 
 export function spriteCount() { return images.size; }
 
@@ -50,6 +59,59 @@ function shrink(id, img) {
   } catch { return img; }   // any hiccup: just use the original
 }
 
+// ---- walk-cycle sheets -------------------------------------------------------
+// AI-generated 2x2 sheets are never pixel-perfect: frames drift in position and
+// size. Each frame is re-centered on its alpha bounding box and scaled by ONE
+// shared factor (largest frame wins) so the character doesn't pulse between
+// frames. A sheet with an empty or full-bleed quadrant is dropped entirely —
+// the unit falls back to its single sprite + procedural motion.
+function sliceSheet(img, frames, grid) {
+  try {
+    const [gx, gy] = grid;
+    const fw = (img.width / gx) | 0, fh = (img.height / gy) | 0;
+    const probe = document.createElement('canvas');
+    probe.width = fw; probe.height = fh;
+    const pg = probe.getContext('2d', { willReadFrequently: true });
+
+    // pass 1: alpha bounding boxes
+    const boxes = [];
+    for (let i = 0; i < frames; i++) {
+      const sx = (i % gx) * fw, sy = ((i / gx) | 0) * fh;
+      pg.clearRect(0, 0, fw, fh);
+      pg.drawImage(img, sx, sy, fw, fh, 0, 0, fw, fh);
+      const data = pg.getImageData(0, 0, fw, fh).data;
+      let x0 = fw, y0 = fh, x1 = -1, y1 = -1;
+      for (let y = 0; y < fh; y += 2) {           // stride 2: plenty for a bbox
+        for (let x = 0; x < fw; x += 2) {
+          if (data[(y * fw + x) * 4 + 3] > 24) {
+            if (x < x0) x0 = x; if (x > x1) x1 = x;
+            if (y < y0) y0 = y; if (y > y1) y1 = y;
+          }
+        }
+      }
+      if (x1 < 0) return null;                              // empty quadrant
+      const bw = x1 - x0, bh = y1 - y0;
+      if (bw > fw * 0.97 && bh > fh * 0.97) return null;    // full-bleed mess
+      boxes.push({ sx: sx + x0, sy: sy + y0, bw, bh });
+    }
+
+    // pass 2: shared scale, centered 128px frames
+    const S = 128;
+    const maxDim = Math.max(...boxes.map((b) => Math.max(b.bw, b.bh)));
+    const k = (S - 12) / maxDim;
+    return boxes.map((b) => {
+      const c = document.createElement('canvas');
+      c.width = S; c.height = S;
+      const g = c.getContext('2d');
+      g.imageSmoothingEnabled = true;
+      g.imageSmoothingQuality = 'high';
+      g.drawImage(img, b.sx, b.sy, b.bw, b.bh,
+        (S - b.bw * k) / 2, (S - b.bh * k) / 2, b.bw * k, b.bh * k);
+      return c;
+    });
+  } catch { return null; }
+}
+
 export async function loadSprites() {
   if (typeof fetch === 'undefined' || typeof Image === 'undefined') return 0; // headless
   let manifest;
@@ -59,14 +121,27 @@ export async function loadSprites() {
     manifest = await res.json();
   } catch { return 0; }
 
-  const jobs = Object.entries(manifest).map(([id, path]) => new Promise((resolve) => {
+  const jobs = Object.entries(manifest).map(([id, entry]) => new Promise((resolve) => {
+    const isSheet = entry && typeof entry === 'object';
+    const src = isSheet ? entry.src : entry;
+    if (typeof src !== 'string') { resolve(false); return; }
     const img = new Image();
-    img.onload = () => { images.set(id, shrink(id, img)); urls.set(id, path); resolve(true); };
+    img.onload = () => {
+      if (isSheet) {
+        const frames = sliceSheet(img, entry.frames || 4, entry.grid || [2, 2]);
+        if (frames) sheets.set(id.replace(/^sheet-/, ''), frames);
+        else console.log(`[sprites] dropped misaligned sheet ${id} (procedural fallback)`);
+      } else {
+        images.set(id, shrink(id, img));
+        urls.set(id, src);
+      }
+      resolve(true);
+    };
     img.onerror = () => resolve(false);       // listed but not generated yet — fine
-    img.src = path;
+    img.src = src;
   }));
   const results = await Promise.all(jobs);
   const n = results.filter(Boolean).length;
-  if (n) console.log(`[sprites] loaded ${n}/${jobs.length} generated assets`);
+  if (n) console.log(`[sprites] loaded ${n}/${jobs.length} generated assets (${sheets.size} walk sheets)`);
   return n;
 }
