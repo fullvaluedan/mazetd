@@ -15,11 +15,24 @@ export const CELL = {
   OBSTACLE: 2,  // permanent blocked rock/water (not walkable, not buildable)
   SPAWN: 3,     // enemy entry opening (walkable, not buildable)
   GOAL: 4,      // enemy exit opening (walkable, not buildable)
+  CHECKPOINT: 5,// Gem-TD flag: walkable waypoint creeps must visit (not buildable)
 };
 
-export const COLS = CONFIG.GRID_COLS;
-export const ROWS = CONFIG.GRID_ROWS;
+// Grid dimensions are PER-LEVEL since the campaign rebuild. These are mutable
+// `let` exports — ES module live bindings mean every importer always sees the
+// current values. setGridSize() must be called BEFORE createState() for a
+// level; the default stays the classic 28x18 so the headless sim/tests are
+// untouched. SIZE (px per cell) never changes.
+export let COLS = CONFIG.GRID_COLS;
+export let ROWS = CONFIG.GRID_ROWS;
 export const SIZE = CONFIG.CELL;   // pixel size of a cell
+
+export function setGridSize(cols, rows) {
+  COLS = cols;
+  ROWS = rows;
+}
+export function worldW() { return COLS * SIZE; }
+export function worldH() { return ROWS * SIZE; }
 
 // 4-directional neighbour offsets (no diagonals — avoids cutting tower corners).
 export const NEIGHBORS4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];

@@ -9,7 +9,9 @@
 // can anchor to world objects through worldToUi().
 // =============================================================================
 
-import { CANVAS_W, CANVAS_H } from '../config.js';
+// World size is PER-LEVEL since the campaign rebuild — read live from grid.js
+// (worldW/worldH) on every resize, never cached at module load.
+import { worldW, worldH } from '../engine/grid.js';
 
 const MAX_DPR = 2;   // phones report 3-4; backing stores that big waste GPU/battery
 
@@ -20,7 +22,7 @@ export class Viewport {
     this.container = container || canvas.parentElement || null;
     this.scale = 1;          // CSS px per world px
     this.k = 1;              // device px per world px (backing store)
-    this.cssW = CANVAS_W; this.cssH = CANVAS_H;
+    this.cssW = worldW(); this.cssH = worldH();
     this.left = 0; this.top = 0;
     this.onResize = null;    // hook: close menus / reposition widgets
 
@@ -42,20 +44,20 @@ export class Viewport {
 
   resize() {
     const vw = (this.container && this.container.clientWidth) ||
-      (typeof window !== 'undefined' && window.innerWidth) || CANVAS_W;
+      (typeof window !== 'undefined' && window.innerWidth) || worldW();
     const vh = (this.container && this.container.clientHeight) ||
-      (typeof window !== 'undefined' && window.innerHeight) || CANVAS_H;
+      (typeof window !== 'undefined' && window.innerHeight) || worldH();
 
-    this.scale = Math.min(vw / CANVAS_W, vh / CANVAS_H);
-    this.cssW = Math.floor(CANVAS_W * this.scale);
-    this.cssH = Math.floor(CANVAS_H * this.scale);
+    this.scale = Math.min(vw / worldW(), vh / worldH());
+    this.cssW = Math.floor(worldW() * this.scale);
+    this.cssH = Math.floor(worldH() * this.scale);
     this.left = Math.floor((vw - this.cssW) / 2);
     this.top = Math.floor((vh - this.cssH) / 2);
 
     const dpr = Math.min((typeof window !== 'undefined' && window.devicePixelRatio) || 1, MAX_DPR);
     this.canvas.width = Math.max(1, Math.round(this.cssW * dpr));
     this.canvas.height = Math.max(1, Math.round(this.cssH * dpr));
-    this.k = this.canvas.width / CANVAS_W;
+    this.k = this.canvas.width / worldW();
 
     const cs = this.canvas.style;
     cs.position = 'absolute';
@@ -91,8 +93,8 @@ export class Viewport {
   clientToWorld(clientX, clientY) {
     const rect = this.canvas.getBoundingClientRect();
     return {
-      x: (clientX - rect.left) / rect.width * CANVAS_W,
-      y: (clientY - rect.top) / rect.height * CANVAS_H,
+      x: (clientX - rect.left) / rect.width * worldW(),
+      y: (clientY - rect.top) / rect.height * worldH(),
     };
   }
 }

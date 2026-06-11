@@ -16,7 +16,9 @@ import { updateTowers } from './game/tower.js';
 import { updateProjectiles, updateEffects } from './game/projectile.js';
 import { createHero } from './game/hero.js';
 import { onEnemyKilled, onEnemyLeaked, updateFloaters, updateParticles, payWaveClear, payEarlyStart } from './game/economy.js';
-import { startWave, processSpawning, waveComplete, updateBosses, waveInfo } from './game/wave.js';
+import { startWave, processSpawning, waveComplete, updateBosses, waveInfoFor, winWave } from './game/wave.js';
+import { getLevel } from './game/levels.js';
+import { setGridSize, worldW, worldH } from './engine/grid.js';
 import { tryBuild, trySell, tryUpgrade, tryHeroUpgrade, tryConsumable, tryTowerBoost } from './game/shop.js';
 import { saveGame, hasSave, loadSnapshot, applySnapshot, getHighScore, recordHighScore } from './game/save.js';
 import { render } from './ui/render.js';
@@ -39,7 +41,17 @@ const uiLayer = document.getElementById('ui');
 // here on; all draw code keeps working in fixed 896x576 world coordinates.
 const viewport = new Viewport(canvas, uiLayer, document.getElementById('stage'));
 
-let state = createState(makeRng(CONFIG.SEED), CONFIG.SEED);
+// Campaign level boot (until the level-select screen lands): ?level=l1 .. l20
+// or ?level=endless. Without the param you get the classic 28x18 board.
+const bootLevel = (() => {
+  try {
+    const id = new URLSearchParams(location.search).get('level');
+    return id ? getLevel(id) : null;
+  } catch { return null; }
+})();
+if (bootLevel) setGridSize(bootLevel.cols, bootLevel.rows);
+
+let state = createState(makeRng(CONFIG.SEED), CONFIG.SEED, bootLevel);
 let prevStatus = state.status;
 let prevSiege = false;
 
@@ -134,7 +146,7 @@ const actions = {
     const bonus = payEarlyStart(state, state.buildTimer);
     state.buildTimer = 0;
     startWave(state, state.wave + 1);
-    const info = waveInfo(state.wave);
+    const info = waveInfoFor(state, state.wave);
     if (bonus > 0) showBanner(`Early start! +${bonus}g`, 'warn', 1.6);
     if (info.hasFlying) showBanner('⚠ Flying incoming!', 'warn');
     if (info.isBoss) showBanner(`Wave ${state.wave}: BOSS`, 'danger');
@@ -172,10 +184,12 @@ const actions = {
   upgrade: (branch) => { if (state.selected) tryUpgrade(state, state.selected, branch); },
   sell: () => { if (state.selected) trySell(state, state.selected); },
   save: () => {
+    if (state.level) { showBanner('Saving is for Endless runs (campaign levels are short)', 'warn', 1.8); return; }
     if (state.waveActive) { showBanner('Save between waves only', 'warn', 1.4); return; }
     if (saveGame(state)) showBanner('Game saved', '', 1.4);
   },
   load: () => {
+    if (state.level) { showBanner('Loading is for Endless runs', 'warn', 1.6); return; }
     const snap = loadSnapshot();
     if (!snap) { showBanner('No save found', 'warn', 1.4); return; }
     state = applySnapshot(snap);
@@ -232,8 +246,8 @@ function update(dt) {
     const pay = payWaveClear(state, state.wave);
     showBanner(`Wave ${state.wave} cleared!  +${pay.bonus}g${pay.interest ? ` (+${pay.interest} interest)` : ''}`, '', 2);
     state.buildTimer = CONFIG.BUILD_TIMER;
-    if (state.wave >= CONFIG.WIN_WAVE) state.status = 'won';
-    else if (waveInfo(state.wave + 1).hasFlying) showBanner('⚠ Flying next wave — get anti-air!', 'warn', 2.5);
+    if (state.wave >= winWave(state)) state.status = 'won';
+    else if (waveInfoFor(state, state.wave + 1).hasFlying) showBanner('⚠ Flying next wave — get anti-air!', 'warn', 2.5);
   }
   if (state.lives <= 0) state.status = 'lost';
 
@@ -268,7 +282,7 @@ function drainEvents() {
 
 function draw() {
   viewport.applyTransform(ctx);     // world px -> device px (letterbox + DPR)
-  ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+  ctx.clearRect(0, 0, worldW(), worldH());
   render(ctx, state);
   drainEvents();
   hud.refresh(state, { speed: loop.gameSpeed, paused: loop.paused });

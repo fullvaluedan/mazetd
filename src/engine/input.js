@@ -9,18 +9,15 @@
 
 import { SIZE, COLS, ROWS } from './grid.js';
 
-// World dimensions are fixed; the canvas BACKING STORE is not (it scales with
-// devicePixelRatio). Never derive world coords from canvas.width — only from
-// the world constants and the element's CSS rect.
-const WORLD_W = COLS * SIZE;
-const WORLD_H = ROWS * SIZE;
-
+// World dimensions are PER-LEVEL since the campaign rebuild — read them live
+// (COLS/ROWS are mutable exports) on every event, never cache at module load.
+// And never derive world coords from canvas.width (DPR backing store).
 export function setupInput(canvas, handlers) {
   function toCell(ev) {
     const rect = canvas.getBoundingClientRect();
     // Map client px -> WORLD px (account for CSS scaling + DPR), then -> cell.
-    const px = (ev.clientX - rect.left) / rect.width * WORLD_W;
-    const py = (ev.clientY - rect.top) / rect.height * WORLD_H;
+    const px = (ev.clientX - rect.left) / rect.width * (COLS * SIZE);
+    const py = (ev.clientY - rect.top) / rect.height * (ROWS * SIZE);
     return { x: Math.floor(px / SIZE), y: Math.floor(py / SIZE), px, py };
   }
 

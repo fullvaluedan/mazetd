@@ -39,11 +39,19 @@ export function waveBounty(w) {
 
 export function computeStats(state, type, w) {
   const def = CONFIG.ENEMIES[type];
+  const lv = state.level && state.level.waves;          // campaign difficulty knobs
   const hpMult = def.boss ? bossHpMult(w) : def.hpMult;
-  const hp = Math.max(1, Math.floor(baseHp(w) * hpMult * CONFIG.DIFFICULTY));
+  const lvHp = lv && lv.hpMult != null ? lv.hpMult : 1;
+  const lvBounty = lv && lv.bountyMult != null ? lv.bountyMult : 1;
+  const hp = Math.max(1, Math.floor(baseHp(w) * hpMult * CONFIG.DIFFICULTY * lvHp));
   const speed = CONFIG.ENEMY_BASE_SPEED * def.speedMult * waveSpeedFactor(w);
-  const bounty = Math.max(1, Math.floor(waveBounty(w) * def.bountyMult));
+  const bounty = Math.max(1, Math.floor(waveBounty(w) * def.bountyMult * lvBounty));
   return { hp, speed, bounty };
+}
+
+// The wave that wins the run: the level's authored count, or the classic 100.
+export function winWave(state) {
+  return (state && state.level && state.level.waves) ? state.level.waves.count : CONFIG.WIN_WAVE;
 }
 
 // ---- composition -----------------------------------------------------------
@@ -87,6 +95,49 @@ export function waveInfo(w) {
   return { types: [...new Set(types)], hasFlying, isBoss, bossFlying, count: enemyCount(w) };
 }
 
+// ---- campaign (authored-level) composition ----------------------------------
+// Levels carry compact wave params: { count, types (intro order), swarmFrom?,
+// flyerFrom?, bossWaves?[], hpMult, bountyMult?, countMult? }. Deterministic
+// per (level, wave) so the preview always matches the spawn list.
+function levelAvailableTypes(p, w) {
+  const gated = p.types.filter((t) => {
+    if (t === 'swarm' && p.swarmFrom && w < p.swarmFrom) return false;
+    if (t === 'flyer' && p.flyerFrom && w < p.flyerFrom) return false;
+    return true;
+  });
+  // progressive introduction: the roster grows as the level advances —
+  // but a type with an explicit From-gate joins the moment its gate opens
+  const cap = Math.max(1, Math.ceil((w / p.count) * p.types.length));
+  const roster = gated.slice(0, Math.min(gated.length, cap));
+  if (p.swarmFrom && w >= p.swarmFrom && gated.includes('swarm') && !roster.includes('swarm')) roster.push('swarm');
+  if (p.flyerFrom && w >= p.flyerFrom && gated.includes('flyer') && !roster.includes('flyer')) roster.push('flyer');
+  return roster;
+}
+
+export function levelWaveInfo(level, w) {
+  const p = level.waves;
+  const rng = makeRng((level.num * 7919 + w * 104729) >>> 0);
+  const isBoss = (p.bossWaves || []).includes(w);
+  const avail = levelAvailableTypes(p, w);
+  const n = Math.min(avail.length, w >= p.count * 0.6 ? 2 : 1);
+  const chosen = new Set();
+  if (avail.includes('flyer') && (w === p.flyerFrom || rng.chance(0.3))) chosen.add('flyer');
+  if (rng.chance(0.6)) chosen.add(avail[avail.length - 1]);   // feature the newest type
+  let guard = 0;
+  while (chosen.size < n && guard++ < 12) chosen.add(rng.pick(avail));
+  if (chosen.size === 0) chosen.add('normal');
+  const types = [...chosen];
+  let hasFlying = types.includes('flyer');
+  if (isBoss) types.push('boss');
+  const count = Math.round((6 + w * 0.9) * (p.countMult || 1));
+  return { types: [...new Set(types)], hasFlying, isBoss, bossFlying: false, count };
+}
+
+// Level-aware dispatcher — UI and the generator both go through this.
+export function waveInfoFor(state, w) {
+  return (state && state.level && state.level.waves) ? levelWaveInfo(state.level, w) : waveInfo(w);
+}
+
 function shuffle(arr, rng) {
   const a = arr.slice();
   for (let i = a.length - 1; i > 0; i--) { const j = rng.int(0, i); [a[i], a[j]] = [a[j], a[i]]; }
@@ -97,7 +148,9 @@ function shuffle(arr, rng) {
 function setupWaveRouting(state, w, rng) {
   const spawnIds = state.map.spawns.map((s) => s.id);
   const goalIds = state.map.goals.map((g) => g.id);
-  if (w < 40) {
+  // authored campaign levels always use every spawn with its default goal;
+  // only the classic/endless procedural game varies routing from wave 40
+  if (w < 40 || (state.level && !state.level.endless)) {
     defaultRouting(state);                 // nearest goal per spawn
     state.activeSpawns = spawnIds.slice();
   } else {
@@ -112,7 +165,8 @@ function setupWaveRouting(state, w, rng) {
 // Build the time-ordered spawn list for wave w. Uses waveInfo() for the type set
 // (preview-consistent) and a separate rng for placement/timing.
 export function buildWave(state, w) {
-  const info = waveInfo(w);
+  const info = waveInfoFor(state, w);
+  const campaign = !!(state.level && state.level.waves);
   const rng = makeRng((CONFIG.SEED * 104729 + w) >>> 0);
   const active = state.activeSpawns;
   const goalFor = (sid) => state.routing[sid];
@@ -122,23 +176,24 @@ export function buildWave(state, w) {
 
   if (info.isBoss) {
     const groundTypes = info.types.filter((x) => x !== 'boss');
-    const escort = Math.floor(enemyCount(w) * (w === 100 ? 1.2 : 0.7));
+    const escort = Math.floor(info.count * (w === 100 && !campaign ? 1.2 : 0.7));
     for (let i = 0; i < escort; i++) {
       const sid = active[i % active.length];
       const type = groundTypes.length ? rng.pick(groundTypes) : 'normal';
       pushEnemy(entries, type, sid, goalFor(sid), t);
       t += stagger * 0.6;
     }
-    const bossCount = w === 100 ? 2 : 1;
+    const bossCount = (!campaign && w === 100) ? 2 : 1;
     for (let b = 0; b < bossCount; b++) {
       const sid = active[b % active.length];
-      const flying = (w === 50) || (w === 100 && b === 1);
-      entries.push({ type: 'boss', spawnId: sid, goalId: goalFor(sid), time: t + 1.0, flying, bossTier: w / 10 });
+      const flying = !campaign && ((w === 50) || (w === 100 && b === 1));
+      const bossTier = campaign ? Math.max(1, Math.ceil(state.level.num / 7)) : w / 10;
+      entries.push({ type: 'boss', spawnId: sid, goalId: goalFor(sid), time: t + 1.0, flying, bossTier });
       t += 2.0;
     }
   } else {
     const types = info.types;
-    const count = enemyCount(w);
+    const count = info.count;
     for (let i = 0; i < count; i++) {
       const sid = active[i % active.length];
       const type = rng.pick(types);

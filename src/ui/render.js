@@ -8,8 +8,8 @@
 // effects -> cursor.
 // =============================================================================
 
-import { CONFIG, CANVAS_W, CANVAS_H } from '../config.js';
-import { CELL, COLS, ROWS, SIZE, cellCenter, cellCenterX, cellCenterY } from '../engine/grid.js';
+import { CONFIG } from '../config.js';
+import { CELL, COLS, ROWS, SIZE, cellCenter, cellCenterX, cellCenterY, worldW, worldH } from '../engine/grid.js';
 import { canBuildAt, wouldSealAt } from '../game/state.js';
 import { getSprite } from './sprites.js';
 
@@ -171,7 +171,7 @@ function drawBossBars(ctx, state) {
   ctx.textAlign = 'center';
   ctx.font = 'bold 11px Segoe UI, sans-serif';
   for (const b of bosses) {
-    const x = (CANVAS_W - bw) / 2;
+    const x = (worldW() - bw) / 2;
     ctx.fillStyle = 'rgba(12,14,20,0.85)';
     roundRect(ctx, x - 2, y - 2, bw + 4, bh + 4, 4); ctx.fill();
     ctx.fillStyle = '#3a1f3f';
@@ -179,7 +179,7 @@ function drawBossBars(ctx, state) {
     ctx.fillStyle = '#c65bd6';
     ctx.fillRect(x, y, bw * Math.max(0, b.hp / b.maxHp), bh);
     ctx.fillStyle = '#fff';
-    ctx.fillText(`${b.name}  ${Math.ceil(b.hp).toLocaleString()} / ${b.maxHp.toLocaleString()}`, CANVAS_W / 2, y + bh - 3);
+    ctx.fillText(`${b.name}  ${Math.ceil(b.hp).toLocaleString()} / ${b.maxHp.toLocaleString()}`, worldW() / 2, y + bh - 3);
     y += bh + 6;
   }
   ctx.restore();
@@ -189,26 +189,26 @@ function drawBossBars(ctx, state) {
 function drawBackground(ctx) {
   const bgImg = getSprite('misc-background');
   if (bgImg) {
-    ctx.drawImage(bgImg, 0, 0, CANVAS_W, CANVAS_H);
+    ctx.drawImage(bgImg, 0, 0, worldW(), worldH());
     // dim slightly so entities and the grid stay readable on painted terrain
     ctx.fillStyle = 'rgba(18,21,29,0.35)';
-    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+    ctx.fillRect(0, 0, worldW(), worldH());
   } else {
     ctx.fillStyle = C.bg;
-    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+    ctx.fillRect(0, 0, worldW(), worldH());
   }
   ctx.strokeStyle = C.gridLine;
   ctx.lineWidth = 1;
   for (let x = 0; x <= COLS; x++) {
     ctx.beginPath();
     ctx.moveTo(x * SIZE + 0.5, 0);
-    ctx.lineTo(x * SIZE + 0.5, CANVAS_H);
+    ctx.lineTo(x * SIZE + 0.5, worldH());
     ctx.stroke();
   }
   for (let y = 0; y <= ROWS; y++) {
     ctx.beginPath();
     ctx.moveTo(0, y * SIZE + 0.5);
-    ctx.lineTo(CANVAS_W, y * SIZE + 0.5);
+    ctx.lineTo(worldW(), y * SIZE + 0.5);
     ctx.stroke();
   }
 }
@@ -292,6 +292,31 @@ function drawSpawnGoalMarkers(ctx, state) {
     ctx.stroke();
     ctx.fillStyle = C.goal;
     ctx.fillText(g.id, c.x, c.y + 0.5);
+  }
+
+  // checkpoint flags (Gem TD): gold banner on a pole, numbered, gentle wave
+  const cps = state.map.checkpoints || [];
+  for (let i = 0; i < cps.length; i++) {
+    const cp = cps[i];
+    const c = cellCenter(cp.cx, cp.cy);
+    const wave = Math.sin(state.time * 3 + i) * 2;
+    ctx.strokeStyle = '#7a5a2e';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(c.x - 4, c.y + 12);
+    ctx.lineTo(c.x - 4, c.y - 12);
+    ctx.stroke();
+    ctx.fillStyle = '#ffd35c';
+    ctx.beginPath();
+    ctx.moveTo(c.x - 3, c.y - 12);
+    ctx.lineTo(c.x + 12 + wave, c.y - 8);
+    ctx.lineTo(c.x - 3, c.y - 3);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#2a2106';
+    ctx.font = 'bold 9px Segoe UI, sans-serif';
+    ctx.fillText(String(i + 1), c.x + 3, c.y - 7.5);
+    ctx.font = 'bold 11px Segoe UI, sans-serif';
   }
   ctx.restore();
 }
@@ -609,7 +634,7 @@ function drawFloaters(ctx, state) {
 
 function drawFlash(ctx, state) {
   ctx.fillStyle = `rgba(226,75,74,${0.35 * state.flash})`;
-  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+  ctx.fillRect(0, 0, worldW(), worldH());
 }
 
 function drawHover(ctx, state) {

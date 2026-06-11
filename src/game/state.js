@@ -12,8 +12,11 @@ import { CELL, COLS, ROWS, inBounds } from '../engine/grid.js';
 import { bfsDistanceField, weightedDistanceField, isReachable, tracePath, fieldAt, UNREACHABLE } from '../engine/pathfinding.js';
 import { createMap } from './map.js';
 
-export function createState(rng, seed = 0) {
-  const map = createMap(rng);
+// level (optional): an authored campaign level def (see levels.js). Without
+// one you get the classic random 28x18 board (Endless-style + headless sim).
+// NOTE: callers must setGridSize(level.cols, level.rows) BEFORE this.
+export function createState(rng, seed = 0, level = null) {
+  const map = createMap(rng, level);
 
   // towerGrid[y][x] = tower entity or null. Separate from map cell types so we
   // never lose the underlying terrain when a tower is sold.
@@ -23,6 +26,7 @@ export function createState(rng, seed = 0) {
   const state = {
     rng,
     seed,
+    level,                   // campaign level def or null (classic board)
     map,
     towerGrid,
     time: 0,                 // seconds of sim time (for animations)
@@ -46,8 +50,8 @@ export function createState(rng, seed = 0) {
     siege: false,            // true while any route is sealed (walls under threat)
 
     // economy
-    gold: CONFIG.START_GOLD,
-    lives: CONFIG.START_LIVES,
+    gold: level && level.startGold != null ? level.startGold : CONFIG.START_GOLD,
+    lives: level && level.lives != null ? level.lives : CONFIG.START_LIVES,
     wave: 0,                 // last started wave (0 = none yet)
     maxWave: 0,
 
@@ -112,10 +116,29 @@ export function makeWalkable(state, blockX = -1, blockY = -1) {
   };
 }
 
+// All routing targets on this map: checkpoint flags (visited in order) plus
+// the exit goals. Fields are keyed by target id ('CP1', 'G1', ...).
+export function routeTargets(state) {
+  return [...(state.map.checkpoints || []), ...state.map.goals];
+}
+
+// The ordered chain of target ids an enemy from `spawnId` must visit:
+// every checkpoint in order, then its assigned goal.
+export function routeFor(state, spawnId) {
+  const cps = (state.map.checkpoints || []).map((c) => c.id);
+  const goalId = state.routing[spawnId] || state.map.goals[0].id;
+  return [...cps, goalId];
+}
+
+export function targetCell(state, key) {
+  const t = routeTargets(state).find((c) => c.id === key);
+  return t ? { x: t.cx, y: t.cy } : null;
+}
+
 export function recomputeFields(state) {
   const walk = makeWalkable(state);
-  for (const g of state.map.goals) {
-    state.fields[g.id] = bfsDistanceField(walk, g.cx, g.cy);
+  for (const t of routeTargets(state)) {
+    state.fields[t.id] = bfsDistanceField(walk, t.cx, t.cy);
   }
 }
 
@@ -131,19 +154,41 @@ export function defaultRouting(state) {
   }
 }
 
+// Overlay path per spawn: concatenate the per-stage traces so the dotted line
+// shows the FULL journey (spawn -> CP1 -> CP2 -> ... -> exit).
 export function recomputePaths(state) {
   for (const s of state.map.spawns) {
-    const goalId = state.routing[s.id] || state.map.goals[0].id;
-    state.paths[s.id] = tracePath(state.fields[goalId], s.cx, s.cy) || [];
+    const route = routeFor(state, s.id);
+    let full = [];
+    let from = { x: s.cx, y: s.cy };
+    for (const key of route) {
+      const seg = tracePath(state.fields[key], from.x, from.y);
+      if (!seg) { full = full.length ? full : []; break; }
+      full = full.length ? full.concat(seg.slice(1)) : seg;
+      from = targetCell(state, key) || from;
+    }
+    state.paths[s.id] = full;
   }
 }
 
-// Does every spawn still reach every goal under `walk`? (Connectivity = legal.)
+// Does the whole waypoint CHAIN stay connected under `walk`? Every spawn must
+// reach the first target, each checkpoint the next, and the last checkpoint
+// every goal. (No checkpoints -> the classic "every spawn reaches every goal".)
 export function spawnsAllReachGoals(state, walk) {
-  for (const g of state.map.goals) {
-    const field = bfsDistanceField(walk, g.cx, g.cy);
+  const cps = state.map.checkpoints || [];
+  const firsts = cps.length ? [cps[0]] : state.map.goals;
+  for (const f of firsts) {
+    const field = bfsDistanceField(walk, f.cx, f.cy);
     for (const s of state.map.spawns) {
       if (!isReachable(field, s.cx, s.cy)) return false;
+    }
+  }
+  for (let i = 0; i < cps.length; i++) {
+    const prev = cps[i];
+    const nexts = (i + 1 < cps.length) ? [cps[i + 1]] : state.map.goals;
+    for (const n of nexts) {
+      const field = bfsDistanceField(walk, n.cx, n.cy);
+      if (!isReachable(field, prev.cx, prev.cy)) return false;
     }
   }
   return true;
@@ -170,8 +215,8 @@ export function wouldSealAt(state, x, y) {
   return !spawnsAllReachGoals(state, makeWalkable(state, x, y));
 }
 
-// While a goal is sealed (any spawn or live ground enemy cut off from it),
-// publish a weighted breach field for it: open cell = 1, tower cell = big.
+// While any route STAGE is sealed (its feeders can't reach its target),
+// publish a weighted breach field for that target: open cell = 1, tower = big.
 // Besieged creeps follow it downhill to the cheapest wall and chew through.
 export function recomputeSiegeFields(state) {
   const terrain = (x, y) => {
@@ -180,19 +225,28 @@ export function recomputeSiegeFields(state) {
     return t !== CELL.BORDER && t !== CELL.OBSTACLE;   // towers ARE passable for costing
   };
   const costAt = (x, y) => (state.towerGrid[y][x] ? CONFIG.SIEGE.towerCellCost : 1);
+  const cps = state.map.checkpoints || [];
   let any = false;
-  for (const g of state.map.goals) {
-    const field = state.fields[g.id];
-    let sealed = state.map.spawns.some((s) => !isReachable(field, s.cx, s.cy));
+
+  for (const t of routeTargets(state)) {
+    const field = state.fields[t.id];
+    // feeders: spawn mouths for the first stage, the previous flag otherwise
+    const isCp = t.id.startsWith('CP');
+    const cpIndex = isCp ? cps.findIndex((c) => c.id === t.id) : -1;
+    const feeders = (cpIndex > 0) ? [cps[cpIndex - 1]]
+      : (isCp || cps.length === 0) ? state.map.spawns
+      : [cps[cps.length - 1]];                       // goals fed by the last flag
+    let sealed = feeders.some((f) => !isReachable(field, f.cx, f.cy));
     if (!sealed) {
       sealed = state.enemies.some((e) =>
-        e.alive && !e.flying && e.goalId === g.id && fieldAt(field, e.cx, e.cy) === UNREACHABLE);
+        e.alive && !e.flying && e.route && e.route[e.stage] === t.id &&
+        fieldAt(field, e.cx, e.cy) === UNREACHABLE);
     }
     if (sealed) {
-      state.siegeFields[g.id] = weightedDistanceField(terrain, costAt, g.cx, g.cy);
+      state.siegeFields[t.id] = weightedDistanceField(terrain, costAt, t.cx, t.cy);
       any = true;
     } else {
-      delete state.siegeFields[g.id];
+      delete state.siegeFields[t.id];
     }
   }
   state.siege = any;

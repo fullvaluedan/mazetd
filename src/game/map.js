@@ -88,8 +88,39 @@ function scatterObstacles(cells, rng, nClusters, reserved) {
   }
 }
 
-// Create a map. Retries obstacle layouts until connectivity holds.
-export function createMap(rng) {
+// Build a map from an AUTHORED campaign level definition: fixed obstacles,
+// spawn/exit openings on the border, checkpoint flags in the interior.
+function createAuthoredMap(level) {
+  const cells = [];
+  for (let y = 0; y < ROWS; y++) {
+    const row = [];
+    for (let x = 0; x < COLS; x++) {
+      const isBorder = (x === 0 || y === 0 || x === COLS - 1 || y === ROWS - 1);
+      row.push(isBorder ? CELL.BORDER : CELL.OPEN);
+    }
+    cells.push(row);
+  }
+  for (const [x, y] of level.obstacles || []) {
+    if (inBounds(x, y)) cells[y][x] = CELL.OBSTACLE;
+  }
+  for (const s of level.spawns) cells[s.cy][s.cx] = CELL.SPAWN;
+  for (const g of level.goals) cells[g.cy][g.cx] = CELL.GOAL;
+  for (const c of level.checkpoints || []) cells[c.cy][c.cx] = CELL.CHECKPOINT;
+
+  return {
+    cells,
+    spawns: level.spawns.map((s) => ({ ...s })),
+    goals: level.goals.map((g) => ({ ...g })),
+    checkpoints: (level.checkpoints || []).map((c) => ({ ...c })),
+    type(x, y) { return inBounds(x, y) ? this.cells[y][x] : CELL.BORDER; },
+  };
+}
+
+// Create a map. With a level def -> authored layout; without -> the classic
+// random-obstacle 28x18 board (Endless-style worlds & the headless sim).
+export function createMap(rng, level = null) {
+  if (level) return createAuthoredMap(level);
+
   const reserved = reservedEntries();
   let cells = null;
   let nClusters = rng.int(CONFIG.OBSTACLE_CLUSTERS_MIN, CONFIG.OBSTACLE_CLUSTERS_MAX);
@@ -112,6 +143,7 @@ export function createMap(rng) {
     cells,
     spawns: CONFIG.SPAWNS.map((s) => ({ ...s })),
     goals: CONFIG.GOALS.map((g) => ({ ...g })),
+    checkpoints: [],
     type(x, y) { return inBounds(x, y) ? this.cells[y][x] : CELL.BORDER; },
   };
 }

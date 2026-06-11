@@ -6,7 +6,8 @@
 // =============================================================================
 
 import { CONFIG } from '../config.js';
-import { waveInfo } from '../game/wave.js';
+import { waveInfoFor, winWave } from '../game/wave.js';
+import { ROWS } from '../engine/grid.js';
 import { div, EGLYPH } from './components.js';
 
 export class WaveBar {
@@ -29,8 +30,8 @@ export class WaveBar {
   buildChevrons(state, nw) {
     for (const c of this.chevrons) c.el.remove();
     this.chevrons = [];
-    if (nw > CONFIG.WIN_WAVE) return;
-    const info = waveInfo(nw);
+    if (nw > winWave(state)) return;
+    const info = waveInfoFor(state, nw);
     const lead = info.types[0];
     const ecfg = CONFIG.ENEMIES[lead] || {};
     for (const s of state.map.spawns) {
@@ -51,7 +52,7 @@ export class WaveBar {
       const p = this.viewport.worldToUi((c.cx + 0.5) * CONFIG.CELL, (c.cy + 0.5) * CONFIG.CELL);
       // nudge inward so border-mouth markers sit on the playfield
       const dx = c.cx === 0 ? 18 : 0;
-      const dy = c.cy === 0 ? 18 : (c.cy === CONFIG.GRID_ROWS - 1 ? -18 : 0);
+      const dy = c.cy === 0 ? 18 : (c.cy === ROWS - 1 ? -18 : 0);
       c.el.style.left = (p.x + dx) + 'px';
       c.el.style.top = (p.y + dy) + 'px';
     }
@@ -60,7 +61,7 @@ export class WaveBar {
   refresh(state) {
     const nw = state.wave + 1;
     const over = state.status === 'won' || state.status === 'lost';
-    const canStart = !state.waveActive && !over && nw <= CONFIG.WIN_WAVE;
+    const canStart = !state.waveActive && !over && nw <= winWave(state);
 
     // chevrons: only between waves, for the upcoming wave
     const showChevrons = canStart && state.hero;

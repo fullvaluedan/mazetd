@@ -19,7 +19,7 @@ import { SIZE, COLS, ROWS, NEIGHBORS4, inBounds, cellCenter, worldToCell } from 
 import { fieldAt, UNREACHABLE } from '../engine/pathfinding.js';
 import { matchup } from './damage.js';
 import { destroyTower } from './tower.js';
-import { pushEvent } from './state.js';
+import { pushEvent, routeFor, targetCell } from './state.js';
 
 let NEXT_ID = 1;
 
@@ -59,7 +59,10 @@ export class Enemy {
     this.cx = spawn.cx;
     this.cy = spawn.cy;
 
-    // movement target
+    // movement: the waypoint chain (checkpoints in order, then our goal).
+    // stage indexes route[]; each stage walks the BFS field of that target.
+    this.route = routeFor(state, spawn.id);
+    this.stage = 0;
     const goal = state.map.goals.find((g) => g.id === goalId) || state.map.goals[0];
     this.goalCell = { x: goal.cx, y: goal.cy };
     this.targetCell = { x: spawn.cx, y: spawn.cy };
@@ -90,10 +93,29 @@ export class Enemy {
     this.spawnedAt = state.time || 0;   // cosmetic: spawn pop-in
 
     if (this.flying) {
-      this.targetCenter = cellCenter(goal.cx, goal.cy);
+      this.aimAtStage(state);
     } else {
       this.advanceTarget(state);
     }
+  }
+
+  // Flyers travel straight to the CURRENT stage target (checkpoints still
+  // apply to the skies — that's what keeps flags meaningful vs air waves).
+  aimAtStage(state) {
+    const c = targetCell(state, this.route[this.stage]) || this.goalCell && { x: this.goalCell.x, y: this.goalCell.y };
+    this.targetCenter = cellCenter(c.x, c.y);
+  }
+
+  // Ordering metric for tower target modes ('first'/'last'): smaller = closer
+  // to escaping. Stages still to go dominate; distance breaks ties.
+  remainingDist(state) {
+    const stagesLeft = this.route.length - 1 - this.stage;
+    if (this.flying) {
+      const d = Math.hypot(this.targetCenter.x - this.x, this.targetCenter.y - this.y) / SIZE;
+      return d + stagesLeft * 10000;
+    }
+    const d = fieldAt(state.fields[this.route[this.stage]], this.cx, this.cy);
+    return (d === UNREACHABLE ? 9000 : d) + stagesLeft * 10000;
   }
 
   // --- status effects -------------------------------------------------------
@@ -162,7 +184,7 @@ export class Enemy {
     const slowFactor = this.slowTimer > 0 ? (1 - this.slowPct) : 1;
     const burst = this.burstLeft > 0 ? 1.5 : 1;
     const movePx = this.speed * slowFactor * burst * SIZE * dt;
-    if (this.flying) this.moveStraight(movePx);
+    if (this.flying) this.moveStraight(movePx, state);
     else this.moveGrid(movePx, state);
   }
 
@@ -201,11 +223,20 @@ export class Enemy {
     }
   }
 
-  moveStraight(movePx) {
+  moveStraight(movePx, state) {
     const dx = this.targetCenter.x - this.x;
     const dy = this.targetCenter.y - this.y;
     const dist = Math.hypot(dx, dy);
-    if (dist <= movePx || dist < 0.001) { this.reachedGoal = true; return; }
+    if (dist <= movePx || dist < 0.001) {
+      // reached the current waypoint: advance the stage or escape
+      if (this.stage < this.route.length - 1) {
+        this.stage++;
+        this.aimAtStage(state);
+      } else {
+        this.reachedGoal = true;
+      }
+      return;
+    }
     this.x += (dx / dist) * movePx;
     this.y += (dy / dist) * movePx;
     const c = worldToCell(this.x, this.y);
@@ -238,19 +269,28 @@ export class Enemy {
     }
   }
 
-  // Pick the neighbour of (cx,cy) closest to the goal, using the live field.
-  // If our cell is cut off from the goal (the maze is sealed), fall back to the
-  // weighted breach field; when its downhill step lands on a tower cell, park
-  // here and mark that tower as our siege target instead of moving.
+  // Pick the neighbour of (cx,cy) closest to the CURRENT stage target, using
+  // its live field. Reaching a checkpoint advances the stage (creeps then walk
+  // the maze again toward the next flag — the Gem TD loop). If our cell is cut
+  // off from the stage target (sealed), fall back to the weighted breach
+  // field; when its downhill step lands on a tower cell, park here and mark
+  // that tower as our siege target instead of moving.
   advanceTarget(state) {
-    let field = state.fields[this.goalId];
+    let key = this.route[this.stage];
+    let field = state.fields[key];
+    // standing on the stage target: advance to the next flag, or escape
+    while (fieldAt(field, this.cx, this.cy) === 0) {
+      if (this.stage >= this.route.length - 1) { this.reachedGoal = true; return; }
+      this.stage++;
+      key = this.route[this.stage];
+      field = state.fields[key];
+    }
     let sieging = false;
-    if (fieldAt(field, this.cx, this.cy) === UNREACHABLE && state.siegeFields && state.siegeFields[this.goalId]) {
-      field = state.siegeFields[this.goalId];
+    if (fieldAt(field, this.cx, this.cy) === UNREACHABLE && state.siegeFields && state.siegeFields[key]) {
+      field = state.siegeFields[key];
       sieging = true;
     }
     const here = fieldAt(field, this.cx, this.cy);
-    if (here === 0) { this.reachedGoal = true; return; }
     let best = null, bestD = here;
     for (let i = 0; i < 4; i++) {
       const nx = this.cx + NEIGHBORS4[i][0];

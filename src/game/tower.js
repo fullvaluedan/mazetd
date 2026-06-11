@@ -153,12 +153,10 @@ export class Tower {
 
   // --- targeting ------------------------------------------------------------
   remaining(state, e) {
-    // "how far from the exit" — smaller = nearer the goal = more progressed.
-    if (e.flying) {
-      const g = e.goalCell;
-      return cellDist(e.x / SIZE, e.y / SIZE, cellCenterX(g.x) / SIZE, cellCenterY(g.y) / SIZE);
-    }
-    return fieldAt(state.fields[e.goalId], e.cx, e.cy);
+    // "how far from escaping" — smaller = more progressed. Stage-aware since
+    // the checkpoint rework (an enemy on its last flag outranks one on its
+    // first even if the raw distance is similar).
+    return e.remainingDist(state);
   }
 
   // Effective range including the global shop range-boost tiers.
