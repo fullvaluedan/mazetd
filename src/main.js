@@ -25,6 +25,7 @@ import { loadSprites, toggleSprites } from './ui/sprites.js';
 import { Viewport } from './ui/viewport.js';
 import { createHints } from './ui/hints.js';
 import { hoverCardHtml, enemyCardHtml, enemyAt } from './ui/infocard.js';
+import { Screens } from './ui/screens.js';
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -140,7 +141,7 @@ const actions = {
     state = applySnapshot(snap);
     prevStatus = state.status;
     clearTargeting();
-    modal.classList.add('hidden');
+    screens.hide();
     showBanner('Game loaded', '', 1.4);
   },
   castAbility: (i) => {
@@ -157,37 +158,7 @@ const actions = {
   restart: () => location.reload(),
 };
 
-// ---------------------------------------------------------------------------
-// start screen — hero selection
-// ---------------------------------------------------------------------------
-function showStartModal() {
-  const hs = getHighScore();
-  modal.classList.remove('hidden');
-  modal.innerHTML = `<div class="card">
-    <h1>Mazecore <span style="color:#00d4ff">TD</span></h1>
-    <p>Build a maze of towers to force 100 waves of enemies down a long, deadly
-       path — but never wall them off completely. Choose your hero:</p>
-    <div class="hero-pick" id="heropick"></div>
-    ${hasSave() ? '<button class="primary" id="continue" style="padding:8px 22px;margin-bottom:8px">Continue saved game</button><br>' : ''}
-    <p class="muted">Right-click to move your hero · Q / W cast abilities · get
-       anti-air before wave 15 · P toggles the path overlay.${hs ? ` · Best: wave ${hs}` : ''}</p>
-  </div>`;
-  const pick = document.getElementById('heropick');
-  for (const [id, def] of Object.entries(CONFIG.HEROES)) {
-    const b = document.createElement('button');
-    b.innerHTML = `<img src="assets/heroes/${id}.png" alt="" style="width:52px;height:52px;align-self:center" onerror="this.remove()">
-      <span class="h-glyph" style="color:${def.color}">${def.glyph}</span>
-      <span class="h-name">${def.name}</span>
-      <span class="h-role">${def.role}</span>`;
-    // if the portrait loads, hide the placeholder glyph
-    const img = b.querySelector('img');
-    if (img) img.addEventListener('load', () => { const g = b.querySelector('.h-glyph'); if (g) g.style.display = 'none'; });
-    b.addEventListener('click', () => { createHero(state, id); modal.classList.add('hidden'); showBanner(`${def.name} ready!`, '', 1.5); });
-    pick.appendChild(b);
-  }
-  const cont = document.getElementById('continue');
-  if (cont) cont.addEventListener('click', actions.load);
-}
+// (start/hero-select/victory/defeat screens live in ui/screens.js)
 
 // ---------------------------------------------------------------------------
 // simulation step
@@ -234,17 +205,8 @@ function update(dt) {
 }
 
 function showEndModal() {
-  const won = state.status === 'won';
   recordHighScore(state.maxWave);
-  const hs = getHighScore();
-  modal.classList.remove('hidden');
-  modal.innerHTML = `<div class="card">
-    <h1 style="color:${won ? '#5fce7a' : '#e24b4a'}">${won ? 'VICTORY!' : 'DEFEAT'}</h1>
-    <p>${won ? 'You cleared all 100 waves. The maze held.' : `Your lives ran out on wave ${state.wave}.`}</p>
-    <p class="muted">Reached wave <b>${state.maxWave}</b> · Hero L<b>${state.hero ? state.hero.level : 1}</b> · Best ever: wave <b>${hs}</b></p>
-    <button class="primary" id="again" style="margin-top:14px;padding:10px 24px">Play again</button>
-  </div>`;
-  document.getElementById('again').addEventListener('click', actions.restart);
+  screens.showEnd(state);
 }
 
 // ---------------------------------------------------------------------------
@@ -261,6 +223,19 @@ function draw() {
 const loop = new GameLoop(update, draw);
 const hud = new HUD(null, actions, { uiLayer, viewport });
 const hints = createHints(overlay, hud);
+const screens = new Screens(modal, {
+  pickHero: (id) => {
+    const def = CONFIG.HEROES[id];
+    createHero(state, id);
+    showBanner(`${def.name} ready!`, '', 1.5);
+  },
+  continueRun: () => actions.load(),
+  openSettings: () => actions.openSettings(),
+  restart: () => actions.restart(),
+  hasSave: () => hasSave(),
+  highScore: () => getHighScore(),
+  // revive hook arrives with the rewarded-ads pass
+});
 viewport.onResize = () => hud.onViewportResize();
 loop.start();
 
@@ -287,10 +262,10 @@ loop.start();
 // Debug handle (dev tools / preview verification). `state` is a live getter
 // because load() replaces the whole state object.
 if (typeof window !== 'undefined') {
-  window.__mz = { get state() { return state; }, hud, loop, actions, viewport };
+  window.__mz = { get state() { return state; }, hud, loop, actions, viewport, screens };
 }
-showStartModal();
-loadSprites();   // async; art pops in when ready, shapes are the fallback
+screens.showTitle();
+loadSprites().then(() => screens.refreshArt());   // art pops in when ready; shapes are the fallback
 
 // ---------------------------------------------------------------------------
 // input

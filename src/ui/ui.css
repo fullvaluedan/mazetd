@@ -436,6 +436,88 @@
 }
 .sheet-help b { color: var(--ui-text); }
 
+/* ---- game-flow screens (title / hero select / end) -------------------------- */
+.ui-btn.big {
+  font-size: 16px;
+  padding: 12px 26px;
+  letter-spacing: 0.5px;
+}
+.title-screen, .hero-screen, .end-screen {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: radial-gradient(ellipse at 50% 30%, #233048 0%, #11151f 70%);
+  background-size: cover;
+  background-position: center;
+}
+.title-logo {
+  font-size: clamp(38px, 8vw, 72px);
+  font-weight: 900;
+  letter-spacing: 3px;
+  line-height: 1;
+  background: linear-gradient(180deg, #ffe9a8 0%, var(--ui-gold) 55%, #b97f1e 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 3px 0 rgba(0, 0, 0, 0.55)) drop-shadow(0 6px 14px rgba(0, 0, 0, 0.5));
+}
+.title-logo span {
+  margin-left: 10px;
+  background: linear-gradient(180deg, #b9f0ff 0%, var(--ui-blue) 60%, #1d7fb8 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+.title-tag { color: var(--ui-dim); font-size: 14px; }
+.title-buttons { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; min-width: 240px; }
+.title-best { color: var(--ui-gold); font-size: 13px; font-weight: 700; }
+
+.hero-screen-title { font-size: 24px; font-weight: 800; }
+.hero-cards { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; padding: 0 12px; }
+.hero-card {
+  pointer-events: auto;
+  width: min(220px, 86vw);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  background: var(--ui-panel);
+  border: 2px solid var(--ui-line);
+  border-radius: 16px;
+  box-shadow: var(--ui-shadow);
+  padding: 14px;
+  cursor: pointer;
+  color: var(--ui-text);
+  font-family: inherit;
+  transition: transform 0.1s, border-color 0.12s;
+}
+.hero-card:hover { transform: translateY(-3px); border-color: var(--ui-gold); }
+.hero-card .hc-art { width: 110px; height: 110px; display: flex; align-items: center; justify-content: center; }
+.hero-card .hc-art img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+.hero-card .hc-glyph { font-size: 56px; }
+.hero-card .hc-name { font-size: 18px; font-weight: 800; }
+.hero-card .hc-role { font-size: 12px; color: var(--ui-dim); }
+.hero-card .hc-abilities { font-size: 11px; color: var(--ui-dim); line-height: 1.45; text-align: left; }
+.hero-card .hc-abilities b { color: var(--ui-text); }
+
+.end-title { font-size: clamp(34px, 7vw, 58px); font-weight: 900; letter-spacing: 2px; }
+.end-stars { display: flex; gap: 10px; }
+.end-stars .star { font-size: 44px; color: #3a4258; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+.end-stars .star.lit {
+  color: var(--ui-gold);
+  text-shadow: 0 0 16px rgba(255, 211, 92, 0.8);
+  animation: ui-pop 0.35s ease-out backwards;
+}
+.end-stars .star.lit:nth-child(2) { animation-delay: 0.15s; }
+.end-stars .star.lit:nth-child(3) { animation-delay: 0.3s; }
+.end-sub { color: var(--ui-text); font-size: 15px; }
+.end-stats { color: var(--ui-dim); font-size: 13px; }
+.end-stats b { color: var(--ui-text); }
+.end-buttons { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; min-width: 250px; }
+
 /* ---- rotate-your-device overlay --------------------------------------------- */
 #rotate {
   position: fixed;
