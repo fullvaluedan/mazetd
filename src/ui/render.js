@@ -115,8 +115,10 @@ function drawHero(ctx, state) {
     ctx.arc(h.x, h.y, 14, 0, Math.PI * 2);
     ctx.stroke();
   }
-  const heroFrame = heroMoving ? Math.floor(state.time * 7) % 4 : 0;
-  const heroSprite = getSprite('hero-' + h.id, heroFrame);
+  // NOTE: heroes deliberately do NOT step walk-sheet frames — AI sheet frames
+  // redraw held items (the warrior's sword) in slightly different poses, which
+  // reads as flicker at 34px. Bob + facing flip alone keeps the walk alive.
+  const heroSprite = getSprite('hero-' + h.id);
   if (heroSprite) {
     ctx.save();
     ctx.translate(h.x + lx, h.y + heroBob + ly);

@@ -117,32 +117,63 @@ export class Screens {
       up.appendChild(b);
     }
 
-    // the level path
+    // The WORLD MAP: a winding trail of round level badges climbing from the
+    // bottom (level 1) to the top (Endless) over scenic art — the layout every
+    // working mobile TD/match-3 player already knows how to read.
     const path = s.querySelector('.map-path');
-    for (const lv of LEVELS) {
-      const unlocked = profile.isLevelUnlocked(lv.num);
-      const stars = profile.starsForLevel(lv.id);
+    path.classList.add('map-world');
+    const url = getSpriteUrl('misc-worldmap') || getSpriteUrl('misc-title');
+    if (url) path.style.backgroundImage = `linear-gradient(rgba(16,20,30,0.25), rgba(16,20,30,0.25)), url(${url})`;
+
+    const STEP = 86;                      // vertical px per level
+    const entries = [...LEVELS.map((lv) => ({ lv })), { endless: true }];
+    const worldH = entries.length * STEP + 60;
+    const inner = div('map-trail');
+    inner.style.height = worldH + 'px';
+
+    const xFor = (i) => 50 + Math.sin(i * 0.85) * 26;          // serpentine %
+    const yFor = (i) => worldH - 70 - i * STEP;                // climb upward
+
+    entries.forEach((en, i) => {
+      // dotted connector toward the previous node
+      if (i > 0) {
+        for (let k = 1; k <= 3; k++) {
+          const t = k / 4;
+          const dot = div('trail-dot');
+          dot.style.left = (xFor(i - 1) + (xFor(i) - xFor(i - 1)) * t) + '%';
+          dot.style.top = (yFor(i - 1) + (yFor(i) - yFor(i - 1)) * t) + 'px';
+          inner.appendChild(dot);
+        }
+      }
       const b = document.createElement('button');
-      b.className = 'map-node' + (unlocked ? '' : ' locked');
-      b.innerHTML = unlocked
-        ? `<span class="mn-num">${lv.num}</span><span class="mn-name">${lv.name}</span><span class="mn-stars">${starsHtml(stars)}</span>`
-        : `<span class="mn-num">🔒</span><span class="mn-name">${lv.name}</span><span class="mn-stars muted">beat level ${lv.num - 1}</span>`;
-      if (unlocked) b.addEventListener('click', () => { location.href = '?level=' + lv.id; });
-      else b.disabled = true;
-      path.appendChild(b);
-    }
-    // Endless node
-    const endlessOpen = profile.endlessUnlocked();
-    const en = document.createElement('button');
-    en.className = 'map-node endless' + (endlessOpen ? '' : ' locked');
-    en.innerHTML = endlessOpen
-      ? `<span class="mn-num">∞</span><span class="mn-name">Endless Depths</span><span class="mn-stars">100 waves · high score</span>`
-      : `<span class="mn-num">🔒</span><span class="mn-name">Endless Depths</span><span class="mn-stars muted">beat level 10</span>`;
-    if (endlessOpen) en.addEventListener('click', () => { location.href = '?level=endless'; });
-    else en.disabled = true;
-    path.appendChild(en);
+      b.style.left = xFor(i) + '%';
+      b.style.top = yFor(i) + 'px';
+      if (en.endless) {
+        const open = profile.endlessUnlocked();
+        b.className = 'world-node endless' + (open ? '' : ' locked');
+        b.innerHTML = `<span class="wn-badge">${open ? '∞' : '🔒'}</span><span class="wn-label">Endless</span>`;
+        if (open) b.addEventListener('click', () => { location.href = '?level=endless'; });
+        else b.disabled = true;
+        b.title = open ? 'Endless Depths — 100 waves, high score' : 'Beat level 10 to unlock';
+      } else {
+        const lv = en.lv;
+        const unlocked = profile.isLevelUnlocked(lv.num);
+        const stars = profile.starsForLevel(lv.id);
+        const current = unlocked && stars === 0;
+        b.className = 'world-node' + (unlocked ? '' : ' locked') + (current ? ' current' : '');
+        b.innerHTML = `<span class="wn-badge">${unlocked ? lv.num : '🔒'}</span>
+          <span class="wn-stars">${unlocked ? starsHtml(stars) : ''}</span>
+          <span class="wn-label">${lv.name}</span>`;
+        if (unlocked) b.addEventListener('click', () => { location.href = '?level=' + lv.id; });
+        else b.disabled = true;
+        b.title = unlocked ? `${lv.name} — ${lv.waves.count} waves` : `Beat level ${lv.num - 1} to unlock`;
+      }
+      inner.appendChild(b);
+    });
+    path.appendChild(inner);
 
     this._mount('map', s);
+    path.scrollTop = path.scrollHeight;   // start at level 1, at the bottom
   }
 
   showEnd(state) {

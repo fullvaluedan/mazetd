@@ -374,6 +374,36 @@
 }
 .infocard .muted { color: var(--ui-dim); }
 
+/* tower stat block: pip bars + land/air/trait chips */
+.tcard-stats { margin: 6px 0 5px; display: flex; flex-direction: column; gap: 3px; }
+.tcard-stats .trow { display: flex; align-items: center; gap: 3px; }
+.tcard-stats .tlabel {
+  width: 44px;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: var(--ui-dim);
+}
+.pip {
+  width: 13px;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(74, 56, 38, 0.15);
+  display: inline-block;
+}
+.tchips { flex-wrap: wrap; margin-top: 2px; }
+.tchip {
+  font-size: 10px;
+  font-weight: 800;
+  border-radius: 6px;
+  padding: 1px 6px;
+  background: rgba(74, 56, 38, 0.10);
+  color: var(--ui-dim);
+}
+.tchip.yes { background: rgba(47, 157, 77, 0.18); color: #257a3e; }
+.tchip.no { background: rgba(216, 85, 79, 0.14); color: #b1423d; text-decoration: line-through; }
+.tchip.trait { background: rgba(224, 155, 26, 0.16); color: #a06d10; }
+
 /* ---- sheets (settings / store) ---------------------------------------------- */
 .sheet-backdrop {
   position: fixed;
@@ -575,6 +605,73 @@
   gap: 7px;
   padding-bottom: env(safe-area-inset-bottom);
 }
+/* world-map trail: round badges climbing a winding path over scenic art */
+.map-world {
+  background-size: cover;
+  background-position: center;
+  border-radius: var(--ui-radius);
+  border: 1px solid var(--ui-line);
+}
+.map-trail { position: relative; width: 100%; }
+.trail-dot {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(253, 246, 230, 0.75);
+  transform: translate(-50%, -50%);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+.world-node {
+  pointer-events: auto;
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.world-node .wn-badge {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fdf6e6, #e8d3a4);
+  border: 3px solid #a87f33;
+  box-shadow: 0 4px 10px rgba(30, 20, 8, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 900;
+  color: #4a3826;
+  transition: transform 0.1s;
+}
+.world-node:hover:not(:disabled) .wn-badge { transform: scale(1.1); }
+.world-node.current .wn-badge {
+  border-color: var(--ui-gold);
+  animation: ui-pulse 1.2s ease-in-out infinite;
+  box-shadow: 0 0 16px rgba(224, 155, 26, 0.8);
+}
+.world-node.locked { cursor: not-allowed; }
+.world-node.locked .wn-badge { filter: grayscale(1) brightness(0.75); }
+.world-node.endless .wn-badge { border-color: var(--ui-blue); color: var(--ui-blue); }
+.world-node .wn-stars { display: flex; gap: 1px; margin-top: -3px; }
+.world-node .wn-stars .ms { color: rgba(255, 255, 255, 0.45); font-size: 13px; text-shadow: 0 1px 2px rgba(0,0,0,0.6); }
+.world-node .wn-stars .ms.lit { color: #ffd35c; }
+.world-node .wn-label {
+  font-size: 10px;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+  max-width: 110px;
+}
+
 .map-node {
   pointer-events: auto;
   display: flex;

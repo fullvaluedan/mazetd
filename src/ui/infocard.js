@@ -115,14 +115,48 @@ export function towerCardHtml(t) {
   }
   const dps = (s.damage * (s.multishot || 1) / s.cooldown).toFixed(1);
   const sp = specialText(s);
-  const hp = t.hp < t.maxHp ? `<br><span style="color:#ff6b66">wall HP ${Math.ceil(t.hp)}/${Math.ceil(t.maxHp)}</span>` : '';
-  const next = t.canUpgrade() ? `<br><span style="color:#f2c14b">▲ upgrade: ${t.nextUpgradeCost()}g</span>` : '<br><span class="muted">max level</span>';
-  return `<b style="color:${t.def.color}">${t.def.glyph} ${t.def.name}</b> — L${t.level}${t.branch ? ' ' + t.def.branches[t.branch].name : ''}<br>
-    DMG ${s.damage.toFixed(1)} · RNG ${s.range.toFixed(1)} · CD ${s.cooldown.toFixed(2)}s<br>
-    ~DPS ${dps} · ${s.damageType}${s.targetsAir ? ' · hits air' : ''}<br>
-    ${matchupText(s.damageType) ? matchupText(s.damageType) + '<br>' : ''}
+  const hp = t.hp < t.maxHp ? `<br><span style="color:#d8554f">wall HP ${Math.ceil(t.hp)}/${Math.ceil(t.maxHp)}</span>` : '';
+  const next = t.canUpgrade() ? `<br><span style="color:#e09b1a">▲ upgrade: ${t.nextUpgradeCost()}g</span>` : '<br><span class="muted">max level</span>';
+  return `<b style="color:${t.def.color}">${t.def.glyph} ${t.def.name}</b> — L${t.level}${t.branch ? ' ' + t.def.branches[t.branch].name : ''}
+    ${statBlockHtml(s, t.def)}
+    ~DPS ${dps} · ${matchupText(s.damageType) || s.damageType}<br>
     ${sp ? sp + '<br>' : ''}
-    <span class="muted">target: ${t.targetMode} · sell +${Math.floor(t.invested * CONFIG.SELL_REFUND)}g</span>${hp}${next}`;
+    <span class="muted">target: ${t.targetMode} · sell +${sellRefund(t)}g</span>${hp}${next}`;
+}
+
+// --- visual stat block --------------------------------------------------------
+// Damage / fire rate / range as 5-pip bars (scaled against the roster) plus
+// LAND/AIR target chips and trait chips — readable at a glance, no numbers
+// needed (exact numbers stay on the lines below for the curious).
+const PIP_MAX = { dps: 14, rate: 1.4, range: 3.6 };   // roster-tuned ceilings
+
+function pips(frac, color) {
+  const n = Math.max(1, Math.min(5, Math.round(frac * 5)));
+  let out = '';
+  for (let i = 1; i <= 5; i++) out += `<span class="pip ${i <= n ? 'on' : ''}" style="${i <= n ? `background:${color}` : ''}"></span>`;
+  return out;
+}
+
+export function statBlockHtml(s, def) {
+  const dps = s.cooldown > 0 ? (s.damage * (s.multishot || 1)) / s.cooldown : 0;
+  const land = !s.airOnly;
+  const air = !!s.targetsAir;
+  const traits = [];
+  if (s.splashRadius) traits.push('💥 splash');
+  if (s.slowPct) traits.push(`❄ slows ${Math.round(s.slowPct * 100)}%`);
+  if (def && def.falcon) traits.push('🦅 hunting falcon');
+  if (s.dotDps) traits.push('☠ poison');
+  if (s.chainTargets) traits.push('⚡ chains');
+  return `<div class="tcard-stats">
+    <div class="trow"><span class="tlabel">DMG</span>${pips(dps / PIP_MAX.dps, '#d8554f')}</div>
+    <div class="trow"><span class="tlabel">RATE</span>${pips((s.cooldown > 0 ? 1 / s.cooldown : 0) / PIP_MAX.rate, '#e09b1a')}</div>
+    <div class="trow"><span class="tlabel">RANGE</span>${pips(s.range / PIP_MAX.range, '#2f8fc7')}</div>
+    <div class="trow tchips">
+      <span class="tchip ${land ? 'yes' : 'no'}">${land ? '✓' : '✗'} LAND</span>
+      <span class="tchip ${air ? 'yes' : 'no'}">${air ? '✓' : '✗'} AIR</span>
+      ${traits.map((t) => `<span class="tchip trait">${t}</span>`).join('')}
+    </div>
+  </div>`;
 }
 
 // Full stat card for a tower TYPE (radial long-press, build preview).
@@ -140,9 +174,9 @@ export function typeCardHtml(typeId, verdictHtml = '') {
       <span class="muted">${def.blurb}</span>${verdictHtml ? '<br>' + verdictHtml : ''}`;
   }
   const dps = (s.damage / s.cooldown).toFixed(1);
-  return `<b style="color:${def.color}">${def.glyph} ${def.name}</b> — ${def.cost}g<br>
+  return `<b style="color:${def.color}">${def.glyph} ${def.name}</b> — ${def.cost}g
+    ${statBlockHtml(s, def)}
     DMG ${s.damage} · RNG ${s.range} · CD ${s.cooldown}s · ~DPS ${dps}<br>
-    ${s.damageType}${s.targetsAir ? ' · hits air' : ''}<br>
     ${matchupText(s.damageType) ? matchupText(s.damageType) + '<br>' : ''}
     <span class="muted">${def.blurb}</span>${verdictHtml ? '<br>' + verdictHtml : ''}`;
 }

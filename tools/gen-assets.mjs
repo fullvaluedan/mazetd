@@ -40,6 +40,9 @@ async function loadEnv() {
 
 // --- per-type art hints (kept short; the shared style does the heavy lifting) -
 const TOWER_HINT = {
+  wall: 'a simple sturdy block of stacked stone bricks with a flat top, a maze wall segment',
+  magic: 'a violet crystal-topped mage tower swirling with gentle frost-blue magic wisps',
+  falcon: 'a tall wooden falconry perch tower with a rope-wrapped post and an empty bird perch at its crown',
   archer: 'a cozy wooden watchtower with a cute mounted crossbow, rope and timber details',
   cannon: 'a squat round cannon turret with a friendly chunky barrel, riveted plates',
   frost: 'a sparkly tower of pale-blue ice crystals with gentle snowflake glints',
@@ -107,6 +110,10 @@ function buildManifest() {
     prompt: 'Square mobile game app icon for a colorful anime maze tower-defense game: one cute crystal tower emblem with a winding path swirling around its base, bright cheerful isekai-anime style, simple bold cel-shaded shapes, fills the frame edge to edge, no text, no border.' });
   items.push({ id: 'misc-background', out: 'misc/background.png', size: '1536x1024', transparent: false,
     prompt: 'Top-down fantasy meadow battlefield terrain for a cheerful anime tower-defense map: soft green grass with scattered light stone tiles, tiny flowers and pebbles, bright friendly colors with simple flat shading, evenly lit, LOW CONTRAST and slightly muted so game pieces stay readable on top, no characters, no buildings, no text, no UI, no grid lines.' });
+  items.push({ id: 'misc-falcon', out: 'misc/falcon.png', size: '1024x1024',
+    prompt: 'Game sprite of a small hunting falcon in flight, wings spread mid-glide, seen slightly from above, fierce but cute. ' + STYLE });
+  items.push({ id: 'misc-worldmap', out: 'misc/worldmap.png', size: '1024x1536', transparent: false,
+    prompt: 'TALL vertical world map for a cheerful anime tower-defense game: a winding dirt trail climbing from sunny meadows at the bottom through forest, river crossings and rocky foothills to a snowy demon castle peak at the top, bright cel-shaded colors, gentle top-down angle, the trail clearly visible weaving left and right up the whole image, no text, no icons, no UI, no characters.' });
   items.push({ id: 'misc-title', out: 'misc/title.png', size: '1536x1024', transparent: false,
     prompt: 'Wide key art for a colorful anime tower-defense game: a cheerful fantasy valley with a winding stone maze path, one cute crystal tower at its heart, playful monster silhouettes marching in from the far left, rolling green hills and a bright warm sky, clean modern anime style with simple cel shading, calm uncluttered sky at the top center reserved for a logo, no text, no letters, no UI, no watermark.' });
   return items;
