@@ -27,6 +27,8 @@ import { createHints } from './ui/hints.js';
 import { hoverCardHtml, enemyCardHtml, enemyAt } from './ui/infocard.js';
 import { Screens } from './ui/screens.js';
 import * as sfx from './services/sfx.js';
+import * as ads from './services/ads.js';
+import { addGold } from './game/economy.js';
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -83,6 +85,41 @@ const actions = {
   setPausedBySheet,
   toggleSfx: () => sfx.toggleMuted(),
   sfxMuted: () => sfx.isMuted(),
+  // ---- rewarded ads (grants live ONLY here in the UI layer) ----
+  adInfo: () => {
+    const ready = ads.isReady('FREE_GOLD', state);
+    return {
+      ready,
+      label: ready ? `📺 +${ads.grantAmount('FREE_GOLD', state)}g` : `📺 ${ads.cooldownText('FREE_GOLD', state)}`,
+    };
+  },
+  freeGold: async () => {
+    if (!ads.isReady('FREE_GOLD', state)) return;
+    const wasPaused = loop.paused;
+    loop.setPaused(true);
+    const { granted } = await ads.show('FREE_GOLD', state);
+    loop.setPaused(wasPaused);
+    if (granted) {
+      const amt = ads.grantAmount('FREE_GOLD', state);
+      addGold(state, amt);
+      showBanner(`+${amt} gold!`, 'warn', 1.8);
+      sfx.play('reward');
+    }
+  },
+  reviveAd: async () => {
+    if (state.status !== 'lost' || !ads.isReady('REVIVE', state)) return;
+    const { granted } = await ads.show('REVIVE', state);
+    if (granted) {
+      state.reviveUsed = true;
+      state.lives = CONFIG.ADS.REVIVE.lives;
+      state.status = 'playing';
+      prevStatus = 'playing';
+      state.flash = 0;
+      screens.hide();
+      showBanner(`Revived with ${CONFIG.ADS.REVIVE.lives} ♥ — hold the line!`, 'warn', 2.5);
+      sfx.play('reward');
+    }
+  },
   setSpeed: (n) => loop.setSpeed(n),
   cycleSpeed: () => {
     const i = CONFIG.SPEEDS.indexOf(loop.gameSpeed);
@@ -252,7 +289,8 @@ const screens = new Screens(modal, {
   restart: () => actions.restart(),
   hasSave: () => hasSave(),
   highScore: () => getHighScore(),
-  // revive hook arrives with the rewarded-ads pass
+  revive: () => actions.reviveAd(),
+  canRevive: () => ads.isReady('REVIVE', state),
 });
 viewport.onResize = () => hud.onViewportResize();
 loop.start();

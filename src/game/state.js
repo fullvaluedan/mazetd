@@ -82,6 +82,10 @@ export function createState(rng, seed = 0) {
     heroUpgrades: { hp: 0, dmg: 0, cooldown: 0, respawn: 0 }, // tiers purchased
     towerBoosts: { dmg: 0, speed: 0, range: 0 },              // global tower tiers
     repairUses: 0,           // for escalating Repair cost
+
+    // rewarded ads (UI grants only — the sim never reads these)
+    adFreeGoldWave: -999,    // wave at the last FREE GOLD grant (wave-gate)
+    reviveUsed: false,       // defeat revive is once per run
   };
 
   // Default routing: each spawn heads for whichever goal is closest on the

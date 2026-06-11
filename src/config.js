@@ -338,6 +338,18 @@ export const CONFIG = {
   STARS: [18, 10],
 
   // ---------------------------------------------------------------------------
+  // REWARDED ADS (simulated adapter now; AdMob slots in via Capacitor later).
+  // FREE_GOLD: top-bar button, grant = base + perWave * wave; the cooldown
+  // requires BOTH gates (waves elapsed this run AND wall-clock minutes) so it
+  // can't be farmed by restarting or by idling between waves.
+  // ---------------------------------------------------------------------------
+  ADS: {
+    FREE_GOLD: { base: 60, perWave: 12, cooldownWaves: 3, cooldownMinutes: 4 },
+    REVIVE: { lives: 5, oncePerRun: true },
+    SIM_SECONDS: 5,            // length of the fake 'video' in the simulated provider
+  },
+
+  // ---------------------------------------------------------------------------
   // LOOP
   // ---------------------------------------------------------------------------
   TICK_HZ: 60,

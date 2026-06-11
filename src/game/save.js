@@ -27,6 +27,8 @@ export function buildSnapshot(state) {
     lives: state.lives,
     autoStart: state.autoStart,
     repairUses: state.repairUses,
+    adFreeGoldWave: state.adFreeGoldWave,
+    reviveUsed: state.reviveUsed,
     heroUpgrades: { ...state.heroUpgrades },
     towerBoosts: { ...state.towerBoosts },
     hero: state.hero ? {
@@ -65,6 +67,8 @@ export function applySnapshot(snap) {
   state.lives = snap.lives;
   state.autoStart = !!snap.autoStart;
   state.repairUses = snap.repairUses || 0;
+  if (snap.adFreeGoldWave != null) state.adFreeGoldWave = snap.adFreeGoldWave;
+  state.reviveUsed = !!snap.reviveUsed;
   state.heroUpgrades = { ...snap.heroUpgrades };
   if (snap.towerBoosts) state.towerBoosts = { ...snap.towerBoosts };
   state.status = 'playing';

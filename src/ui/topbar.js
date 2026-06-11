@@ -25,11 +25,13 @@ export class TopBar {
 
     bar.appendChild(div('spacer'));
 
+    this.el.ad = mkBtn('📺', () => this.actions.freeGold());
+    this.el.ad.classList.add('gold');
     this.el.speed = mkBtn('1×', () => this.actions.cycleSpeed());
     this.el.pause = mkBtn('▮▮', () => this.actions.togglePause());
     this.el.store = mkBtn('🛒', () => this.actions.openStore());
     this.el.gear = mkBtn('⚙', () => this.actions.openSettings());
-    bar.append(this.el.speed, this.el.pause, this.el.store, this.el.gear);
+    bar.append(this.el.ad, this.el.speed, this.el.pause, this.el.store, this.el.gear);
 
     this.root = bar;
     uiLayer.appendChild(bar);
@@ -42,6 +44,12 @@ export class TopBar {
     setText(this.el.speed, ui.speed + '×');
     setText(this.el.pause, ui.paused ? '▶' : '▮▮');
     this.el.pause.classList.toggle('gold', !!ui.paused);
+    // FREE GOLD rewarded-ad button: grant amount when ready, blocking gate when not
+    if (this.actions.adInfo) {
+      const info = this.actions.adInfo();
+      setText(this.el.ad, info.label);
+      this.el.ad.disabled = !info.ready;
+    }
   }
 }
 

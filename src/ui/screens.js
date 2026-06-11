@@ -97,7 +97,7 @@ export class Screens {
       </div>
       <div class="end-buttons"></div>`);
     const btns = s.querySelector('.end-buttons');
-    if (!won && this.hooks.revive) {
+    if (!won && this.hooks.revive && (!this.hooks.canRevive || this.hooks.canRevive())) {
       const r = bigBtn('📺 Watch ad — revive with ' + (CONFIG.ADS ? CONFIG.ADS.REVIVE.lives : 5) + ' ♥', () => this.hooks.revive(), 'gold');
       r.id = 'revive-btn';
       btns.appendChild(r);

@@ -518,6 +518,89 @@
 .end-stats b { color: var(--ui-text); }
 .end-buttons { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; min-width: 250px; }
 
+/* ---- simulated rewarded-ad overlay ------------------------------------------ */
+.ad-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: rgba(5, 6, 10, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ad-spot {
+  position: relative;
+  width: min(480px, 92vw);
+  border-radius: 16px;
+  background: var(--ui-panel-solid);
+  border: 1px solid var(--ui-line);
+  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.7);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+.ad-label {
+  position: absolute;
+  top: 8px;
+  left: 10px;
+  font-size: 10px;
+  font-weight: 800;
+  color: #2a2106;
+  background: var(--ui-gold);
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+.ad-creative {
+  width: 100%;
+  height: 180px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: linear-gradient(120deg, #3b2a78, #1d5a8a, #3b2a78);
+  background-size: 300% 300%;
+  animation: ad-sheen 3s linear infinite;
+}
+.ad-fake-title { font-size: 24px; font-weight: 900; letter-spacing: 2px; }
+.ad-fake-sub { font-size: 12px; color: rgba(255, 255, 255, 0.75); }
+.ad-progress { width: 100%; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.12); overflow: hidden; }
+.ad-bar { width: 0; height: 100%; background: var(--ui-gold); }
+.ad-close {
+  pointer-events: auto;
+  font-family: inherit;
+  font-weight: 800;
+  font-size: 15px;
+  padding: 10px 22px;
+  border-radius: var(--ui-radius);
+  border: 1px solid #3f9659;
+  background: #1f5232;
+  color: #d8ffe3;
+  cursor: pointer;
+}
+.ad-count {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  font-weight: 800;
+  color: var(--ui-text);
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 999px;
+  min-width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+}
+@keyframes ad-sheen {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 300% 50%; }
+}
+
 /* ---- rotate-your-device overlay --------------------------------------------- */
 #rotate {
   position: fixed;
