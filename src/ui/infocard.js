@@ -9,6 +9,7 @@ import { CONFIG } from '../config.js';
 import { strongWeak } from '../game/damage.js';
 import { getTowerStats } from '../game/tower.js';
 import { canBuildAt, wouldSealAt } from '../game/state.js';
+import { sellRefund } from '../game/shop.js';
 import { div } from './components.js';
 
 const TAP_DISMISS_MS = 5000;
@@ -90,14 +91,23 @@ export function enemyCardHtml(e) {
   if (e.poison.length) traits.push('poisoned');
   if (e.stunTimer > 0) traits.push('stunned');
   if (e.siegeTarget) traits.push('<span style="color:#ff6b66">attacking your wall!</span>');
+  const atk = e.def.atk != null ? e.def.atk : 0;
+  const atkLine = atk > 0
+    ? ` · <span style="color:#ffa500">⚔ wall dmg ×${atk}</span>`
+    : (e.flying ? ' · <span class="muted">can\'t attack walls</span>' : '');
   return `<b style="color:${e.color}">${e.name}</b>${e.boss ? ' ★' : ''}<br>
-    HP ${Math.ceil(e.hp).toLocaleString()} / ${e.maxHp.toLocaleString()}<br>
+    HP ${Math.ceil(e.hp).toLocaleString()} / ${e.maxHp.toLocaleString()}${atkLine}<br>
     ${traits.length ? traits.join(' · ') + '<br>' : ''}
     <span class="muted">bounty ${e.bounty}g · ${e.damageToLives}♥ if leaked</span>`;
 }
 
 export function towerCardHtml(t) {
   const s = t.stats;
+  if (t.def.wall) {
+    return `<b style="color:${t.def.color}">${t.def.glyph} Wall</b><br>
+      HP ${Math.ceil(t.hp)}/${Math.ceil(t.maxHp)} · pure maze block<br>
+      <span class="muted">${t.def.blurb} · sell +${sellRefund(t)}g</span>`;
+  }
   if (t.def.aura) {
     return `<b style="color:${t.def.color}">${t.def.glyph} ${t.def.name}</b> — L${t.level}${t.branch ? ' ' + t.def.branches[t.branch].name : ''}<br>
       +${Math.round(s.auraDmg * 100)}% dmg · +${Math.round(s.auraSpeed * 100)}% atk speed · radius ${s.auraRange.toFixed(1)}<br>
@@ -119,6 +129,11 @@ export function towerCardHtml(t) {
 export function typeCardHtml(typeId, verdictHtml = '') {
   const def = CONFIG.TOWERS[typeId];
   const s = getTowerStats(typeId, 1, null);
+  if (def.wall) {
+    return `<b style="color:${def.color}">${def.glyph} ${def.name}</b> — ${def.cost}g<br>
+      Tough maze block (HP ${CONFIG.TOWER_HP.wallBase}). No attack.<br>
+      <span class="muted">${def.blurb}</span>${verdictHtml ? '<br>' + verdictHtml : ''}`;
+  }
   if (def.aura) {
     return `<b style="color:${def.color}">${def.glyph} ${def.name}</b> — ${def.cost}g<br>
       +${Math.round(s.auraDmg * 100)}% dmg · +${Math.round(s.auraSpeed * 100)}% atk speed · radius ${s.auraRange.toFixed(1)}<br>

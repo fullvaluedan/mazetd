@@ -38,7 +38,8 @@ export const CONFIG = {
   // ---------------------------------------------------------------------------
   START_GOLD: 800,             // tuned in Phase 8 (was 260) — fund an early maze
   START_LIVES: 20,
-  SELL_REFUND: 0.70,            // 70% of total invested
+  SELL_REFUND: 0.70,            // 70% of total invested (towers)
+  WALL_REFUND: 1.0,            // walls sell back in full — juggling is free
   INTEREST_RATE: 0.05,         // +5% of current gold on wave clear
   INTEREST_CAP: 40,            // capped at +40 gold
   EARLY_START_BONUS_PER_SEC: 1, // gold per second remaining on the build timer
@@ -76,14 +77,14 @@ export const CONFIG = {
   // armorType indexes into DAMAGE_VS_ARMOR below (WC3-style matchup matrix).
   // ---------------------------------------------------------------------------
   ENEMIES: {
-    normal: { name: 'Grunt',     hpMult: 1.0,  speedMult: 1.0, armorType: 'medium',    flying: false, lives: 1,  bountyMult: 1.0, radius: 9,  color: '#9aa3b2' },
-    fast:   { name: 'Runner',    hpMult: 0.55, speedMult: 1.9, armorType: 'light',     flying: false, lives: 1,  bountyMult: 0.8, radius: 8,  color: '#f2d24b' },
-    tank:   { name: 'Brute',     hpMult: 2.6,  speedMult: 0.7, armorType: 'fortified', flying: false, lives: 2,  bountyMult: 1.7, radius: 12, color: '#d98a4b' },
-    swarm:  { name: 'Spawnling', hpMult: 0.25, speedMult: 1.2, armorType: 'unarmored', flying: false, lives: 1,  bountyMult: 0.5, radius: 5,  color: '#aab0bc' },
-    flyer:  { name: 'Wisp',      hpMult: 0.8,  speedMult: 1.3, armorType: 'light',     flying: true,  lives: 1,  bountyMult: 1.1, radius: 9,  color: '#4fd6e0' },
-    healer: { name: 'Mender',    hpMult: 1.4,  speedMult: 0.9, armorType: 'medium',    flying: false, lives: 2,  bountyMult: 1.6, radius: 10, color: '#5fce7a', healPct: 0.03, healRadius: 2.6 },
-    shield: { name: 'Warden',    hpMult: 1.6,  speedMult: 0.9, armorType: 'heavy',     flying: false, lives: 2,  bountyMult: 1.6, radius: 10, color: '#5b8bd6', shieldPct: 0.25 },
-    boss:   { name: 'Boss',      hpMult: 1.0,  speedMult: 0.6, armorType: 'boss',      flying: false, lives: 10, bountyMult: 8.0, radius: 18, color: '#c65bd6', boss: true },
+    normal: { name: 'Grunt',     hpMult: 1.0,  speedMult: 1.0, armorType: 'medium',    flying: false, lives: 1,  atk: 1.0,  bountyMult: 1.0, radius: 9,  color: '#9aa3b2' },
+    fast:   { name: 'Runner',    hpMult: 0.55, speedMult: 1.9, armorType: 'light',     flying: false, lives: 1,  atk: 0.7,  bountyMult: 0.8, radius: 8,  color: '#f2d24b' },
+    tank:   { name: 'Brute',     hpMult: 2.6,  speedMult: 0.7, armorType: 'fortified', flying: false, lives: 2,  atk: 2.2,  bountyMult: 1.7, radius: 12, color: '#d98a4b' },
+    swarm:  { name: 'Spawnling', hpMult: 0.25, speedMult: 1.2, armorType: 'unarmored', flying: false, lives: 1,  atk: 0.35,  bountyMult: 0.5, radius: 5,  color: '#aab0bc' },
+    flyer:  { name: 'Wisp',      hpMult: 0.8,  speedMult: 1.3, armorType: 'light',     flying: true,  lives: 1,  atk: 0,  bountyMult: 1.1, radius: 9,  color: '#4fd6e0' },
+    healer: { name: 'Mender',    hpMult: 1.4,  speedMult: 0.9, armorType: 'medium',    flying: false, lives: 2,  atk: 0.8,  bountyMult: 1.6, radius: 10, color: '#5fce7a', healPct: 0.03, healRadius: 2.6 },
+    shield: { name: 'Warden',    hpMult: 1.6,  speedMult: 0.9, armorType: 'heavy',     flying: false, lives: 2,  atk: 1.2,  bountyMult: 1.6, radius: 10, color: '#5b8bd6', shieldPct: 0.25 },
+    boss:   { name: 'Boss',      hpMult: 1.0,  speedMult: 0.6, armorType: 'boss',      flying: false, lives: 10, atk: 4.0, bountyMult: 8.0, radius: 18, color: '#c65bd6', boss: true },
   },
 
   // ---------------------------------------------------------------------------
@@ -137,8 +138,18 @@ export const CONFIG = {
   },
 
   TOWERS: {
+    // The maze piece (Wintermaul/Gem TD economy): dirt cheap, tough, never
+    // attacks, sells back at 100% (WALL_REFUND) so juggling costs nothing.
+    wall: {
+      name: 'Wall', glyph: '■', color: '#c9b896', cost: 5,
+      wall: true,
+      damage: 0, range: 0, cooldown: 0, damageType: 'none',
+      targetsAir: false, projectileSpeed: 0,
+      blurb: 'Cheap maze block. Sells back 100%.',
+      branches: {},
+    },
     archer: {
-      name: 'Archer', glyph: 'A', color: '#7fd66b', cost: 70,
+      name: 'Archer', glyph: 'A', color: '#7fd66b', cost: 35,
       damage: 6, range: 2.6, cooldown: 0.55, damageType: 'pierce',
       targetsAir: true, projectileSpeed: 12,
       blurb: 'Cheap all-rounder. Hits air.',
@@ -148,7 +159,7 @@ export const CONFIG = {
       },
     },
     cannon: {
-      name: 'Cannon', glyph: 'C', color: '#d98a4b', cost: 110,
+      name: 'Cannon', glyph: 'C', color: '#d98a4b', cost: 55,
       damage: 18, range: 2.3, cooldown: 1.6, damageType: 'siege',
       targetsAir: false, projectileSpeed: 7, splashRadius: 1.2,
       blurb: 'Splash damage. Great vs swarm.',
@@ -158,7 +169,7 @@ export const CONFIG = {
       },
     },
     frost: {
-      name: 'Frost', glyph: 'F', color: '#5bb8d6', cost: 90,
+      name: 'Frost', glyph: 'F', color: '#5bb8d6', cost: 45,
       damage: 3, range: 2.4, cooldown: 1.0, damageType: 'magic',
       targetsAir: true, hitscan: true, slowPct: 0.35, slowDur: 1.5,
       blurb: 'Slows enemies. Hits air.',
@@ -168,7 +179,7 @@ export const CONFIG = {
       },
     },
     arcane: {
-      name: 'Arcane', glyph: 'M', color: '#9a6bd6', cost: 145,
+      name: 'Arcane', glyph: 'M', color: '#9a6bd6', cost: 70,
       damage: 14, range: 2.9, cooldown: 0.9, damageType: 'magic',
       targetsAir: true, projectileSpeed: 11,
       blurb: 'Bypasses shields. Melts Heavy.',
@@ -178,7 +189,7 @@ export const CONFIG = {
       },
     },
     venom: {
-      name: 'Venom', glyph: 'V', color: '#6fc34b', cost: 120,
+      name: 'Venom', glyph: 'V', color: '#6fc34b', cost: 60,
       damage: 4, range: 2.5, cooldown: 1.2, damageType: 'poison',
       targetsAir: false, projectileSpeed: 9, dotDps: 8, dotDur: 3,
       blurb: 'Poison DoT. Scales vs high HP.',
@@ -188,7 +199,7 @@ export const CONFIG = {
       },
     },
     tesla: {
-      name: 'Tesla', glyph: 'T', color: '#e0c84f', cost: 210,
+      name: 'Tesla', glyph: 'T', color: '#e0c84f', cost: 100,
       damage: 40, range: 3.6, cooldown: 1.4, damageType: 'magic',
       targetsAir: true, hitscan: true, chainTargets: 3, chainFalloff: 0.6, chainRange: 1.6,
       blurb: 'Chain lightning. Hits air.',
@@ -198,7 +209,7 @@ export const CONFIG = {
       },
     },
     beacon: {
-      name: 'Beacon', glyph: 'B', color: '#e08ac8', cost: 150,
+      name: 'Beacon', glyph: 'B', color: '#e08ac8', cost: 75,
       aura: true,                    // non-attacking: buffs towers in radius instead
       damage: 0, range: 2.0, cooldown: 0, damageType: 'none',
       targetsAir: false, projectileSpeed: 0,
@@ -232,7 +243,7 @@ export const CONFIG = {
     bossDpsMult: 4,          // bosses smash walls much faster
     underAttackFlash: 0.35,  // seconds of red flash on a tower that was just hit
   },
-  TOWER_HP: { base: 60, perGold: 0.6 },
+  TOWER_HP: { base: 60, perGold: 0.6, wallBase: 160 },   // walls are the tough ones
 
   // ---------------------------------------------------------------------------
   // HEROES

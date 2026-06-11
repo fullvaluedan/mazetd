@@ -188,11 +188,12 @@ export class Enemy {
     else this.moveGrid(movePx, state);
   }
 
-  // Wall-damage dps scales with wave and creep beefiness; bosses smash.
+  // Wall-damage dps: each enemy type carries an attack-power stat (`atk` in
+  // CONFIG.ENEMIES, shown on its info card), scaled up with the wave.
   attackTower(state, tower, dt) {
     const S = CONFIG.SIEGE;
-    let dps = (S.dpsBase + S.dpsPerWave * state.wave) * this.def.hpMult;
-    if (this.boss) dps *= S.bossDpsMult;
+    const atk = this.def.atk != null ? this.def.atk : this.def.hpMult;
+    const dps = (S.dpsBase + S.dpsPerWave * state.wave) * atk;
     tower.hp -= dps * dt;
     tower.underAttack = S.underAttackFlash;
     // chewing noise, deterministically throttled on sim time

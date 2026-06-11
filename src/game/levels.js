@@ -72,7 +72,7 @@ export const LEVELS = [
     spawns: [{ id: 'S1', cx: 4, cy: 0 }],
     goals: [{ id: 'G1', cx: 4, cy: 11 }],
     startGold: 140,
-    waves: { count: 8, types: ['normal'], hpMult: 0.40 },
+    waves: { count: 8, types: ['normal'], hpMult: 0.5 },
     stars: [10, 7],
   }),
   L(2, 'The Bend', {
@@ -81,14 +81,14 @@ export const LEVELS = [
     goals: [{ id: 'G1', cx: 6, cy: 13 }],
     obstacles: rect(4, 6, 6, 7),
     startGold: 170,
-    waves: { count: 10, types: ['normal', 'fast'], hpMult: 0.45 },
+    waves: { count: 10, types: ['normal', 'fast'], hpMult: 0.6 },
   }),
   L(3, 'Cannon Fodder', {                       // unlock: cannon
     cols: 10, rows: 14,
     spawns: [{ id: 'S1', cx: 5, cy: 0 }],
     goals: [{ id: 'G1', cx: 5, cy: 13 }],
     startGold: 200,
-    waves: { count: 10, types: ['normal', 'fast', 'swarm'], swarmFrom: 4, hpMult: 0.5 },
+    waves: { count: 10, types: ['normal', 'fast', 'swarm'], swarmFrom: 4, hpMult: 0.7 },
   }),
   L(4, 'The First Flag', {                      // checkpoints introduced
     cols: 10, rows: 15,
@@ -96,7 +96,7 @@ export const LEVELS = [
     goals: [{ id: 'G1', cx: 2, cy: 14 }],
     checkpoints: [{ id: 'CP1', cx: 7, cy: 7 }],
     startGold: 220,
-    waves: { count: 11, types: ['normal', 'fast', 'swarm'], swarmFrom: 5, hpMult: 0.55 },
+    waves: { count: 11, types: ['normal', 'fast', 'swarm'], swarmFrom: 5, hpMult: 0.85 },
   }),
   L(5, 'Cold Snap', {                           // unlock: frost
     cols: 11, rows: 15,
@@ -104,7 +104,7 @@ export const LEVELS = [
     goals: [{ id: 'G1', cx: 5, cy: 14 }],
     checkpoints: [{ id: 'CP1', cx: 2, cy: 7 }, { id: 'CP2', cx: 8, cy: 7 }],
     startGold: 240,
-    waves: { count: 12, types: ['normal', 'fast', 'swarm', 'tank'], swarmFrom: 4, hpMult: 0.6 },
+    waves: { count: 12, types: ['normal', 'fast', 'swarm', 'tank'], swarmFrom: 4, hpMult: 1 },
   }),
   L(6, 'Broken Ground', {
     cols: 11, rows: 16,
@@ -113,7 +113,7 @@ export const LEVELS = [
     checkpoints: [{ id: 'CP1', cx: 2, cy: 5 }, { id: 'CP2', cx: 8, cy: 11 }],
     obstacles: [...rect(5, 7, 6, 8), [3, 11], [4, 11]],
     startGold: 260,
-    waves: { count: 12, types: ['normal', 'fast', 'swarm', 'tank'], swarmFrom: 4, hpMult: 0.65 },
+    waves: { count: 12, types: ['normal', 'fast', 'swarm', 'tank'], swarmFrom: 4, hpMult: 1.2 },
   }),
   // -- Act 2: the sky and the siege -------------------------------------------
   L(7, 'Light the Beacon', {                    // unlock: beacon
@@ -122,7 +122,7 @@ export const LEVELS = [
     goals: [{ id: 'G1', cx: 5, cy: 16 }],
     checkpoints: [{ id: 'CP1', cx: 2, cy: 8 }, { id: 'CP2', cx: 8, cy: 8 }],
     startGold: 290,
-    waves: { count: 13, types: ['normal', 'fast', 'swarm', 'tank', 'healer'], swarmFrom: 4, hpMult: 0.7 },
+    waves: { count: 13, types: ['normal', 'fast', 'swarm', 'tank', 'healer'], swarmFrom: 4, hpMult: 1.4 },
   }),
   L(8, 'Wings Overhead', {                      // flyers introduced
     cols: 12, rows: 17,
@@ -130,7 +130,7 @@ export const LEVELS = [
     goals: [{ id: 'G1', cx: 6, cy: 16 }],
     checkpoints: [{ id: 'CP1', cx: 2, cy: 8 }, { id: 'CP2', cx: 9, cy: 8 }],
     startGold: 320,
-    waves: { count: 13, types: ['normal', 'fast', 'swarm', 'tank', 'flyer'], swarmFrom: 4, flyerFrom: 6, hpMult: 0.72 },
+    waves: { count: 13, types: ['normal', 'fast', 'swarm', 'tank', 'flyer'], swarmFrom: 4, flyerFrom: 6, hpMult: 1.7 },
   }),
   L(9, 'Venom Garden', {                        // unlock: venom
     cols: 12, rows: 18,
@@ -139,7 +139,7 @@ export const LEVELS = [
     checkpoints: [{ id: 'CP1', cx: 9, cy: 6 }, { id: 'CP2', cx: 2, cy: 12 }],
     obstacles: rect(5, 8, 7, 9),
     startGold: 340,
-    waves: { count: 14, types: ['normal', 'fast', 'swarm', 'tank', 'healer', 'flyer'], swarmFrom: 4, flyerFrom: 7, hpMult: 0.75 },
+    waves: { count: 14, types: ['normal', 'fast', 'swarm', 'tank', 'healer', 'flyer'], swarmFrom: 4, flyerFrom: 7, hpMult: 2 },
   }),
   L(10, 'The Wardens', {                        // first boss; Endless unlocks after
     cols: 12, rows: 18,
@@ -147,7 +147,7 @@ export const LEVELS = [
     goals: [{ id: 'G1', cx: 6, cy: 17 }],
     checkpoints: [{ id: 'CP1', cx: 2, cy: 6 }, { id: 'CP2', cx: 9, cy: 12 }],
     startGold: 380,
-    waves: { count: 15, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'flyer'], swarmFrom: 4, flyerFrom: 7, bossWaves: [15], hpMult: 0.8 },
+    waves: { count: 15, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'flyer'], swarmFrom: 4, flyerFrom: 7, bossWaves: [15], hpMult: 2.6 },
   }),
   // -- Act 3: the long roads ---------------------------------------------------
   L(11, 'Arcane Lessons', {                     // unlock: arcane
@@ -156,7 +156,7 @@ export const LEVELS = [
     goals: [{ id: 'G1', cx: 8, cy: 18 }],
     checkpoints: [{ id: 'CP1', cx: 8, cy: 6 }, { id: 'CP2', cx: 3, cy: 12 }],
     startGold: 400,
-    waves: { count: 15, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'healer', 'flyer'], swarmFrom: 4, flyerFrom: 6, hpMult: 0.85 },
+    waves: { count: 15, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'healer', 'flyer'], swarmFrom: 4, flyerFrom: 6, hpMult: 2.6 },
   }),
   L(12, 'Two Roads', {                          // second spawn introduced
     cols: 13, rows: 19,
@@ -164,7 +164,7 @@ export const LEVELS = [
     goals: [{ id: 'G1', cx: 6, cy: 18 }],
     checkpoints: [{ id: 'CP1', cx: 6, cy: 9 }],
     startGold: 440,
-    waves: { count: 15, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'flyer'], swarmFrom: 4, flyerFrom: 7, hpMult: 0.88 },
+    waves: { count: 15, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'flyer'], swarmFrom: 4, flyerFrom: 7, hpMult: 2.9 },
   }),
   L(13, 'Storm Warning', {                      // unlock: tesla
     cols: 13, rows: 20,
@@ -172,7 +172,7 @@ export const LEVELS = [
     goals: [{ id: 'G1', cx: 6, cy: 19 }],
     checkpoints: [{ id: 'CP1', cx: 2, cy: 7 }, { id: 'CP2', cx: 10, cy: 13 }],
     startGold: 470,
-    waves: { count: 16, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'healer', 'flyer'], swarmFrom: 4, flyerFrom: 6, bossWaves: [16], hpMult: 0.92 },
+    waves: { count: 16, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'healer', 'flyer'], swarmFrom: 4, flyerFrom: 6, bossWaves: [16], hpMult: 3.2 },
   }),
   L(14, 'The Gauntlet', {
     cols: 13, rows: 20,
@@ -181,7 +181,7 @@ export const LEVELS = [
     checkpoints: [{ id: 'CP1', cx: 6, cy: 6 }, { id: 'CP2', cx: 2, cy: 13 }, { id: 'CP3', cx: 10, cy: 13 }],
     obstacles: rect(6, 12, 6, 14),
     startGold: 500,
-    waves: { count: 16, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'healer', 'flyer'], swarmFrom: 3, flyerFrom: 6, hpMult: 0.95 },
+    waves: { count: 16, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'healer', 'flyer'], swarmFrom: 3, flyerFrom: 6, hpMult: 3.5 },
   }),
   L(15, 'Heart of the Maze', {
     cols: 13, rows: 21,
@@ -189,7 +189,7 @@ export const LEVELS = [
     goals: [{ id: 'G1', cx: 6, cy: 20 }],
     checkpoints: [{ id: 'CP1', cx: 2, cy: 5 }, { id: 'CP2', cx: 10, cy: 10 }, { id: 'CP3', cx: 2, cy: 15 }],
     startGold: 540,
-    waves: { count: 17, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'healer', 'flyer'], swarmFrom: 3, flyerFrom: 5, bossWaves: [17], hpMult: 1.0 },
+    waves: { count: 17, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'healer', 'flyer'], swarmFrom: 3, flyerFrom: 5, bossWaves: [17], hpMult: 3.9 },
   }),
   // -- Act 4: mastery -----------------------------------------------------------
   L(16, 'Crosswinds', {
@@ -198,7 +198,7 @@ export const LEVELS = [
     goals: [{ id: 'G1', cx: 3, cy: 20 }, { id: 'G2', cx: 10, cy: 20 }],
     checkpoints: [{ id: 'CP1', cx: 7, cy: 10 }],
     startGold: 580,
-    waves: { count: 17, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'healer', 'flyer'], swarmFrom: 3, flyerFrom: 5, hpMult: 1.05 },
+    waves: { count: 17, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'healer', 'flyer'], swarmFrom: 3, flyerFrom: 5, hpMult: 4.2 },
   }),
   L(17, 'The Long March', {
     cols: 14, rows: 22,
@@ -207,7 +207,7 @@ export const LEVELS = [
     checkpoints: [{ id: 'CP1', cx: 2, cy: 6 }, { id: 'CP2', cx: 11, cy: 11 }, { id: 'CP3', cx: 2, cy: 16 }],
     obstacles: [...rect(6, 10, 8, 11)],
     startGold: 620,
-    waves: { count: 18, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'healer', 'flyer'], swarmFrom: 3, flyerFrom: 5, bossWaves: [18], hpMult: 1.1 },
+    waves: { count: 18, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'healer', 'flyer'], swarmFrom: 3, flyerFrom: 5, bossWaves: [18], hpMult: 4.5 },
   }),
   L(18, 'Siegebreakers', {
     cols: 14, rows: 22,
@@ -215,7 +215,7 @@ export const LEVELS = [
     goals: [{ id: 'G1', cx: 7, cy: 21 }],
     checkpoints: [{ id: 'CP1', cx: 7, cy: 7 }, { id: 'CP2', cx: 7, cy: 14 }],
     startGold: 660,
-    waves: { count: 18, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'healer', 'flyer'], swarmFrom: 3, flyerFrom: 5, bossWaves: [12, 18], hpMult: 1.15 },
+    waves: { count: 18, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'healer', 'flyer'], swarmFrom: 3, flyerFrom: 5, bossWaves: [12, 18], hpMult: 4.8 },
   }),
   L(19, 'Threefold Path', {
     cols: 14, rows: 22,
@@ -223,7 +223,7 @@ export const LEVELS = [
     goals: [{ id: 'G1', cx: 7, cy: 21 }],
     checkpoints: [{ id: 'CP1', cx: 2, cy: 5 }, { id: 'CP2', cx: 11, cy: 9 }, { id: 'CP3', cx: 2, cy: 13 }, { id: 'CP4', cx: 11, cy: 17 }],
     startGold: 700,
-    waves: { count: 19, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'healer', 'flyer'], swarmFrom: 3, flyerFrom: 4, bossWaves: [19], hpMult: 1.2 },
+    waves: { count: 19, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'healer', 'flyer'], swarmFrom: 3, flyerFrom: 4, bossWaves: [19], hpMult: 5.2 },
   }),
   L(20, 'The Demon King', {
     cols: 14, rows: 22,
@@ -231,7 +231,7 @@ export const LEVELS = [
     goals: [{ id: 'G1', cx: 7, cy: 21 }],
     checkpoints: [{ id: 'CP1', cx: 7, cy: 6 }, { id: 'CP2', cx: 2, cy: 12 }, { id: 'CP3', cx: 11, cy: 16 }],
     startGold: 760,
-    waves: { count: 20, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'healer', 'flyer'], swarmFrom: 3, flyerFrom: 4, bossWaves: [10, 20], hpMult: 1.25 },
+    waves: { count: 20, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'healer', 'flyer'], swarmFrom: 3, flyerFrom: 4, bossWaves: [10, 20], hpMult: 5.6 },
     stars: [8, 5],
   }),
 ];

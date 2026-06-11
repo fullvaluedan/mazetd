@@ -25,8 +25,14 @@ export function tryBuild(state, typeId, x, y) {
   return addTower(state, typeId, x, y);   // UI selection/arming handled by caller
 }
 
+// Walls refund in full (juggling is a core mechanic, not a tax); towers 70%.
+export function sellRefund(tower) {
+  const rate = tower.def.wall ? CONFIG.WALL_REFUND : CONFIG.SELL_REFUND;
+  return Math.floor(tower.invested * rate);
+}
+
 export function trySell(state, tower) {
-  const refund = Math.floor(tower.invested * CONFIG.SELL_REFUND);
+  const refund = sellRefund(tower);
   removeTower(state, tower);
   addGold(state, refund);
   if (state.selected === tower) state.selected = null;

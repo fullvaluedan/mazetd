@@ -125,12 +125,14 @@ export class Tower {
     // stats was just replaced — re-copy the received aura buff onto it
     // (projectiles/splash read the firing tower's stats, not the tower).
     if (!this.def.aura) this.stats.buffDmg = this.buffDmg || 0;
-    // Wall HP grows with the gold sunk in (siege mode).
-    this.maxHp = CONFIG.TOWER_HP.base + this.invested * CONFIG.TOWER_HP.perGold;
+    // Siege HP: walls are the tough maze pieces; towers scale with gold sunk in.
+    this.maxHp = this.def.wall
+      ? CONFIG.TOWER_HP.wallBase
+      : CONFIG.TOWER_HP.base + this.invested * CONFIG.TOWER_HP.perGold;
     if (this.hp == null || this.hp > this.maxHp) this.hp = this.maxHp;
   }
 
-  canUpgrade() { return this.level < 4; }
+  canUpgrade() { return !this.def.wall && this.level < 4; }
   // At L3->L4 the player must pick a branch; below that, upgrade is straight.
   nextUpgradeCost() { return this.canUpgrade() ? upgradeCostFor(this.type, this.level + 1) : 0; }
 
@@ -196,7 +198,7 @@ export class Tower {
   // --- firing ---------------------------------------------------------------
   update(dt, state) {
     if (this.underAttack > 0) this.underAttack -= dt;
-    if (this.def.aura) return;     // Beacons never attack
+    if (this.def.aura || this.def.wall) return;   // Beacons buff, walls just stand
     if (this.muzzle > 0) this.muzzle -= dt;
     this.cooldownLeft -= dt;
     if (this.cooldownLeft > 0) return;

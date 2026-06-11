@@ -11,6 +11,7 @@
 import { CONFIG } from '../config.js';
 import { getTowerStats } from '../game/tower.js';
 import { wouldSealAt } from '../game/state.js';
+import { sellRefund } from '../game/shop.js';
 import { div } from './components.js';
 import { getSpriteUrl } from './sprites.js';
 
@@ -127,6 +128,7 @@ export function buildRingItems(state, cell, gameActions) {
 }
 
 // Existing tower: upgrade (or the L3 fork), target mode, sell.
+// Walls are pure maze pieces: sell is their only action.
 export function towerRingItems(state, tower, gameActions) {
   const items = [];
   if (tower.canUpgrade()) {
@@ -153,7 +155,7 @@ export function towerRingItems(state, tower, gameActions) {
       }
     }
   }
-  if (!tower.def.aura) {
+  if (!tower.def.aura && !tower.def.wall) {
     items.push({
       glyph: '◎', color: '#5cc8ff',
       label: 'Targeting: ' + tower.targetMode + ' (tap to cycle)',
@@ -161,10 +163,11 @@ export function towerRingItems(state, tower, gameActions) {
       onTap: () => gameActions.cycleTargetAndRefresh(tower),
     });
   }
+  const refund = sellRefund(tower);
   items.push({
     glyph: '$', color: '#ff6b66',
-    label: `Sell — refund ${Math.floor(tower.invested * CONFIG.SELL_REFUND)}g`,
-    sub: `+${Math.floor(tower.invested * CONFIG.SELL_REFUND)}g`,
+    label: `Sell — refund ${refund}g${tower.def.wall ? ' (100%)' : ''}`,
+    sub: `+${refund}g`,
     onTap: () => gameActions.sellTower(tower),
   });
   return items;

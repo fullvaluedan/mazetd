@@ -20,7 +20,7 @@ import { updateProjectiles, updateEffects } from '../game/projectile.js';
 import { createHero } from '../game/hero.js';
 import { onEnemyKilled, onEnemyLeaked, updateFloaters, payWaveClear } from '../game/economy.js';
 import { startWave, processSpawning, waveComplete, updateBosses } from '../game/wave.js';
-import { tryBuild, tryUpgrade, tryConsumable } from '../game/shop.js';
+import { tryBuild, tryUpgrade, trySell, tryConsumable } from '../game/shop.js';
 
 // Mix favouring anti-air (tesla/arcane/archer/frost can hit flyers). Ordered
 // cheap-first so the early maze fills out before pricey towers appear. One
@@ -30,6 +30,7 @@ const TYPE_CYCLE = ['archer', 'cannon', 'frost', 'arcane', 'venom', 'archer', 't
 function cheapestAffordable(budget) {
   let best = null, bestCost = Infinity;
   for (const [id, def] of Object.entries(CONFIG.TOWERS)) {
+    if (def.wall) continue;                       // walls don't shoot
     if (def.cost <= budget && def.cost < bestCost) { bestCost = def.cost; best = id; }
   }
   return best;
@@ -59,18 +60,24 @@ function serpentineTargets(state) {
   return targets;
 }
 
-// Build new wall towers we can afford, then buy the cheapest upgrades available.
+// Maze-first reference (Wintermaul economy): cheap WALLS form most of the
+// serpentine; every 3rd cell is a killer tower from the cycle. Surplus gold
+// buys the cheapest upgrades (walls can't upgrade, so towers soak it all).
 function referenceBuild(state, reserve) {
-  if (!state._targets) { state._targets = serpentineTargets(state); state._ti = 0; }
+  if (!state._targets) { state._targets = serpentineTargets(state); state._ti = 0; state._si = 0; }
   for (const c of state._targets) {
     if (state.towerGrid[c.y][c.x]) continue;
     const budget = state.gold - reserve;
-    let type = TYPE_CYCLE[state._ti % TYPE_CYCLE.length];
-    if (CONFIG.TOWERS[type].cost > budget) type = cheapestAffordable(budget);
+    const wantTower = (state._si % 3 === 0);
+    let type = wantTower ? TYPE_CYCLE[state._ti % TYPE_CYCLE.length] : 'wall';
+    if (CONFIG.TOWERS[type].cost > budget) type = (budget >= CONFIG.TOWERS.wall.cost) ? 'wall' : null;
     if (!type) break;                       // can't afford anything
     // wouldSealAt guard: canBuildAt now ALLOWS sealing (siege mode); the
     // reference player must never wall itself in.
-    if (canBuildAt(state, c.x, c.y) && !wouldSealAt(state, c.x, c.y) && tryBuild(state, type, c.x, c.y)) state._ti++;
+    if (canBuildAt(state, c.x, c.y) && !wouldSealAt(state, c.x, c.y) && tryBuild(state, type, c.x, c.y)) {
+      state._si++;
+      if (type !== 'wall') state._ti++;
+    }
   }
   let guard = 0;
   while (guard++ < 1000) {
@@ -82,6 +89,25 @@ function referenceBuild(state, reserve) {
     }
     if (!best || state.gold - bestCost < reserve) break;
     if (!tryUpgrade(state, best, best.level === 3 ? preferredBranch(best.type, best) : null)) break;
+  }
+
+  // Late game: once upgrades saturate and gold piles up, convert walls into
+  // killer towers (sell at 100%, rebuild same cell — maze shape unchanged).
+  let surplus = state.gold - reserve - 600;
+  if (surplus > 0) {
+    for (const c of state._targets) {
+      const t = state.towerGrid[c.y][c.x];
+      if (!t || !t.def.wall) continue;
+      const type = TYPE_CYCLE[state._ti % TYPE_CYCLE.length];
+      if (CONFIG.TOWERS[type].cost > surplus) break;
+      trySell(state, t);
+      if (tryBuild(state, type, c.x, c.y)) {
+        state._ti++;
+        surplus -= CONFIG.TOWERS[type].cost;
+      } else {
+        tryBuild(state, 'wall', c.x, c.y);   // enemy in the cell etc: restore the maze
+      }
+    }
   }
 }
 
