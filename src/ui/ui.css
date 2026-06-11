@@ -592,7 +592,7 @@
   display: flex; align-items: center; justify-content: center;
 }
 .map-hero .mh-face img { width: 100%; height: 100%; object-fit: cover; }
-.map-hero .mh-info { display: flex; flex-direction: column; font-size: 14px; }
+.map-hero .mh-info { display: flex; flex-direction: column; font-size: 14px; color: var(--ui-text); }
 .map-hero .mh-stars { color: var(--ui-gold); font-weight: 800; font-size: 13px; }
 .map-upgrades { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .star-up { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 6px 10px; font-size: 12px; }
