@@ -325,8 +325,8 @@ loop.start();
 ['pointerdown', 'keydown', 'touchstart'].forEach((evt) =>
   window.addEventListener(evt, () => sfx.initAudio(), { once: true, passive: true }));
 
-// Portrait phones: the battlefield needs landscape — show the rotate overlay
-// and hold the sim while it's up. Desktop portrait windows just letterbox.
+// The campaign is a VERTICAL game now: landscape phones get the rotate
+// prompt and the sim holds while it's up. Desktop windows just letterbox.
 (() => {
   if (typeof window === 'undefined' || !window.matchMedia) return;
   const portrait = window.matchMedia('(orientation: portrait)');
@@ -335,7 +335,7 @@ loop.start();
   if (!el) return;
   let pausedByRotate = false;
   const apply = () => {
-    const show = portrait.matches && coarse.matches;
+    const show = !portrait.matches && coarse.matches;
     el.classList.toggle('hidden', !show);
     if (show && !loop.paused) { loop.setPaused(true); pausedByRotate = true; }
     else if (!show && pausedByRotate) { loop.setPaused(false); pausedByRotate = false; }

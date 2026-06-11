@@ -66,18 +66,19 @@
       gap: 8px;
     }
     .banner {
-      background: rgba(20,24,33,0.9);
-      border: 1px solid var(--line);
-      border-radius: 8px;
+      background: rgba(253,246,230,0.95);
+      border: 1.5px solid #c9a86b;
+      border-radius: 10px;
       padding: 6px 16px;
       font-size: 15px;
-      font-weight: 600;
+      font-weight: 700;
+      color: #4a3826;
       opacity: 0;
       transition: opacity .25s;
     }
     .banner.show { opacity: 1; }
-    .banner.danger { color: var(--danger); border-color: var(--danger); }
-    .banner.warn { color: var(--gold); border-color: var(--gold); }
+    .banner.danger { color: #c4453e; border-color: #c4453e; }
+    .banner.warn { color: #b07708; border-color: #e09b1a; }
 
     /* (the 320px HUD side panel is gone — all chrome lives over the canvas) */
     button {
@@ -134,7 +135,7 @@
       <div id="modal" class="hidden"><!-- start screen / game over injected here --></div>
     </div>
   </div>
-  <div id="rotate" class="hidden"><span class="phone">📱</span><span>Rotate your device<br><span class="muted">Mazecore TD plays in landscape</span></span></div>
+  <div id="rotate" class="hidden"><span class="phone">📱</span><span>Rotate your device<br><span class="muted">Mazecore TD plays upright (portrait)</span></span></div>
   <script type="module" src="src/main.js"></script>
 </body>
 </html>

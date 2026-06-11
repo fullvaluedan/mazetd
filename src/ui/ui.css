@@ -5,19 +5,22 @@
    sprites pop; the CHROME carries the color.
    =========================================================================== */
 
+/* Bright cartoon chrome to match the meadow art: warm cream/wood panels,
+   chunky candy buttons, dark warm text. The board stays mid-tone so the
+   cel-shaded sprites pop. */
 :root {
-  --ui-panel: rgba(34, 41, 58, 0.92);
-  --ui-panel-solid: #222a3a;
-  --ui-line: #3d4866;
-  --ui-text: #f2f5fb;
-  --ui-dim: #aab4c8;
-  --ui-gold: #ffd35c;
-  --ui-green: #6fe08a;
-  --ui-red: #ff6b66;
-  --ui-blue: #5cc8ff;
-  --ui-pink: #ff9de2;
+  --ui-panel: rgba(253, 246, 230, 0.95);
+  --ui-panel-solid: #fdf6e6;
+  --ui-line: #c9a86b;
+  --ui-text: #4a3826;
+  --ui-dim: #93805f;
+  --ui-gold: #e09b1a;
+  --ui-green: #2f9d4d;
+  --ui-red: #d8554f;
+  --ui-blue: #2f8fc7;
+  --ui-pink: #d36cb4;
   --ui-radius: 12px;
-  --ui-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+  --ui-shadow: 0 3px 10px rgba(60, 42, 20, 0.35);
 }
 
 /* ---- generic chrome bits ------------------------------------------------ */
@@ -52,12 +55,12 @@
   transition: transform 0.08s, background 0.12s, border-color 0.12s;
   -webkit-tap-highlight-color: transparent;
 }
-.ui-btn:hover:not(:disabled) { background: #2d3750; border-color: #4d5c80; }
+.ui-btn:hover:not(:disabled) { background: #fbeccb; border-color: #a87f33; }
 .ui-btn:active:not(:disabled) { transform: scale(0.93); }
-.ui-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.ui-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .ui-btn.gold { border-color: var(--ui-gold); color: var(--ui-gold); }
-.ui-btn.green { background: #1f5232; border-color: #3f9659; color: #d8ffe3; }
-.ui-btn.green:hover:not(:disabled) { background: #276640; }
+.ui-btn.green { background: #3fae5d; border-color: #2c7a41; color: #ffffff; }
+.ui-btn.green:hover:not(:disabled) { background: #46bd66; }
 
 @media (pointer: coarse) {
   .ui-btn { min-height: 42px; min-width: 42px; }
@@ -94,10 +97,22 @@
 }
 .wavebtn .bonus { color: var(--ui-gold); }
 .wavebtn.siege {
-  background: #5a2424;
-  border-color: var(--ui-red);
-  color: #ffd9d7;
+  background: #c4453e;
+  border-color: #8e2f2a;
+  color: #fff1f0;
   animation: ui-alarm 0.9s ease-in-out infinite;
+}
+
+/* narrow portrait phones: tighter chrome; the top bar may wrap to two rows
+   and the bottom thumb-zone (hero dock + NEXT WAVE) shares the width */
+@media (max-width: 480px) {
+  .topbar { gap: 4px; row-gap: 4px; flex-wrap: wrap; }
+  .ui-chip { padding: 2px 7px; font-size: 12.5px; }
+  .topbar .ui-btn { padding: 4px 9px; font-size: 13px; min-height: 36px; min-width: 36px; }
+  .wavebtn { padding: 8px 12px; font-size: 13.5px; max-width: 46vw; }
+  .hero-portrait { width: 58px; height: 58px; }
+  .hero-ability { width: 46px; height: 46px; }
+  .herobar { gap: 5px; }
 }
 
 /* ---- incoming-wave chevrons at the spawn mouths ---------------------------- */
@@ -383,6 +398,7 @@
   animation: ui-pop 0.18s ease-out;
 }
 .sheet-title {
+  color: var(--ui-text);
   font-size: 18px;
   font-weight: 800;
   letter-spacing: 0.4px;
@@ -428,7 +444,7 @@
   margin-top: 12px;
   padding: 10px 12px;
   border-radius: var(--ui-radius);
-  background: rgba(0, 0, 0, 0.25);
+  background: rgba(201, 168, 107, 0.18);
   border: 1px solid var(--ui-line);
   font-size: 12px;
   line-height: 1.55;
@@ -471,11 +487,11 @@
   -webkit-background-clip: text;
   background-clip: text;
 }
-.title-tag { color: var(--ui-dim); font-size: 14px; }
+.title-tag { color: #cfc4a8; font-size: 14px; }
 .title-buttons { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; min-width: 240px; }
 .title-best { color: var(--ui-gold); font-size: 13px; font-weight: 700; }
 
-.hero-screen-title { font-size: 24px; font-weight: 800; }
+.hero-screen-title { font-size: 24px; font-weight: 800; color: #f2ecdc; }
 .hero-cards { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; padding: 0 12px; }
 .hero-card {
   pointer-events: auto;
@@ -505,7 +521,7 @@
 
 .end-title { font-size: clamp(34px, 7vw, 58px); font-weight: 900; letter-spacing: 2px; }
 .end-stars { display: flex; gap: 10px; }
-.end-stars .star { font-size: 44px; color: #3a4258; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+.end-stars .star { font-size: 44px; color: #5a5040; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
 .end-stars .star.lit {
   color: var(--ui-gold);
   text-shadow: 0 0 16px rgba(255, 211, 92, 0.8);
@@ -513,9 +529,9 @@
 }
 .end-stars .star.lit:nth-child(2) { animation-delay: 0.15s; }
 .end-stars .star.lit:nth-child(3) { animation-delay: 0.3s; }
-.end-sub { color: var(--ui-text); font-size: 15px; }
-.end-stats { color: var(--ui-dim); font-size: 13px; }
-.end-stats b { color: var(--ui-text); }
+.end-sub { color: #f2ecdc; font-size: 15px; }   /* scenic screens stay dark */
+.end-stats { color: #b8ab8d; font-size: 13px; }
+.end-stats b { color: #f2ecdc; }
 .end-buttons { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; min-width: 250px; }
 
 /* ---- campaign map (level select) -------------------------------------------- */
@@ -585,7 +601,7 @@
   font-weight: 800;
 }
 .map-node .mn-name { flex: 1; font-weight: 700; }
-.map-node .mn-stars .ms { color: #3a4258; font-size: 15px; }
+.map-node .mn-stars .ms { color: #d8c9a5; font-size: 15px; }
 .map-node .mn-stars .ms.lit { color: var(--ui-gold); }
 
 /* ---- simulated rewarded-ad overlay ------------------------------------------ */

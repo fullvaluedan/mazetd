@@ -4,7 +4,7 @@
   "description": "Build the maze. Survive 100 waves.",
   "start_url": ".",
   "display": "standalone",
-  "orientation": "landscape",
+  "orientation": "portrait",
   "background_color": "#12151d",
   "theme_color": "#12151d",
   "icons": [
