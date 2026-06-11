@@ -13,7 +13,7 @@ import { CONFIG } from '../config.js';
 import { SIZE, cellCenter, cellCenterX, cellCenterY, cellDist, worldToCell, inBounds } from '../engine/grid.js';
 import { aStar } from '../engine/pathfinding.js';
 import { makeWalkable } from './state.js';
-import { dealDamage, applySplash, spawnProjectile, pushSpark, pushSplash } from './projectile.js';
+import { dealDamage, applySplash, spawnProjectile, pushSpark, pushSplash, pushBeam } from './projectile.js';
 
 export function xpForLevel(n) {
   return Math.floor(CONFIG.HERO_XP_BASE * Math.pow(CONFIG.HERO_XP_GROWTH, n - 1));
@@ -44,8 +44,11 @@ export class Hero {
 
     this.path = null; this.pathIndex = 0;
     this.moveTarget = null;
+    this.guardPost = { x: base.x, y: base.y };   // auto-engage anchor (KR style)
     this.atkCd = 0;
     this.angle = 0;
+    this.lunge = 0;             // cosmetic melee-swing timer (renderer only)
+    this.hitFlash = 0;          // cosmetic took-a-hit timer (renderer only)
     this.downed = false;
     this.respawnLeft = 0;
     this.buffLeft = 0; this.buffRangeAdd = 0; this.buffDmgMult = 1;
@@ -88,7 +91,10 @@ export class Hero {
     const walk = makeWalkable(state);
     // if the exact cell is blocked, the hero just goes as close as it can
     const path = aStar(walk, this.cx, this.cy, x, y);
-    if (path && path.length > 1) { this.path = path; this.pathIndex = 1; this.moveTarget = { x, y }; }
+    if (path && path.length > 1) {
+      this.path = path; this.pathIndex = 1; this.moveTarget = { x, y };
+      this.guardPost = { x, y };          // orders move the guard post too
+    }
   }
 
   onMazeChanged(state) {
@@ -117,13 +123,17 @@ export class Hero {
   }
 
   // --- combat ---------------------------------------------------------------
+  // Nearest valid enemy in range — but anything actively chewing a wall
+  // outranks everything else (the hero is the wall's bodyguard).
   acquire(state) {
-    let best = null, bestD = Infinity;
+    let best = null, bestScore = Infinity;
     for (const e of state.enemies) {
       if (!e.alive) continue;
       if (e.flying && !this.targetsAir) continue;
       const d = cellDist(this.x / SIZE, this.y / SIZE, e.x / SIZE, e.y / SIZE);
-      if (d <= this.range && d < bestD) { bestD = d; best = e; }
+      if (d > this.range) continue;
+      const score = d - (e.siegeTarget ? 1000 : 0);
+      if (score < bestScore) { bestScore = score; best = e; }
     }
     return best;
   }
@@ -142,9 +152,12 @@ export class Hero {
     const stats = this.attackStats();
     if (this.melee) {
       dealDamage(state, tgt, stats.damage, stats);
+      this.lunge = 0.18;                                  // visible swing (renderer)
+      pushBeam(state, this.x, this.y, tgt.x, tgt.y, this.def.color);
       pushSpark(state, tgt.x, tgt.y, this.def.color);
     } else {
       stats.projectileSpeed = CONFIG.HERO_PROJECTILE_SPEED;
+      this.lunge = 0.1;
       spawnProjectile(state, this.x, this.y, tgt, stats, this.def.color);
     }
   }
@@ -156,9 +169,47 @@ export class Hero {
     for (const e of state.enemies) {
       if (!e.alive || e.flying) continue;       // ground enemies only crowd the hero
       const d = cellDist(this.x / SIZE, this.y / SIZE, e.x / SIZE, e.y / SIZE);
-      if (d <= r) dps += per * (e.boss ? CONFIG.HERO_BOSS_CONTACT_MULT : 1);
+      // each type's attack-power stat drives how hard it hits the hero too
+      if (d <= r) dps += per * (e.def.atk != null ? e.def.atk : 1) * (e.boss ? 1.5 : 1);
     }
-    if (dps > 0) this.hp -= dps * dt;
+    if (dps > 0) { this.hp -= dps * dt; this.hitFlash = 0.12; }
+  }
+
+  // --- guard-post auto-engage (KR style) -------------------------------------
+  // With no player order in progress: fight whatever threatens the post —
+  // wall-chewers first, then the nearest enemy in aggro range. Chase only
+  // within the leash; drift back to the post when the area is clear.
+  autoEngage(state) {
+    if (this.moveTarget || this.downed) return;   // explicit orders win
+    const post = this.guardPost;
+    let best = null, bestScore = Infinity;
+    for (const e of state.enemies) {
+      if (!e.alive) continue;
+      if (e.flying && !this.targetsAir) continue;
+      const d = cellDist(post.x, post.y, e.x / SIZE - 0.5, e.y / SIZE - 0.5);
+      if (d > CONFIG.HERO_AGGRO_RANGE) continue;
+      const score = d - (e.siegeTarget ? 100 : 0);      // defend the walls first
+      if (score < bestScore) { bestScore = score; best = e; }
+    }
+    const walk = makeWalkable(state);
+    if (!best) {
+      // area clear: head home if we've drifted and aren't already walking
+      if (!this.path && (this.cx !== post.x || this.cy !== post.y)) {
+        const path = aStar(walk, this.cx, this.cy, post.x, post.y);
+        if (path && path.length > 1) { this.path = path; this.pathIndex = 1; }
+      }
+      return;
+    }
+    // close the gap when the target is outside attack range (short hops so we
+    // re-evaluate every step), but never beyond the leash
+    const dToTarget = cellDist(this.x / SIZE, this.y / SIZE, best.x / SIZE, best.y / SIZE);
+    if (dToTarget > this.range * 0.9 && !this.path) {
+      const tc = worldToCell(best.x, best.y);
+      if (cellDist(post.x, post.y, tc.x, tc.y) <= CONFIG.HERO_LEASH_RANGE) {
+        const path = aStar(walk, this.cx, this.cy, tc.x, tc.y);
+        if (path && path.length > 1) { this.path = path.slice(0, 3); this.pathIndex = 1; }
+      }
+    }
   }
 
   down(state) {
@@ -246,10 +297,13 @@ export class Hero {
   update(dt, state) {
     for (const ab of this.abilities) if (ab.cdLeft > 0) ab.cdLeft -= dt;
     if (this.buffLeft > 0) { this.buffLeft -= dt; if (this.buffLeft <= 0) this.recompute(); }
+    if (this.lunge > 0) this.lunge -= dt;
+    if (this.hitFlash > 0) this.hitFlash -= dt;
 
     if (this.downed) { this.respawnLeft -= dt; if (this.respawnLeft <= 0) this.respawn(); return; }
 
     this.moveAlong(dt);
+    this.autoEngage(state);
     this.takeContactDamage(dt, state);
     if (this.hp <= 0) { this.down(state); return; }
 

@@ -256,6 +256,8 @@ export const CONFIG = {
   HERO_LEVEL_DMG_GAIN: 0.10,   // +10% damage per level
   HERO_SPEED_CELLS: 1,         // movement = def.speed (cells/sec) baseline scale
   HERO_PROJECTILE_SPEED: 14,   // cells/sec for ranged hero shots
+  HERO_AGGRO_RANGE: 3.5,       // cells from the guard post: enemies inside draw the hero in
+  HERO_LEASH_RANGE: 5.0,       // cells: the hero never chases further than this from its post
   HERO_CONTACT_RADIUS: 0.7,    // cells: enemies this close damage the hero
   HERO_CONTACT_DPS_BASE: 4,    // contact dps per adjacent enemy
   HERO_CONTACT_DPS_PER_WAVE: 0.7,

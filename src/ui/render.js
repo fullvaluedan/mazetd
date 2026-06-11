@@ -98,24 +98,34 @@ function drawHero(ctx, state) {
   ctx.beginPath(); ctx.arc(h.x, h.y, h.range * SIZE, 0, Math.PI * 2); ctx.stroke();
   ctx.setLineDash([]);
 
-  // cosmetic: walk bob while moving, gentle idle breathe, facing flip
-  const heroMoving = !!h.moveTarget;
+  // cosmetic: walk bob while moving (orders OR auto-chase), idle breathe,
+  // facing flip, melee lunge toward the target, hit flash when swarmed
+  const heroMoving = !!(h.moveTarget || h.path);
   if (h._lastX != null && Math.abs(h.x - h._lastX) > 0.2) h._face = h.x < h._lastX ? -1 : 1;
   h._lastX = h.x;
   const heroBob = heroMoving
     ? -Math.abs(Math.sin(state.time * 9)) * 2.5
     : Math.sin(state.time * 2) * 1.1;
+  const lungeK = h.lunge > 0 ? (h.lunge / 0.18) * 6 : 0;
+  const lx = Math.cos(h.angle) * lungeK, ly = Math.sin(h.angle) * lungeK;
+  if (h.hitFlash > 0) {
+    ctx.strokeStyle = `rgba(255,90,80,${Math.min(1, h.hitFlash / 0.08)})`;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(h.x, h.y, 14, 0, Math.PI * 2);
+    ctx.stroke();
+  }
   const heroFrame = heroMoving ? Math.floor(state.time * 7) % 4 : 0;
   const heroSprite = getSprite('hero-' + h.id, heroFrame);
   if (heroSprite) {
     ctx.save();
-    ctx.translate(h.x, h.y + heroBob);
+    ctx.translate(h.x + lx, h.y + heroBob + ly);
     ctx.scale(h._face || 1, 1);
     const s = 34;
     ctx.drawImage(heroSprite, -s / 2, -s / 2, s, s);
     ctx.restore();
   } else {
-    drawHeroShape(ctx, h.x, h.y + heroBob, h.def.color, h.angle);
+    drawHeroShape(ctx, h.x + lx, h.y + heroBob + ly, h.def.color, h.angle);
   }
 
   // HP bar + level
