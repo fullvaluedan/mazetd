@@ -62,9 +62,12 @@ export function createState(rng, seed = 0) {
 
     // ui / interaction
     showPath: true,
-    buildType: null,         // tower type id chosen to place
+    buildType: null,         // tower type id chosen to place (legacy armed mode)
     selected: null,          // selected placed tower
     hover: null,             // {x,y} hovered cell
+    menuCell: null,          // {x,y} cell with an open radial build ring
+    pendingBuild: null,      // tower type hovered inside the build ring
+    menuSeals: false,        // cached wouldSealAt(menuCell) (computed on open)
     targetingConsumable: null, // consumable def awaiting a target cell
     targetingConsumableKey: null,
     targetingAbility: null,  // hero ability awaiting a target cell

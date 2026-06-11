@@ -243,7 +243,19 @@ const actions = {
     state.buildType = (state.buildType === typeId) ? null : typeId;
     state.selected = null; clearTargeting();
   },
-  cancel: () => { state.buildType = null; state.selected = null; state.heroMoveMode = false; clearTargeting(); },
+  // ---- radial-ring actions (the in-scene build/manage flow) ----
+  buildAt: (typeId, x, y) => {
+    if (tryBuild(state, typeId, x, y)) hud.closeRadial();   // one-shot: build closes the ring
+  },
+  upgradeTower: (tower, branch) => {
+    if (tryUpgrade(state, tower, branch)) hud.openTowerRing(state, tower);  // rebuilt with new level/prices
+  },
+  sellTower: (tower) => { hud.closeRadial(); trySell(state, tower); },
+  cycleTargetAndRefresh: (tower) => { tower.cycleTargetMode(); hud.openTowerRing(state, tower); },
+  cancel: () => {
+    if (hud.radialOpen) { hud.closeRadial(); return; }      // Esc unwinds one layer at a time
+    state.buildType = null; state.selected = null; state.heroMoveMode = false; clearTargeting();
+  },
   heroMove: () => { if (state.hero && !state.hero.downed) state.heroMoveMode = !state.heroMoveMode; },
   heroUpgrade: (key) => { tryHeroUpgrade(state, key); },
   towerBoost: (key) => { tryTowerBoost(state, key); },
@@ -391,6 +403,12 @@ const loop = new GameLoop(update, draw);
 const hud = new HUD(document.getElementById('hud'), actions, { uiLayer, viewport });
 viewport.onResize = () => hud.onViewportResize();
 loop.start();
+
+// Debug handle (dev tools / preview verification). `state` is a live getter
+// because load() replaces the whole state object.
+if (typeof window !== 'undefined') {
+  window.__mz = { get state() { return state; }, hud, loop, actions, viewport };
+}
 showStartModal();
 loadSprites();   // async; art pops in when ready, shapes are the fallback
 
@@ -417,20 +435,26 @@ setupInput(canvas, {
       state.heroMoveMode = false;
       return;
     }
-    if (state.buildType) {
-      tryBuild(state, state.buildType, x, y);
-      state.selected = null;
-      return;
-    }
     // tapping the hero arms move mode (mobile has no right-click)
     const h = state.hero;
     if (h && !h.downed && Math.hypot(px - h.x, py - h.y) <= 20) {
       state.heroMoveMode = true;
       state.selected = null;
+      hud.closeRadial();
       return;
     }
+    // tap a tower -> tower ring (upgrade/sell/target); tap open ground -> build ring
     const t = (y >= 0 && x >= 0 && state.towerGrid[y] && state.towerGrid[y][x]) || null;
-    state.selected = t;
+    if (t) {
+      hud.openTowerRing(state, t);
+      return;
+    }
+    if (canBuildAtSafe(x, y)) {
+      state.selected = null;
+      hud.openBuildRing(state, x, y);
+      return;
+    }
+    state.selected = null;
   },
   onRightClick(x, y) { if (state.hero) state.hero.commandMove(state, x, y); },
   onKey(key) {

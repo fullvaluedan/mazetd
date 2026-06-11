@@ -15,6 +15,7 @@ import { heroUpgradeCost, heroUpgradeMaxed, consumableCost, towerBoostCost, towe
 import { div, btn, bar, stat, EGLYPH } from './components.js';
 import { TopBar } from './topbar.js';
 import { WaveBar } from './wavebar.js';
+import { Radial, buildRingItems, towerRingItems } from './radial.js';
 
 // Compact strong/weak armor badges for a damage type (e.g. "▲L U  ▼F H").
 function badgeHtml(damageType) {
@@ -38,17 +39,45 @@ export class HUD {
     this.el = {};
     this.topbar = null;
     this.wavebar = null;
+    this.radial = null;
     this.build();
     if (scene && scene.uiLayer) {
       this.topbar = new TopBar(scene.uiLayer, actions);
       this.wavebar = new WaveBar(scene.uiLayer, scene.viewport, actions);
+      this.radial = new Radial(scene.uiLayer, scene.viewport);
     }
   }
 
   // Called when the viewport letterbox changes: re-anchor world-pinned widgets.
   onViewportResize() {
     if (this.wavebar) this.wavebar.position();
+    if (this.radial) this.radial.close();   // anchors are stale after a resize
   }
+
+  // ---- radial menus (the KR build/upgrade interaction) ----
+  get radialOpen() { return !!(this.radial && this.radial.isOpen); }
+
+  openBuildRing(state, x, y) {
+    if (!this.radial) return;
+    const items = buildRingItems(state, { x, y }, this.actions);   // computes seal warn once
+    this.radial.open({ x, y }, items, 'build',
+      () => { state.menuCell = null; state.pendingBuild = null; state.menuSeals = false; });
+    state.menuCell = { x, y };
+    state.menuSeals = items.length > 0 && !!items[0].warn;
+    state.pendingBuild = null;
+    this.radial.refresh(state);
+  }
+
+  openTowerRing(state, tower) {
+    if (!this.radial) return;
+    this.radial.open({ x: tower.cx, y: tower.cy }, towerRingItems(state, tower, this.actions), 'tower',
+      () => { if (state.selected === tower) state.selected = null; });
+    state.menuCell = null;
+    state.selected = tower;    // (re)select after open — open() closes any prior ring
+    this.radial.refresh(state);
+  }
+
+  closeRadial() { if (this.radial) this.radial.close(); }
 
   build() {
     this.root.innerHTML = '';
@@ -87,28 +116,8 @@ export class HUD {
     waveSec.append(this.el.preview, this.el.warn, this.el.auto);
     this.root.appendChild(waveSec);
 
-    // --- tower shop ---
-    const shop = div('section');
-    shop.innerHTML = `<h3>Towers</h3>`;
-    const grid = div('tower-grid');
-    this.el.towerBtns = {};
-    for (const [id, def] of Object.entries(CONFIG.TOWERS)) {
-      const b = document.createElement('button');
-      b.className = 'tower-btn';
-      const badges = badgeHtml(def.damageType);
-      b.innerHTML = `<span class="t-name">${def.glyph} ${def.name}</span>
-        <span class="t-cost">${def.cost}g</span>
-        <span class="t-blurb">${def.blurb}${badges ? '<br>' + badges : ''}</span>`;
-      b.addEventListener('click', () => this.actions.selectBuild(id));
-      this.el.towerBtns[id] = b;
-      grid.appendChild(b);
-    }
-    shop.appendChild(grid);
-    this.root.appendChild(shop);
-
-    // --- selected-tower / build card (rebuilt when the selection shape changes) ---
-    this.el.cardMount = div('');
-    this.root.appendChild(this.el.cardMount);
+    // (tower shop + selected-tower card replaced by the in-scene radial
+    //  menus — tap an empty cell to build, tap a tower to manage it)
 
     // --- hero panel (hidden until a hero is chosen) ---
     this.buildHeroPanel();
@@ -159,14 +168,7 @@ export class HUD {
     this.el.auto.classList.toggle('active', state.autoStart);
     this.el.auto.textContent = 'Auto-start: ' + (state.autoStart ? 'ON' : 'OFF');
 
-    // tower shop: affordability + which build is armed
-    for (const [id, def] of Object.entries(CONFIG.TOWERS)) {
-      const b = this.el.towerBtns[id];
-      b.disabled = state.gold < def.cost && state.buildType !== id;
-      b.classList.toggle('active', state.buildType === id);
-    }
-
-    this.refreshCard(state);
+    if (this.radial) this.radial.refresh(state);   // live affordability in open rings
     this.refreshHero(state);
     this.refreshShop(state);
   }
@@ -320,120 +322,6 @@ export class HUD {
     this.el.heroMove.textContent = state.heroMoveMode ? 'Tap the map to move…' : 'Move (M) — then tap the map';
   }
 
-  // Rebuild the card DOM only when the selection "shape" changes; update the
-  // cheap dynamic bits (affordability) every frame.
-  refreshCard(state) {
-    const t = state.selected;
-    const key = t
-      ? `t${t.uid}:${t.level}:${t.branch}:${t.targetMode}`
-      : (state.buildType ? `b:${state.buildType}` : 'none');
-    if (key !== this._cardKey) { this._cardKey = key; this.renderCard(state); }
-    if (t) {
-      // refresh upgrade-button affordability live
-      if (this._upBtns) for (const ub of this._upBtns) ub.btn.disabled = state.gold < ub.cost;
-    }
-  }
-
-  renderCard(state) {
-    const mount = this.el.cardMount;
-    mount.innerHTML = '';
-    this._upBtns = [];
-    const t = state.selected;
-
-    if (!t) {
-      if (state.buildType) {
-        const def = CONFIG.TOWERS[state.buildType];
-        const card = div('section');
-        card.innerHTML = `<h3>Place ${def.name}</h3>
-          <div class="muted">Click a legal cell (green) to build for
-          <span style="color:${CONFIG.COLORS.gold}">${def.cost}g</span>.
-          Red = would block the path. <span class="kbd">Esc</span> to cancel.</div>`;
-        mount.appendChild(card);
-      }
-      return;
-    }
-
-    const s = t.stats;
-    const card = div('section');
-    const dps = s.cooldown > 0 ? (s.damage * (s.multishot || 1) / s.cooldown) : s.damage;
-    const special = [];
-    if (s.splashRadius) special.push(`splash ${s.splashRadius.toFixed(1)}`);
-    if (s.slowPct) special.push(`slow ${(s.slowPct * 100) | 0}% / ${s.slowDur}s`);
-    if (s.dotDps) special.push(`poison ${s.dotDps.toFixed(0)}/s · ${s.dotDur}s`);
-    if (s.chainTargets) special.push(`chain ${s.chainTargets}`);
-    if (s.multishot > 1) special.push(`${s.multishot}× shots`);
-    if (s.shatter) special.push(`shatter +${(s.shatter * 100) | 0}%`);
-    if (s.disrupt) special.push('dispels');
-    if (s.contagion) special.push('contagion');
-    if (s.cluster) special.push('cluster');
-
-    if (t.def.aura) {
-      // Beacon: no damage/targeting — show what the aura grants instead.
-      card.innerHTML = `<h3>${t.def.glyph} ${t.def.name} — L${t.level}${t.branch ? ' ' + t.def.branches[t.branch].name : ''}</h3>
-        <div class="muted" style="line-height:1.6">
-          <span style="color:${t.def.color}">+${Math.round(s.auraDmg * 100)}% damage</span> ·
-          <span style="color:${t.def.color}">+${Math.round(s.auraSpeed * 100)}% atk speed</span><br>
-          aura radius ${s.auraRange.toFixed(1)} · buffs nearby towers
-        </div>`;
-    } else {
-      card.innerHTML = `<h3>${t.def.glyph} ${t.def.name} — L${t.level}${t.branch ? ' ' + t.def.branches[t.branch].name : ''}</h3>
-        <div class="muted" style="line-height:1.6">
-          DMG ${s.damage.toFixed(1)} · RNG ${s.range.toFixed(1)} · CD ${s.cooldown.toFixed(2)}s<br>
-          ~DPS ${dps.toFixed(1)} · ${s.damageType}${s.targetsAir ? ' · air✔' : ' · ground'} ${badgeHtml(s.damageType)}<br>
-          ${special.length ? special.join(' · ') : '—'}
-        </div>`;
-
-      // target mode toggle (attacking towers only)
-      const tmRow = div('speed-row');
-      tmRow.style.marginTop = '6px';
-      const tmBtn = document.createElement('button');
-      tmBtn.style.flex = '1';
-      tmBtn.textContent = 'Target: ' + t.targetMode;
-      tmBtn.addEventListener('click', () => this.actions.cycleTarget());
-      tmRow.appendChild(tmBtn);
-      card.appendChild(tmRow);
-    }
-
-    // upgrade button(s)
-    if (t.canUpgrade()) {
-      const cost = t.nextUpgradeCost();
-      if (t.level < 3) {
-        const up = document.createElement('button');
-        up.style.width = '100%'; up.style.marginTop = '6px';
-        up.textContent = `Upgrade → L${t.level + 1} (${cost}g)`;
-        up.addEventListener('click', () => this.actions.upgrade(null));
-        card.appendChild(up);
-        this._upBtns.push({ btn: up, cost });
-      } else {
-        // L3 -> L4 fork: two branch choices
-        const label = div('muted');
-        label.style.margin = '6px 0 2px';
-        label.textContent = `Choose specialization (${cost}g):`;
-        card.appendChild(label);
-        for (const key of ['A', 'B']) {
-          const br = t.def.branches[key];
-          const ub = document.createElement('button');
-          ub.style.width = '100%'; ub.style.marginTop = '4px';
-          ub.style.textAlign = 'left';
-          ub.innerHTML = `<b>${br.name}</b><br><span class="muted" style="font-size:11px">${br.desc}</span>`;
-          ub.addEventListener('click', () => this.actions.upgrade(key));
-          card.appendChild(ub);
-          this._upBtns.push({ btn: ub, cost });
-        }
-      }
-    }
-
-    // sell
-    const sell = document.createElement('button');
-    sell.className = 'danger';
-    sell.style.width = '100%'; sell.style.marginTop = '6px';
-    const refund = Math.floor(t.invested * CONFIG.SELL_REFUND);
-    sell.textContent = `Sell (+${refund}g)`;
-    sell.addEventListener('click', () => this.actions.sell());
-    card.appendChild(sell);
-
-    mount.appendChild(card);
-  }
 
   // Lets later phases drop their sections into the panel.
   mount(node) { this.el.shopMount.appendChild(node); }

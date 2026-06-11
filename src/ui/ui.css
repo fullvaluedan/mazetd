@@ -134,6 +134,79 @@
   margin-top: 1px;
 }
 
+/* ---- radial menus ---------------------------------------------------------- */
+.radial-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 11;
+  pointer-events: auto;
+  background: rgba(8, 10, 16, 0.25);
+}
+.radial {
+  position: absolute;
+  z-index: 12;
+  width: 0;
+  height: 0;
+  animation: ui-pop 0.16s ease-out;
+}
+.radial-item, .radial-center {
+  pointer-events: auto;
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: var(--ui-panel);
+  border: 2px solid var(--ui-line);
+  box-shadow: var(--ui-shadow);
+  cursor: pointer;
+  color: var(--ui-text);
+  font-family: inherit;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.08s, border-color 0.12s;
+}
+.radial-item:hover:not(:disabled) { border-color: var(--ui-blue); }
+.radial-item:active:not(:disabled) { transform: translate(-50%, -50%) scale(0.92); }
+.radial-item:disabled { cursor: not-allowed; }
+.radial-item:disabled img, .radial-item:disabled .glyph { filter: grayscale(1); opacity: 0.45; }
+.radial-item:disabled .price { color: var(--ui-red); }
+.radial-item.warn { border-color: #ffa500; box-shadow: 0 0 10px rgba(255, 165, 0, 0.55); }
+.radial-item img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  pointer-events: none;
+}
+.radial-item .glyph { font-size: 21px; font-weight: 800; line-height: 1; }
+.radial-item .price {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--ui-gold);
+  line-height: 1;
+  margin-top: 1px;
+}
+.radial-item .price.sub { color: var(--ui-dim); }
+.radial-center {
+  width: 34px;
+  height: 34px;
+  left: 0;
+  top: 0;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ui-dim);
+}
+.radial-center:hover { border-color: var(--ui-red); color: var(--ui-red); }
+
+@media (pointer: coarse) {
+  .radial-item { width: 60px; height: 60px; }
+  .radial-center { width: 42px; height: 42px; }
+}
+
 /* ---- keyframes ------------------------------------------------------------ */
 @keyframes ui-pop {
   from { transform: scale(0.6); opacity: 0; }

@@ -37,6 +37,7 @@ export function render(ctx, state) {
   drawHero(ctx, state);
   drawFloaters(ctx, state);
   drawHover(ctx, state);
+  drawMenuCell(ctx, state);
   drawAbilityTarget(ctx, state);
   if (shaking) ctx.restore();
 
@@ -553,6 +554,23 @@ function drawHover(ctx, state) {
   } else if (state.map.type(x, y) === CELL.OPEN && !state.towerGrid[y][x]) {
     ctx.fillStyle = C.hoverOk;
     ctx.fillRect(x * SIZE, y * SIZE, SIZE, SIZE);
+  }
+}
+
+// Radial build ring open: highlight the chosen cell (orange when the placement
+// would seal the maze — cached at ring-open, not re-BFS'd per frame) and show
+// the hovered tower option's range.
+function drawMenuCell(ctx, state) {
+  if (!state.menuCell) return;
+  const { x, y } = state.menuCell;
+  ctx.fillStyle = state.menuSeals ? C.hoverSeal : C.hoverOk;
+  ctx.fillRect(x * SIZE, y * SIZE, SIZE, SIZE);
+  ctx.strokeStyle = state.menuSeals ? 'rgba(255,165,0,0.9)' : C.rangeRing;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x * SIZE + 1, y * SIZE + 1, SIZE - 2, SIZE - 2);
+  if (state.pendingBuild) {
+    const def = CONFIG.TOWERS[state.pendingBuild];
+    if (def) drawRangeRing(ctx, x, y, def.aura ? def.auraByLevel[0].range : def.range);
   }
 }
 

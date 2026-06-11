@@ -12,6 +12,7 @@
 // =============================================================================
 
 const images = new Map();   // id -> HTMLImageElement (only set once fully loaded)
+const urls = new Map();     // id -> manifest path (for DOM <img> icons)
 let enabled = true;          // user toggle (HUD "Art" button)
 
 export function spritesEnabled() { return enabled; }
@@ -24,6 +25,13 @@ export function getSprite(id) {
 }
 
 export function spriteCount() { return images.size; }
+
+// URL of a generated asset for DOM <img> use (radial icons, portraits), or
+// null when the art isn't generated/loaded. Respects the Art toggle.
+export function getSpriteUrl(id) {
+  if (!enabled || !images.has(id)) return null;
+  return urls.get(id) || null;
+}
 
 // Generated PNGs are 1024px but drawn at ~32–40px. Downscaling once into a
 // small offscreen canvas slashes GPU memory and per-frame draw cost (matters a
@@ -53,7 +61,7 @@ export async function loadSprites() {
 
   const jobs = Object.entries(manifest).map(([id, path]) => new Promise((resolve) => {
     const img = new Image();
-    img.onload = () => { images.set(id, shrink(id, img)); resolve(true); };
+    img.onload = () => { images.set(id, shrink(id, img)); urls.set(id, path); resolve(true); };
     img.onerror = () => resolve(false);       // listed but not generated yet — fine
     img.src = path;
   }));
