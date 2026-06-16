@@ -1,0 +1,688 @@
+{
+  "towers": {
+    "wall": {
+      "name": "Wall",
+      "glyph": "■",
+      "color": "#c9b896",
+      "cost": 5,
+      "wall": true,
+      "damage": 0,
+      "range": 0,
+      "cooldown": 0,
+      "damageType": "none",
+      "targetsAir": false,
+      "projectileSpeed": 0,
+      "blurb": "Cheap maze block. Sells back 100%.",
+      "branches": {}
+    },
+    "cannon": {
+      "name": "Cannon",
+      "glyph": "C",
+      "color": "#d98a4b",
+      "cost": 15,
+      "damage": 6,
+      "range": 2.2,
+      "cooldown": 1.7,
+      "damageType": "siege",
+      "targetsAir": false,
+      "projectileSpeed": 7,
+      "splashRadius": 1,
+      "blurb": "Small splash. Land only.",
+      "branches": {}
+    },
+    "magic": {
+      "name": "Magic",
+      "glyph": "M",
+      "color": "#9a6bd6",
+      "cost": 22,
+      "damage": 3,
+      "range": 2.4,
+      "cooldown": 1,
+      "damageType": "magic",
+      "targetsAir": true,
+      "hitscan": true,
+      "slowPct": 0.3,
+      "slowDur": 1.2,
+      "blurb": "Slows. Hits land AND air.",
+      "branches": {}
+    },
+    "falcon": {
+      "name": "Falcon",
+      "glyph": "F",
+      "color": "#4fa3d6",
+      "cost": 18,
+      "damage": 5,
+      "range": 3.2,
+      "cooldown": 0.9,
+      "damageType": "pierce",
+      "targetsAir": true,
+      "airOnly": true,
+      "hitscan": true,
+      "falcon": true,
+      "blurb": "A hunting falcon. AIR only.",
+      "branches": {}
+    },
+    "archer": {
+      "hidden": true,
+      "name": "Archer",
+      "glyph": "A",
+      "color": "#7fd66b",
+      "cost": 35,
+      "damage": 6,
+      "range": 2.6,
+      "cooldown": 0.55,
+      "damageType": "pierce",
+      "targetsAir": true,
+      "projectileSpeed": 12,
+      "blurb": "Cheap all-rounder. Hits air.",
+      "branches": {
+        "A": {
+          "id": "marksman",
+          "name": "Marksman",
+          "desc": "+120% dmg, +20% range",
+          "mods": {
+            "damageMult": 2.2,
+            "rangeMult": 1.2
+          }
+        },
+        "B": {
+          "id": "volley",
+          "name": "Volley",
+          "desc": "3 arrows, 0.6x dmg each (anti-swarm/air)",
+          "mods": {
+            "multishot": 3,
+            "damageMult": 0.6
+          }
+        }
+      }
+    },
+    "frost": {
+      "hidden": true,
+      "name": "Frost",
+      "glyph": "Fr",
+      "color": "#5bb8d6",
+      "cost": 45,
+      "damage": 3,
+      "range": 2.4,
+      "cooldown": 1,
+      "damageType": "magic",
+      "targetsAir": true,
+      "hitscan": true,
+      "slowPct": 0.35,
+      "slowDur": 1.5,
+      "blurb": "Slows enemies. Hits air.",
+      "branches": {
+        "A": {
+          "id": "glacier",
+          "name": "Glacier",
+          "desc": "slow 60%, 2.5s",
+          "mods": {
+            "slowPct": 0.6,
+            "slowDur": 2.5
+          }
+        },
+        "B": {
+          "id": "shatter",
+          "name": "Shatter",
+          "desc": "frozen enemies take +50% from all",
+          "mods": {
+            "shatter": 0.5
+          }
+        }
+      }
+    },
+    "arcane": {
+      "hidden": true,
+      "name": "Arcane",
+      "glyph": "Ar",
+      "color": "#9a6bd6",
+      "cost": 70,
+      "damage": 14,
+      "range": 2.9,
+      "cooldown": 0.9,
+      "damageType": "magic",
+      "targetsAir": true,
+      "projectileSpeed": 11,
+      "blurb": "Bypasses shields. Melts Heavy.",
+      "branches": {
+        "A": {
+          "id": "archmage",
+          "name": "Archmage",
+          "desc": "+160% dmg, pure chaos damage",
+          "mods": {
+            "damageMult": 2.6,
+            "damageType": "chaos"
+          }
+        },
+        "B": {
+          "id": "disrupt",
+          "name": "Disrupt",
+          "desc": "removes shields & dispels regen",
+          "mods": {
+            "disrupt": true
+          }
+        }
+      }
+    },
+    "venom": {
+      "hidden": true,
+      "name": "Venom",
+      "glyph": "V",
+      "color": "#6fc34b",
+      "cost": 60,
+      "damage": 4,
+      "range": 2.5,
+      "cooldown": 1.2,
+      "damageType": "poison",
+      "targetsAir": false,
+      "projectileSpeed": 9,
+      "dotDps": 8,
+      "dotDur": 3,
+      "blurb": "Poison DoT. Scales vs high HP.",
+      "branches": {
+        "A": {
+          "id": "plague",
+          "name": "Plague",
+          "desc": "DoT x3, 5s",
+          "mods": {
+            "dotDpsMult": 3,
+            "dotDur": 5
+          }
+        },
+        "B": {
+          "id": "contagion",
+          "name": "Contagion",
+          "desc": "poison spreads on kill",
+          "mods": {
+            "contagion": true
+          }
+        }
+      }
+    },
+    "tesla": {
+      "hidden": true,
+      "name": "Tesla",
+      "glyph": "T",
+      "color": "#e0c84f",
+      "cost": 100,
+      "damage": 40,
+      "range": 3.6,
+      "cooldown": 1.4,
+      "damageType": "magic",
+      "targetsAir": true,
+      "hitscan": true,
+      "chainTargets": 3,
+      "chainFalloff": 0.6,
+      "chainRange": 1.6,
+      "blurb": "Chain lightning. Hits air.",
+      "branches": {
+        "A": {
+          "id": "overload",
+          "name": "Overload",
+          "desc": "+180% dmg",
+          "mods": {
+            "damageMult": 2.8
+          }
+        },
+        "B": {
+          "id": "storm",
+          "name": "Storm",
+          "desc": "6 chains, no falloff",
+          "mods": {
+            "chainTargets": 6,
+            "chainFalloff": 1
+          }
+        }
+      }
+    },
+    "beacon": {
+      "hidden": true,
+      "name": "Beacon",
+      "glyph": "B",
+      "color": "#e08ac8",
+      "cost": 75,
+      "aura": true,
+      "damage": 0,
+      "range": 2,
+      "cooldown": 0,
+      "damageType": "none",
+      "targetsAir": false,
+      "projectileSpeed": 0,
+      "auraByLevel": [
+        {
+          "dmg": 0.1,
+          "speed": 0.05,
+          "range": 2
+        },
+        {
+          "dmg": 0.15,
+          "speed": 0.08,
+          "range": 2.4
+        },
+        {
+          "dmg": 0.2,
+          "speed": 0.1,
+          "range": 2.8
+        }
+      ],
+      "blurb": "Buffs nearby towers. Does not attack.",
+      "branches": {
+        "A": {
+          "id": "command",
+          "name": "Command",
+          "desc": "+35% damage aura",
+          "mods": {
+            "auraDmg": 0.35
+          }
+        },
+        "B": {
+          "id": "haste",
+          "name": "Haste",
+          "desc": "+25% attack speed aura",
+          "mods": {
+            "auraSpeed": 0.25
+          }
+        }
+      }
+    }
+  },
+  "maxTowerLevel": 3,
+  "upgrade": {
+    "dmgMultPerLevel": 2,
+    "rangeMultPerLevel": 1.08,
+    "cooldownMultPerLevel": 0.9,
+    "costMultL2": 2,
+    "costMultL3": 4,
+    "costMultL4": 8
+  },
+  "sellRefund": 0.7,
+  "wallRefund": 1,
+  "towerHp": {
+    "base": 60,
+    "perGold": 0.6,
+    "wallBase": 160
+  },
+  "siege": {
+    "towerCellCost": 200,
+    "dpsBase": 5,
+    "dpsPerWave": 0.8,
+    "bossDpsMult": 4,
+    "underAttackFlash": 0.35
+  },
+  "enemies": {
+    "normal": {
+      "name": "Grunt",
+      "hpMult": 1,
+      "speedMult": 1,
+      "armorType": "medium",
+      "flying": false,
+      "lives": 1,
+      "atk": 1,
+      "bountyMult": 1,
+      "radius": 9,
+      "color": "#9aa3b2"
+    },
+    "fast": {
+      "name": "Runner",
+      "hpMult": 0.55,
+      "speedMult": 1.9,
+      "armorType": "light",
+      "flying": false,
+      "lives": 1,
+      "atk": 0.7,
+      "bountyMult": 0.8,
+      "radius": 8,
+      "color": "#f2d24b"
+    },
+    "tank": {
+      "name": "Brute",
+      "hpMult": 2.6,
+      "speedMult": 0.7,
+      "armorType": "fortified",
+      "flying": false,
+      "lives": 2,
+      "atk": 2.2,
+      "bountyMult": 1.7,
+      "radius": 12,
+      "color": "#d98a4b"
+    },
+    "swarm": {
+      "name": "Spawnling",
+      "hpMult": 0.25,
+      "speedMult": 1.2,
+      "armorType": "unarmored",
+      "flying": false,
+      "lives": 1,
+      "atk": 0.35,
+      "bountyMult": 0.5,
+      "radius": 5,
+      "color": "#aab0bc"
+    },
+    "flyer": {
+      "name": "Wisp",
+      "hpMult": 0.8,
+      "speedMult": 1.3,
+      "armorType": "light",
+      "flying": true,
+      "lives": 1,
+      "atk": 0,
+      "bountyMult": 1.1,
+      "radius": 9,
+      "color": "#4fd6e0"
+    },
+    "healer": {
+      "name": "Mender",
+      "hpMult": 1.4,
+      "speedMult": 0.9,
+      "armorType": "medium",
+      "flying": false,
+      "lives": 2,
+      "atk": 0.8,
+      "bountyMult": 1.6,
+      "radius": 10,
+      "color": "#5fce7a",
+      "healPct": 0.03,
+      "healRadius": 2.6
+    },
+    "shield": {
+      "name": "Warden",
+      "hpMult": 1.6,
+      "speedMult": 0.9,
+      "armorType": "heavy",
+      "flying": false,
+      "lives": 2,
+      "atk": 1.2,
+      "bountyMult": 1.6,
+      "radius": 10,
+      "color": "#5b8bd6",
+      "shieldPct": 0.25
+    },
+    "boss": {
+      "name": "Boss",
+      "hpMult": 1,
+      "speedMult": 0.6,
+      "armorType": "boss",
+      "flying": false,
+      "lives": 10,
+      "atk": 4,
+      "bountyMult": 8,
+      "radius": 18,
+      "color": "#c65bd6",
+      "boss": true
+    }
+  },
+  "armorTypes": {
+    "unarmored": {
+      "name": "Unarmored",
+      "short": "U",
+      "color": "#9aa3b2"
+    },
+    "light": {
+      "name": "Light",
+      "short": "L",
+      "color": "#f2d24b"
+    },
+    "medium": {
+      "name": "Medium",
+      "short": "M",
+      "color": "#aab0bc"
+    },
+    "heavy": {
+      "name": "Heavy",
+      "short": "H",
+      "color": "#5b8bd6"
+    },
+    "fortified": {
+      "name": "Fortified",
+      "short": "F",
+      "color": "#d98a4b"
+    },
+    "boss": {
+      "name": "Boss",
+      "short": "★",
+      "color": "#c65bd6"
+    }
+  },
+  "damageTypes": {
+    "pierce": {
+      "name": "Pierce",
+      "color": "#7fd66b"
+    },
+    "siege": {
+      "name": "Siege",
+      "color": "#d98a4b"
+    },
+    "magic": {
+      "name": "Magic",
+      "color": "#9a6bd6"
+    },
+    "poison": {
+      "name": "Poison",
+      "color": "#6fc34b"
+    },
+    "chaos": {
+      "name": "Chaos",
+      "color": "#e8ecf3"
+    }
+  },
+  "damageVsArmor": {
+    "pierce": {
+      "unarmored": 1.25,
+      "light": 1.5,
+      "medium": 1,
+      "heavy": 0.75,
+      "fortified": 0.6,
+      "boss": 0.85
+    },
+    "siege": {
+      "unarmored": 1.25,
+      "light": 0.75,
+      "medium": 1,
+      "heavy": 1,
+      "fortified": 1.5,
+      "boss": 0.85
+    },
+    "magic": {
+      "unarmored": 1,
+      "light": 1.25,
+      "medium": 1,
+      "heavy": 1.5,
+      "fortified": 0.5,
+      "boss": 1
+    },
+    "poison": {
+      "unarmored": 1,
+      "light": 1,
+      "medium": 1.5,
+      "heavy": 0.75,
+      "fortified": 1,
+      "boss": 1
+    },
+    "chaos": {
+      "unarmored": 1,
+      "light": 1,
+      "medium": 1,
+      "heavy": 1,
+      "fortified": 1,
+      "boss": 1
+    }
+  },
+  "waveScaling": {
+    "HP_BASE": 10,
+    "HP_LINEAR": 0.15,
+    "HP_EXP": 1.05,
+    "DIFFICULTY": 0.65,
+    "DAMAGE_SCALE": 3,
+    "ENEMY_BASE_SPEED": 1.7,
+    "SPEED_WAVE_FACTOR": 0.004,
+    "SPEED_WAVE_CAP": 1.6,
+    "BOUNTY_BASE": 3,
+    "BOUNTY_PER_WAVE": 1.6,
+    "WAVECLEAR_BASE": 20,
+    "WAVECLEAR_PER_WAVE": 12
+  },
+  "hero": {
+    "HEROES": {
+      "warrior": {
+        "name": "Warrior",
+        "color": "#e0773b",
+        "glyph": "⚔",
+        "role": "Melee bruiser. High HP, holds a chokepoint.",
+        "maxHp": 320,
+        "damage": 26,
+        "range": 1.5,
+        "cooldown": 0.8,
+        "attackType": "chaos",
+        "targetsAir": false,
+        "speed": 3.2,
+        "abilities": [
+          {
+            "id": "whirlwind",
+            "name": "Whirlwind",
+            "desc": "AoE physical burst around the hero",
+            "cooldown": 7,
+            "radius": 2.2,
+            "dmgMult": 2.4,
+            "targetCell": false
+          },
+          {
+            "id": "taunt",
+            "name": "Taunt",
+            "desc": "Pull nearby enemies in + brief stun",
+            "cooldown": 14,
+            "radius": 3,
+            "stun": 1.2,
+            "targetCell": false
+          }
+        ]
+      },
+      "mage": {
+        "name": "Mage",
+        "color": "#8a5bd6",
+        "glyph": "✨",
+        "role": "Ranged AoE. Fragile but huge burst.",
+        "maxHp": 160,
+        "damage": 18,
+        "range": 3.2,
+        "cooldown": 1.1,
+        "attackType": "magic",
+        "splashRadius": 1,
+        "targetsAir": true,
+        "speed": 3,
+        "abilities": [
+          {
+            "id": "meteor",
+            "name": "Meteor",
+            "desc": "Large AoE burst at target cell",
+            "cooldown": 9,
+            "radius": 2.4,
+            "dmgMult": 6,
+            "targetCell": true
+          },
+          {
+            "id": "frostnova",
+            "name": "Frost Nova",
+            "desc": "AoE slow + minor damage",
+            "cooldown": 12,
+            "radius": 3,
+            "dmgMult": 1.5,
+            "slowPct": 0.5,
+            "slowDur": 3,
+            "targetCell": true
+          }
+        ]
+      },
+      "ranger": {
+        "name": "Ranger",
+        "color": "#5fce7a",
+        "glyph": "➳",
+        "role": "Ranged single-target DPS. Hits air.",
+        "maxHp": 190,
+        "damage": 16,
+        "range": 3.6,
+        "cooldown": 0.5,
+        "attackType": "magic",
+        "targetsAir": true,
+        "speed": 3.4,
+        "abilities": [
+          {
+            "id": "volley",
+            "name": "Volley",
+            "desc": "Rapid burst of arrows at an area",
+            "cooldown": 8,
+            "radius": 2,
+            "dmgMult": 0.7,
+            "shots": 8,
+            "targetCell": true
+          },
+          {
+            "id": "hawkeye",
+            "name": "Hawk Eye",
+            "desc": "+range & +damage buff for a few seconds",
+            "cooldown": 14,
+            "dur": 6,
+            "rangeAdd": 1.5,
+            "dmgMult": 1.8,
+            "targetCell": false
+          }
+        ]
+      }
+    },
+    "xpBase": 50,
+    "xpGrowth": 1.45,
+    "maxLevel": 10,
+    "aggro": 3.5,
+    "leash": 5,
+    "upgrades": {
+      "hp": {
+        "name": "+40 Max HP",
+        "stat": "maxHp",
+        "amount": 40,
+        "baseCost": 60,
+        "costGrowth": 1.6,
+        "maxTier": 6
+      },
+      "dmg": {
+        "name": "+15% Damage",
+        "stat": "damageMult",
+        "amount": 0.15,
+        "baseCost": 80,
+        "costGrowth": 1.6,
+        "maxTier": 6
+      },
+      "cooldown": {
+        "name": "-10% Abil. CD",
+        "stat": "abilityCdMult",
+        "amount": -0.1,
+        "baseCost": 90,
+        "costGrowth": 1.7,
+        "maxTier": 5
+      },
+      "respawn": {
+        "name": "-1.5s Respawn",
+        "stat": "respawnAdd",
+        "amount": -1.5,
+        "baseCost": 70,
+        "costGrowth": 1.6,
+        "maxTier": 4
+      }
+    }
+  },
+  "ads": {
+    "FREE_GOLD": {
+      "base": 60,
+      "perWave": 12,
+      "cooldownWaves": 3,
+      "cooldownMinutes": 4
+    },
+    "REVIVE": {
+      "lives": 5,
+      "oncePerRun": true
+    },
+    "SIM_SECONDS": 5
+  },
+  "stars": [
+    18,
+    10
+  ]
+}
