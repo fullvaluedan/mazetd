@@ -5,6 +5,7 @@
 // =============================================================================
 
 import { CONFIG } from '../config.js';
+import { winWave } from '../game/wave.js';
 import { div } from './components.js';
 
 export class TopBar {
@@ -40,7 +41,7 @@ export class TopBar {
   refresh(state, ui) {
     setText(this.el.gold, Math.floor(state.gold));
     setText(this.el.lives, state.lives);
-    setText(this.el.wave, `${state.wave}/${CONFIG.WIN_WAVE}`);
+    setText(this.el.wave, `${state.wave}/${winWave(state)}`);
     setText(this.el.speed, ui.speed + '×');
     setText(this.el.pause, ui.paused ? '▶' : '▮▮');
     this.el.pause.classList.toggle('gold', !!ui.paused);

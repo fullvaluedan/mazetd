@@ -185,7 +185,7 @@ export class Screens {
       <div class="end-title" style="color:${won ? 'var(--ui-green)' : 'var(--ui-red)'}">${won ? 'VICTORY!' : 'DEFEAT'}</div>
       <div class="end-stars">${stars}</div>
       <div class="end-sub">${won
-        ? `The maze held — all ${CONFIG.WIN_WAVE} waves broken with ${state.lives} ♥ left.`
+        ? `The maze held — all ${state.maxWave} waves broken with ${state.lives} ♥ left.`
         : `Your lives ran out on wave ${state.wave}.`}</div>
       <div class="end-stats">
         Reached wave <b>${state.maxWave}</b> · Hero L<b>${state.hero ? state.hero.level : 1}</b> · Best ever: wave <b>${hs}</b>

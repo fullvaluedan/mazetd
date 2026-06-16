@@ -76,9 +76,9 @@ export class Sheets {
 
       body.appendChild(div('sheet-help', `
         <b>How to play</b><br>
-        Enemies walk from the green mouths to the red exits, always taking the
+        Enemies pour from the portals toward your campfire, always taking the
         shortest open route — your towers are the walls. Build a long winding
-        maze, exploit armor matchups, and survive all ${CONFIG.WIN_WAVE} waves.<br><br>
+        maze, exploit armor matchups, and survive every wave.<br><br>
         · Tap an empty cell to build, tap a tower to upgrade or sell.<br>
         · You CAN seal the maze — but the wave will chew through your walls.<br>
         · Tap your hero, then the ground, to move them. Q/W cast abilities.<br>

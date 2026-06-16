@@ -198,6 +198,7 @@ const actions = {
     const snap = loadSnapshot();
     if (!snap) { showBanner('No save found', 'warn', 1.4); return; }
     state = applySnapshot(snap);
+    viewport.resize();   // the load may have changed the grid size (Endless 13x24); re-letterbox
     prevStatus = state.status;
     clearTargeting();
     screens.hide();

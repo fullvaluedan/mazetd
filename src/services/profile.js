@@ -35,6 +35,10 @@ export function saveProfile() {
   try { localStorage.setItem(KEY, JSON.stringify(getProfile())); } catch { /* private mode */ }
 }
 
+// Test seam only: drop the in-memory singleton so a headless test can re-read
+// a freshly cleared localStorage. Never called by the game.
+export function _resetCache() { cache = null; }
+
 // --- stars / unlocks ----------------------------------------------------------
 export function starsForLevel(id) { return getProfile().stars[id] || 0; }
 

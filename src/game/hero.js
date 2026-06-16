@@ -13,7 +13,7 @@ import { CONFIG } from '../config.js';
 import { SIZE, cellCenter, cellCenterX, cellCenterY, cellDist, worldToCell, inBounds } from '../engine/grid.js';
 import { aStar } from '../engine/pathfinding.js';
 import { makeWalkable } from './state.js';
-import { dealDamage, applySplash, spawnProjectile, pushSpark, pushSplash, pushBeam } from './projectile.js';
+import { dealDamage, applySplash, spawnProjectile, pushSpark, pushSplash } from './projectile.js';
 
 export function xpForLevel(n) {
   return Math.floor(CONFIG.HERO_XP_BASE * Math.pow(CONFIG.HERO_XP_GROWTH, n - 1));

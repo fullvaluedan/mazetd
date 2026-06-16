@@ -1,15 +1,17 @@
 // =============================================================================
-// levels.js — the campaign: ~20 hand-authored portrait maps that grow from a
-// tiny 9x12 "learn to maze" board to large multi-spawn checkpoint runs, plus
+// levels.js — the campaign: 20 hand-authored portrait maps that grow from a
+// tiny 7x9 "learn to maze" board to large multi-spawn checkpoint runs, plus
 // the tall Endless map.
 //
 // Design rules (see CAMPAIGN_PLAN.md):
-//   - Level 1 teaches pure mazing: 1 spawn -> 1 exit, walls + archers only.
+//   - Level 1 teaches pure mazing: 1 spawn (top-left) -> 1 exit (bottom-right),
+//     walls + Cannon only.
 //   - Checkpoint flags (Gem TD style) appear from level 4: creeps must visit
 //     them IN ORDER, shortest path between each — one maze, walked many times.
 //   - Maps are authored (fixed obstacles), so every player sees the same
 //     puzzle; the classic random-obstacle map remains for Endless/sim.
-//   - Tower unlocks are tied to campaign progress (unlockSchedule below).
+//   - Tower unlocks are tied to campaign progress (UNLOCK_SCHEDULE below):
+//     Cannon (L1), Magic (L3), Falcon (L7). The roster is intentionally small.
 // =============================================================================
 
 import { CONFIG } from '../config.js';
@@ -167,7 +169,7 @@ export const LEVELS = [
     startGold: 620,
     waves: { count: 15, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'flyer'], swarmFrom: 4, flyerFrom: 7, hpMult: 2.9 },
   }),
-  L(13, 'Storm Warning', {                      // unlock: tesla
+  L(13, 'Storm Warning', {
     cols: 13, rows: 20,
     spawns: [{ id: 'S1', cx: 6, cy: 0 }],
     goals: [{ id: 'G1', cx: 6, cy: 19 }],
