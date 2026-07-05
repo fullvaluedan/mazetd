@@ -346,6 +346,18 @@ flowchart LR
 
 ---
 
+## Amendments (2026-07-06, post-playtest)
+
+User-driven scope changes after the U15 hand-play gate, tracked as tasks alongside the original units:
+
+- **Difficulty contract added to U15/U9:** the playtest verdict was "cannons one-shot everything, no challenge." Levels 1-3 enemy HP raised ~5x (hpMult 2.5/3.0/3.5); a 2-shot floor (wave-1 grunt survives one cannon hit, wave-8 survives two) is now a test assertion beside the income band. U8's level authoring inherits this floor as the per-level baseline.
+- **U17 (new): heroes disabled for v1.** `HEROES_ENABLED` flag hides hero select, in-level hero, hero dock, and the star hero-upgrade shop; stars keep gating level unlocks. Hero code and its classic-board tests stay intact for a later return. Supersedes the "hero system untouched" scope line.
+- **U16 (restructured): art constitution + reference-driven generation.** The user's Maze Defenders Art Guide v1.0 becomes the art source of truth (bright monster-collecting-RPG style, 30-degree top-down, 32px tiles, tower/enemy families, replacing the cozy-anime direction). Every generation call carries 3 reference images (art guide + perspective guide + family asset sheet) via the images-edit API; static concept approved before sheets; naming convention `category_name_lvN.png`. Deliverables: `docs/art/ART-BIBLE.md`, `docs/art/reference/`, gen-assets v2.
+- **U18 (new): tile-based map rendering + autotiler.** Boards render from the Art Guide tile set instead of flat cells; connection sets (path/water/cliff) get an autotiler, never raw stamps. Folds into U4's static-layer cache; shape fallback stays.
+- **Working name candidate: "Maze Defenders"** (from the art guide). Store listing name is a user decision before U13 submission.
+
+---
+
 ## Sources & Research
 
 - Repo research (this session): camera insertion points, dual input mapping, tier hardcode sites, combat flag inventory, economy constants, sim gate contracts. Load-bearing findings cited inline in KTDs.
