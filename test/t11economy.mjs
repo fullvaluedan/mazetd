@@ -107,6 +107,19 @@ console.log('U15 feel spike: levels 1-3 deterministic income bands (WC3 scarcity
     }
     return total;
   };
+  // Playtest verdict 2026-07-06: cannons one-shot everything -> no challenge.
+  // Contract: a wave-1 grunt survives one cannon hit; a wave-8 grunt survives two.
+  {
+    const lv = getLevel('l1');
+    setGridSize(lv.cols, lv.rows);
+    const st = createState(makeRng(1), 1, lv);
+    const cannonHit = CONFIG.TOWERS.cannon.damage * CONFIG.DAMAGE_SCALE
+      * CONFIG.DAMAGE_VS_ARMOR.siege.medium;
+    check('L1 w1 grunt needs 2+ cannon shots', computeStats(st, 'normal', 1).hp > cannonHit,
+      `hp=${computeStats(st, 'normal', 1).hp} hit=${cannonHit}`);
+    check('L1 w8 grunt needs 3+ cannon shots', computeStats(st, 'normal', 8).hp > cannonHit * 2,
+      `hp=${computeStats(st, 'normal', 8).hp}`);
+  }
   const i1 = income('l1'), i2 = income('l2'), i3 = income('l3');
   check('level 1 income in the 280-400 band', i1 >= 280 && i1 <= 400, `i1=${i1}`);
   check('level 2 income scarce (300-600)', i2 >= 300 && i2 <= 600, `i2=${i2}`);
