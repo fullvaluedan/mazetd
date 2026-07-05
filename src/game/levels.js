@@ -75,7 +75,7 @@ export const LEVELS = [
     spawns: [{ id: 'S1', cx: 1, cy: 0 }],
     goals: [{ id: 'G1', cx: 5, cy: 8 }],
     startGold: 100,
-    waves: { count: 8, types: ['normal'], hpMult: 0.5 },
+    waves: { count: 8, types: ['normal'], hpMult: 0.5, bountyMult: 0.3, waveclearMult: 0.15 },
     stars: [10, 7],
   }),
   L(2, 'The Bend', {
@@ -83,15 +83,15 @@ export const LEVELS = [
     spawns: [{ id: 'S1', cx: 2, cy: 0 }],
     goals: [{ id: 'G1', cx: 6, cy: 13 }],
     obstacles: rect(4, 6, 6, 7),
-    startGold: 240,
-    waves: { count: 10, types: ['normal', 'fast'], hpMult: 0.6 },
+    startGold: 180,
+    waves: { count: 10, types: ['normal', 'fast'], hpMult: 0.6, bountyMult: 0.35, waveclearMult: 0.2 },
   }),
   L(3, 'A Touch of Magic', {                    // unlock: magic tower
     cols: 10, rows: 14,
     spawns: [{ id: 'S1', cx: 5, cy: 0 }],
     goals: [{ id: 'G1', cx: 5, cy: 13 }],
-    startGold: 280,
-    waves: { count: 10, types: ['normal', 'fast', 'swarm'], swarmFrom: 4, hpMult: 0.7 },
+    startGold: 200,
+    waves: { count: 10, types: ['normal', 'fast', 'swarm'], swarmFrom: 4, hpMult: 0.7, bountyMult: 0.28, waveclearMult: 0.2 },
   }),
   L(4, 'The First Flag', {                      // checkpoints introduced
     cols: 10, rows: 15,

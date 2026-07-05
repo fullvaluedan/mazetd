@@ -10,6 +10,8 @@ import { Enemy } from '../src/game/enemy.js';
 import { addTower, upgradeCostFor } from '../src/game/tower.js';
 import { sellRefund, tryUpgrade } from '../src/game/shop.js';
 import { getLevel } from '../src/game/levels.js';
+import { startWave, computeStats } from '../src/game/wave.js';
+import { payWaveClear } from '../src/game/economy.js';
 
 let fails = 0;
 const check = (n, c, e = '') => { if (!c) { fails++; console.log('  FAIL', n, e); } else console.log('  ok  ', n, e); };
@@ -84,6 +86,32 @@ console.log('Upgrades cost MORE than the tower (escalating):');
   const g0 = st.gold;
   tryUpgrade(st, cannon, null);
   check('L1->L2 charged 2x base', g0 - st.gold === Math.round(base * CONFIG.UPGRADE.costMultL2) && cannon.level === 2);
+}
+
+console.log('U15 feel spike: levels 1-3 deterministic income bands (WC3 scarcity):');
+{
+  // Deterministic income = kill bounties + wave-clear bonuses (gold pinned to 0
+  // before each clear so interest reads 0). Interest/early-start are
+  // play-dependent extras on top; the band is the contract U9 must keep.
+  const income = (id) => {
+    const lv = getLevel(id);
+    setGridSize(lv.cols, lv.rows);
+    const st = createState(makeRng(1), 1, lv);
+    let total = 0;
+    for (let w = 1; w <= lv.waves.count; w++) {
+      startWave(st, w);
+      for (const sp of st.spawnQueue) total += computeStats(st, sp.type, w).bounty;
+      st.spawnQueue = []; st.enemies = []; st.waveActive = false;
+      st.gold = 0;
+      total += payWaveClear(st, w).bonus;
+    }
+    return total;
+  };
+  const i1 = income('l1'), i2 = income('l2'), i3 = income('l3');
+  check('level 1 income in the 280-400 band', i1 >= 280 && i1 <= 400, `i1=${i1}`);
+  check('level 2 income scarce (300-600)', i2 >= 300 && i2 <= 600, `i2=${i2}`);
+  check('level 3 income scarce (350-750)', i3 >= 350 && i3 <= 750, `i3=${i3}`);
+  check('order-of-magnitude cut vs the old ~1400g level 1', i1 < 500, `i1=${i1}`);
 }
 
 console.log(fails === 0 ? 'ECONOMY_OK' : `ECONOMY_FAIL (${fails})`);

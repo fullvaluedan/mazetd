@@ -79,8 +79,12 @@ export function onEnemyLeaked(state, e) {
 }
 
 // Wave-clear payout: flat bonus + interest on current gold (capped).
+// Campaign levels scale the flat bonus with waves.waveclearMult — the global
+// constants were tuned for the 100-wave classic board and drown small maps.
 export function payWaveClear(state, waveNum) {
-  const bonus = Math.floor(CONFIG.WAVECLEAR_BASE + CONFIG.WAVECLEAR_PER_WAVE * waveNum);
+  const lv = state.level && state.level.waves;
+  const mult = lv && lv.waveclearMult != null ? lv.waveclearMult : 1;
+  const bonus = Math.floor((CONFIG.WAVECLEAR_BASE + CONFIG.WAVECLEAR_PER_WAVE * waveNum) * mult);
   addGold(state, bonus);
   const interest = Math.min(CONFIG.INTEREST_CAP, Math.floor(state.gold * CONFIG.INTEREST_RATE));
   addGold(state, interest);
