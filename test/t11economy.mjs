@@ -1,0 +1,89 @@
+// Review gap (testing): the headline maze-first economy rules — wall 100% vs
+// tower 70% refund, Falcon air-only / Cannon land-only / Magic land+air, the
+// level-3 cap, and escalating upgrade cost — were used by the sim but never
+// asserted. Lock them in.
+import { CONFIG } from '../src/config.js';
+import { makeRng } from '../src/engine/rng.js';
+import { setGridSize, cellCenter } from '../src/engine/grid.js';
+import { createState } from '../src/game/state.js';
+import { Enemy } from '../src/game/enemy.js';
+import { addTower, upgradeCostFor } from '../src/game/tower.js';
+import { sellRefund, tryUpgrade } from '../src/game/shop.js';
+import { getLevel } from '../src/game/levels.js';
+
+let fails = 0;
+const check = (n, c, e = '') => { if (!c) { fails++; console.log('  FAIL', n, e); } else console.log('  ok  ', n, e); };
+
+function freshL8() {
+  const lv = getLevel('l8');           // big enough board, has flyers
+  setGridSize(lv.cols, lv.rows);
+  const st = createState(makeRng(1), 1, lv);
+  st.gold = 1e6;
+  return st;
+}
+const parkEnemy = (st, type, cx, cy) => {
+  const e = new Enemy(st, type, 'S1', st.routing['S1'], { hp: 1e6, speed: 1e-9, bounty: 1 });
+  const c = cellCenter(cx, cy); e.x = c.x; e.y = c.y; e.cx = cx; e.cy = cy;
+  st.enemies.push(e); return e;
+};
+
+console.log('Refunds: walls sell 100%, towers 70%:');
+{
+  const st = freshL8();
+  const wall = addTower(st, 'wall', 3, 3);
+  check('wall refund = full invested', sellRefund(wall) === Math.floor(wall.invested * CONFIG.WALL_REFUND) && sellRefund(wall) === wall.invested);
+  const cannon = addTower(st, 'cannon', 3, 5);
+  check('tower refund = 70%', sellRefund(cannon) === Math.floor(cannon.invested * CONFIG.SELL_REFUND));
+  check('the two refund rates differ', CONFIG.WALL_REFUND === 1.0 && CONFIG.SELL_REFUND === 0.70);
+}
+
+console.log('Targeting: Falcon air-only, Cannon land-only, Magic both:');
+{
+  const st = freshL8();
+  const falcon = addTower(st, 'falcon', 5, 5);
+  parkEnemy(st, 'normal', 5, 6);          // ground in range
+  const air = parkEnemy(st, 'flyer', 6, 5);   // air in range
+  let c = falcon.candidates(st);
+  check('falcon sees only air', c.length === 1 && c[0].e === air);
+
+  const st2 = freshL8();
+  const cannon = addTower(st2, 'cannon', 5, 5);
+  const ground = parkEnemy(st2, 'normal', 5, 6);
+  parkEnemy(st2, 'flyer', 6, 5);
+  c = cannon.candidates(st2);
+  check('cannon sees only ground', c.length === 1 && c[0].e === ground);
+
+  const st3 = freshL8();
+  const magic = addTower(st3, 'magic', 5, 5);
+  parkEnemy(st3, 'normal', 5, 6);
+  parkEnemy(st3, 'flyer', 6, 5);
+  check('magic sees both', magic.candidates(st3).length === 2);
+}
+
+console.log('Roster caps at level 3; hidden legacy towers reach 4:');
+{
+  const st = freshL8();
+  const cannon = addTower(st, 'cannon', 5, 5);
+  check('L1 can upgrade', cannon.canUpgrade() === true);
+  cannon.level = 3; cannon.refreshStats();
+  check('L3 cannot upgrade (roster cap)', cannon.canUpgrade() === false);
+  const legacy = addTower(st, 'archer', 7, 5);   // hidden: true
+  legacy.level = 3; legacy.refreshStats();
+  check('hidden tower still upgrades at L3', legacy.canUpgrade() === true);
+}
+
+console.log('Upgrades cost MORE than the tower (escalating):');
+{
+  const base = CONFIG.TOWERS.cannon.cost;     // 15
+  check('L2 = 2x base', upgradeCostFor('cannon', 2) === Math.round(base * CONFIG.UPGRADE.costMultL2));
+  check('L3 = 4x base', upgradeCostFor('cannon', 3) === Math.round(base * CONFIG.UPGRADE.costMultL3));
+  check('each upgrade dearer than the build', upgradeCostFor('cannon', 2) > base && upgradeCostFor('cannon', 3) > upgradeCostFor('cannon', 2));
+  // and tryUpgrade actually charges + caps
+  const st = freshL8();
+  const cannon = addTower(st, 'cannon', 5, 5);
+  const g0 = st.gold;
+  tryUpgrade(st, cannon, null);
+  check('L1->L2 charged 2x base', g0 - st.gold === Math.round(base * CONFIG.UPGRADE.costMultL2) && cannon.level === 2);
+}
+
+console.log(fails === 0 ? 'ECONOMY_OK' : `ECONOMY_FAIL (${fails})`);

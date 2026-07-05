@@ -1,0 +1,153 @@
+// Campaign balance gate: a reference "maze-first" player runs every authored
+// level headless — cheap walls form a serpentine, every 3rd piece is a killer
+// tower from the player's UNLOCKED set, surplus gold buys upgrades, and walls
+// convert to towers late. Usage:
+//   node scratch/campaign-sim.mjs            # all 20 levels, one line each
+//   node scratch/campaign-sim.mjs l7         # one level, wave-by-wave detail
+import { CONFIG, TICK_DT } from '../src/config.js';
+import { makeRng } from '../src/engine/rng.js';
+import { setGridSize } from '../src/engine/grid.js';
+import { createState, canBuildAt, wouldSealAt } from '../src/game/state.js';
+import { updateEnemies } from '../src/game/enemy.js';
+import { updateTowers } from '../src/game/tower.js';
+import { updateProjectiles, updateEffects } from '../src/game/projectile.js';
+import { createHero } from '../src/game/hero.js';
+import { onEnemyKilled, onEnemyLeaked, payWaveClear, updateFloaters } from '../src/game/economy.js';
+import { startWave, processSpawning, waveComplete, updateBosses } from '../src/game/wave.js';
+import { tryBuild, tryUpgrade, trySell } from '../src/game/shop.js';
+import { LEVELS, getLevel, towersUnlockedAt } from '../src/game/levels.js';
+
+// Horizontal serpentine for portrait boards: a wall row every 2nd row,
+// alternating which side keeps the gap. Flags/obstacles just punch holes.
+function serpentine(lv) {
+  const t = [];
+  let i = 0;
+  for (let y = 2; y <= lv.rows - 3; y += 2) {
+    const fromLeft = (i % 2 === 0); i++;
+    if (fromLeft) { for (let x = 1; x <= lv.cols - 4; x++) t.push({ x, y }); }
+    else { for (let x = 3; x <= lv.cols - 2; x++) t.push({ x, y }); }
+  }
+  return t;
+}
+
+function build(state, lv, cycle) {
+  if (!state._targets) { state._targets = serpentine(lv); state._ti = 0; state._si = 0; }
+  const reserve = 0;
+  for (const c of state._targets) {
+    if (state.towerGrid[c.y][c.x]) continue;
+    if (!canBuildAt(state, c.x, c.y)) continue;
+    const budget = state.gold - reserve;
+    const wantTower = (state._si % 3 === 0) && cycle.length > 0;
+    let type = wantTower ? cycle[state._ti % cycle.length] : 'wall';
+    if (CONFIG.TOWERS[type].cost > budget) type = budget >= CONFIG.TOWERS.wall.cost ? 'wall' : null;
+    if (!type) break;
+    if (wouldSealAt(state, c.x, c.y)) continue;
+    if (tryBuild(state, type, c.x, c.y)) {
+      state._si++;
+      if (type !== 'wall') state._ti++;
+    }
+  }
+  // cheapest-first upgrades
+  let guard = 0;
+  while (guard++ < 400) {
+    let best = null, bestCost = Infinity;
+    for (const t of state.towers) {
+      if (!t.canUpgrade()) continue;
+      const c = t.nextUpgradeCost();
+      if (c < bestCost) { bestCost = c; best = t; }
+    }
+    if (!best || state.gold < bestCost) break;
+    if (!tryUpgrade(state, best, best.level === 3 ? 'A' : null)) break;
+  }
+  // surplus -> convert walls to towers
+  let surplus = state.gold - 150;
+  if (surplus > 0 && cycle.length) {
+    for (const c of state._targets) {
+      const t = state.towerGrid[c.y][c.x];
+      if (!t || !t.def.wall) continue;
+      const type = cycle[state._ti % cycle.length];
+      if (CONFIG.TOWERS[type].cost > surplus) break;
+      trySell(state, t);
+      if (tryBuild(state, type, c.x, c.y)) { state._ti++; surplus -= CONFIG.TOWERS[type].cost; }
+      else tryBuild(state, 'wall', c.x, c.y);
+    }
+  }
+}
+
+// The naive-play ceiling: a few scattered archers, NO walls, NO upgrades —
+// the way a first-timer who ignores mazing plays. Must fail by mid-campaign.
+function carelessBuild(state, lv, cycle) {
+  if (!state._ct) state._ct = serpentine(lv).filter((_, i) => i % 4 === 0).slice(0, 10);
+  for (const c of state._ct) {
+    if (state.towerGrid[c.y][c.x] || !canBuildAt(state, c.x, c.y)) continue;
+    const type = cycle.length ? cycle[0] : 'archer';
+    if (state.gold < CONFIG.TOWERS[type].cost) break;
+    if (wouldSealAt(state, c.x, c.y)) continue;
+    tryBuild(state, type, c.x, c.y);
+  }
+}
+
+export function runLevel(id, verbose = false, strategy = 'reference') {
+  const lv = getLevel(id);
+  setGridSize(lv.cols, lv.rows);
+  const state = createState(makeRng(1), 1, lv);
+  createHero(state, 'warrior');
+  const cycle = towersUnlockedAt(lv.num).filter((t) => t !== 'wall' && t !== 'beacon');
+  let minLives = state.lives;
+
+  for (let w = 1; w <= lv.waves.count; w++) {
+    if (strategy === 'careless') carelessBuild(state, lv, cycle);
+    else build(state, lv, cycle);
+    startWave(state, w);
+    let guard = 0;
+    while (!waveComplete(state) && state.status !== 'lost' && guard++ < 60 * 300) {
+      state.time += TICK_DT;
+      processSpawning(state, TICK_DT);
+      updateBosses(state, TICK_DT);
+      updateTowers(state, TICK_DT);
+      updateProjectiles(state, TICK_DT);
+      updateEnemies(state, TICK_DT, onEnemyKilled, onEnemyLeaked);
+      if (state.hero) state.hero.update(TICK_DT, state);
+      updateEffects(state, TICK_DT);
+      updateFloaters(state, TICK_DT);
+    }
+    minLives = Math.min(minLives, state.lives);
+    if (state.status === 'lost') return { won: false, wave: w, lives: 0, minLives };
+    state.waveActive = false;
+    payWaveClear(state, w);
+    if (verbose) console.log(`  w${String(w).padStart(2)} lives=${state.lives} gold=${Math.floor(state.gold)} towers=${state.towers.length}`);
+  }
+  return { won: true, lives: state.lives, minLives, towers: state.towers.length };
+}
+
+const isMain = import.meta.url === `file:///${process.argv[1].replace(/\\/g, '/')}`;
+const args = isMain ? process.argv.slice(2) : [];
+const careless = args.includes('--careless');
+const arg = args.find((a) => !a.startsWith('--')) || null;
+if (!isMain) {
+  // imported as a library (probes/tests): expose runLevel only, no CLI run
+} else if (arg) {
+  console.log(`Level ${arg}${careless ? ' (careless)' : ''}:`);
+  const r = runLevel(arg, true, careless ? 'careless' : 'reference');
+  console.log(r.won ? `  WON lives=${r.lives} (min=${r.minLives})` : `  DIED wave ${r.wave}`);
+} else if (careless) {
+  // ceiling gate: naive no-maze play must clear the intro then hit a wall
+  let firstLoss = null;
+  for (const lv of LEVELS) {
+    const r = runLevel(lv.id, false, 'careless');
+    console.log(`${lv.id.padEnd(4)} ${lv.name.padEnd(18)} ${r.won ? `won lives=${r.lives}` : `DIED w${r.wave}`}`);
+    if (!r.won && firstLoss == null) firstLoss = lv.num;
+  }
+  const ok = firstLoss != null && firstLoss >= 2 && firstLoss <= 10;
+  console.log(`first careless loss: level ${firstLoss} -> ${ok ? 'CARELESS_OK' : 'CARELESS_FAIL'} (want 2..10)`);
+  if (!ok) process.exitCode = 1;
+} else {
+  let allWon = true;
+  for (const lv of LEVELS) {
+    const r = runLevel(lv.id);
+    if (!r.won) allWon = false;
+    console.log(`${lv.id.padEnd(4)} ${lv.name.padEnd(18)} ${r.won ? `WON  lives=${String(r.lives).padStart(2)} (min=${r.minLives})` : `DIED w${r.wave}`}`);
+  }
+  console.log(allWon ? 'CAMPAIGN_OK' : 'CAMPAIGN_FAIL');
+  if (!allWon) process.exitCode = 1;
+}

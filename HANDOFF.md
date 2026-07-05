@@ -65,27 +65,23 @@ have python/node.
 
 ## How to test it
 
-There's no npm, no test runner, no CI. Testing is **headless Node scripts**
-in `scratch/*.mjs` — each imports the real game modules directly (no mocks,
-no DOM unless a fake one is needed), runs assertions, and prints a single
-`*_OK` or `*_FAIL` line. Run any of them with plain `node`:
+Testing is **headless Node scripts** in the tracked `test/` directory — each
+imports the real game modules directly (no mocks, no DOM unless a fake one is
+needed), runs assertions, and prints a single `*_OK` or `*_FAIL` line.
 
 ```bash
-node scratch/t10validate.mjs   # classic-map balance gate (6 seeds, all heroes)
-node scratch/campaign-sim.mjs  # campaign balance gate (reference clears 20, careless dies ~L9)
-node scratch/t11levels.mjs     # checkpoint routing, multi-spawn/goal, wave composer
-node scratch/t11economy.mjs    # wall/tower refund rates, air/ground targeting, upgrade cost curve
-node scratch/t11profile.mjs    # star economy, level-unlock gating, hero persistence
+npm test                      # the whole suite (13 suites; ~40s, gates last)
+node test/t10validate.mjs     # classic-map balance gate (6 seeds, all heroes)
+node test/campaign-sim.mjs    # campaign balance gate (reference clears 20, careless dies early)
+node test/t11levels.mjs       # checkpoint routing, multi-spawn/goal, wave composer
+node test/t11economy.mjs      # refund rates, air/ground targeting, upgrade cost curve
+node test/t11profile.mjs      # star economy, level-unlock gating, hero persistence
 ```
 
-**Important: `scratch/` is entirely gitignored.** Every test file — old
-(`t0`–`t10*`) and new (`t11*`) — is local-only and has never been committed.
-This was flagged during the code review as a real gap, deliberately
-deferred rather than silently accepted: if this repo grows another
-contributor or a CI pipeline, promoting `scratch/` to a tracked `test/`
-directory is the first infra task. Until then, running the suite after any
-change to `src/game/*` or `src/config.js` is manual and depends on whoever's
-editing knowing to do it.
+`npm test` (via `test/run.mjs`) runs every suite sequentially and fails on
+any nonzero exit or `*_FAIL` line. Run it after any change to `src/game/*`
+or `src/config.js`. The `scratch/` directory stays gitignored for local
+throwaway scripts (old t0-t9 debug scripts still live there).
 
 There's also a headless balance simulator, separate from the test scripts:
 ```bash
@@ -122,7 +118,8 @@ mazecore-td/
     sim/autoplay.js        headless balance simulator (competent vs careless)
   assets/                 generated sprite art (gitignored regenerable except manifest.json)
   tools/gen-assets.mjs    OpenAI image-gen pipeline for the art (see tools/README.md)
-  scratch/                gitignored headless test scripts (see Testing above)
+  test/                   tracked headless test suites + run.mjs (npm test)
+  scratch/                gitignored local throwaway scripts
   handoff/                levels.json + balance.json — portable data exports for
                           the native rebuild (see HANDOFF-NATIVE-REBUILD.md)
 ```
@@ -194,7 +191,6 @@ to the native rebuild):
   campaign) — currently parallel implementations that happen to agree.
 - Lift remaining campaign-specific magic numbers out of gameplay code into
   `config.js`.
-- Promote `scratch/` to a tracked `test/` directory (see Testing above).
 
 ## If you're here to ship this as a mobile app
 
