@@ -33,6 +33,7 @@ export class Viewport {
     this.left = 0; this.top = 0;
     this.camX = 0; this.camY = 0; this.zoom = 1;   // camera (see header)
     this.onResize = null;    // hook: close menus / reposition widgets
+    this.onCameraChange = null;   // hook: camera actually moved (pan/zoom/reset)
 
     this._resize = () => this.resize();
     if (typeof window !== 'undefined' && window.addEventListener) {
@@ -96,24 +97,40 @@ export class Viewport {
   // camX/camY 0 is both "fit-all" and "centered" — the letterbox centers the
   // canvas box itself).
   resetCamera() {
-    this.camX = 0; this.camY = 0; this.zoom = 1;
+    this._mutateCamera(() => {
+      this.camX = 0; this.camY = 0; this.zoom = 1;
+    });
   }
 
   // Pan by a world-px delta, clamped to the world bounds.
   panBy(dx, dy) {
-    this.camX += dx; this.camY += dy;
-    this._clampCamera();
+    this._mutateCamera(() => {
+      this.camX += dx; this.camY += dy;
+      this._clampCamera();
+    });
   }
 
   // Multiply zoom by `factor`, keeping world point (wx, wy) stationary on
   // screen (pinch/wheel anchor). Zoom clamps to [1 = fit-all, MAX_ZOOM].
   zoomAt(factor, wx, wy) {
-    const prev = this.zoom;
-    this.zoom = Math.min(Math.max(prev * factor, 1), CONFIG.CAMERA.MAX_ZOOM);
-    // The anchor's camera-relative offset scales by prev/zoom.
-    this.camX = wx - (wx - this.camX) * (prev / this.zoom);
-    this.camY = wy - (wy - this.camY) * (prev / this.zoom);
-    this._clampCamera();
+    this._mutateCamera(() => {
+      const prev = this.zoom;
+      this.zoom = Math.min(Math.max(prev * factor, 1), CONFIG.CAMERA.MAX_ZOOM);
+      // The anchor's camera-relative offset scales by prev/zoom.
+      this.camX = wx - (wx - this.camX) * (prev / this.zoom);
+      this.camY = wy - (wy - this.camY) * (prev / this.zoom);
+      this._clampCamera();
+    });
+  }
+
+  // Run a camera mutation; fire onCameraChange only if it actually moved.
+  // A fully-clamped pan at zoom 1 is a no-op and must not churn DOM anchors.
+  _mutateCamera(fn) {
+    const px = this.camX, py = this.camY, pz = this.zoom;
+    fn();
+    if ((this.camX !== px || this.camY !== py || this.zoom !== pz) && this.onCameraChange) {
+      this.onCameraChange();
+    }
   }
 
   // Keep the visible window inside the world. At zoom 1 the window IS the

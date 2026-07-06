@@ -36,11 +36,13 @@ export const CONFIG = {
   // ---------------------------------------------------------------------------
   // CAMERA
   // Zoom is RELATIVE to the fit-all letterbox: 1 = the whole board visible
-  // (survey mode, identical to the pre-camera letterbox). Gestures land later;
-  // the viewport only exposes the programmatic panBy/zoomAt/resetCamera API.
+  // (survey mode, identical to the pre-camera letterbox). input.js drives the
+  // viewport's panBy/zoomAt API from drag/pinch/wheel gestures.
   // ---------------------------------------------------------------------------
   CAMERA: {
     MAX_ZOOM: 2.5,          // closest-in: 2.5x the fit-all scale
+    DRAG_SLOP: 8,           // CSS px a pointer travels before a press becomes a pan (below = tap)
+    WHEEL_ZOOM_STEP: 1.1,   // zoom factor per 100px wheel notch, anchored at the cursor
   },
 
   // v1 ships hero-less (user call 2026-07-06). The hero system stays in the

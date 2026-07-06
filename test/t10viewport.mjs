@@ -1,11 +1,15 @@
 // U1 checks — viewport letterbox math, DPR backing store, coordinate mappers.
 // U2 checks — camera core: pan/zoom clamping, camera-aware mappings, the
 // screen-space (camera-independent) pass for boss bars + damage flash.
+// U3 checks — gestures through the real input handlers (tap vs drag slop,
+// pinch, click suppression), the onCameraChange hook, chevron edge-pinning.
 import { installFakeDom } from './fakedom.mjs';
 const { } = installFakeDom();
 const { CANVAS_W, CANVAS_H, CONFIG } = await import('../src/config.js');
 const { Viewport } = await import('../src/ui/viewport.js');
 const { setGridSize } = await import('../src/engine/grid.js');
+const { setupInput } = await import('../src/engine/input.js');
+const { pinChevrons } = await import('../src/ui/wavebar.js');
 
 let fails = 0;
 const check = (n, c, e = '') => { if (!c) { fails++; console.log('  FAIL', n, e); } else console.log('  ok  ', n, e); };
@@ -195,6 +199,154 @@ console.log('Screen-space pass: boss bars + flash are camera-independent:');
   v.applyScreenTransform({ setTransform: (...a) => { got = a; } });
   check('screen transform = bare fit transform (k,0,0,k,0,0)',
     got && got[0] === v.k && got[3] === v.k && got[4] === 0 && got[5] === 0);
+}
+
+// ---------------------------------------------------------------------------
+// U3: gestures, camera-change hook, chevron edge-pinning
+// ---------------------------------------------------------------------------
+
+// fakeCanvas + recorded listeners, so setupInput can be driven headlessly.
+const gestureCanvas = (rectW, rectH) => {
+  const listeners = {};
+  return {
+    width: 0, height: 0, style: {}, parentElement: null, listeners,
+    addEventListener: (t, f) => { (listeners[t] = listeners[t] || []).push(f); },
+    setPointerCapture() {}, releasePointerCapture() {},
+    getBoundingClientRect: () => ({ left: 10, top: 20, width: rectW, height: rectH }),
+  };
+};
+const fire = (c, type, props) =>
+  (c.listeners[type] || []).forEach((f) => f({ preventDefault() {}, button: 0, ...props }));
+
+console.log('Gestures: sub-slop tap clicks; a drag pans and suppresses the click:');
+{
+  const c = gestureCanvas(896, 576);
+  const v = new Viewport(c, { style: {} }, box(896, 576));
+  let clicks = 0;
+  setupInput(c, { onLeftClick: () => clicks++ }, v);
+
+  // sub-slop tap: down, 3px wiggle, up -> the click flow fires exactly as today
+  fire(c, 'pointerdown', { pointerId: 1, clientX: 100, clientY: 100 });
+  fire(c, 'pointermove', { pointerId: 1, clientX: 103, clientY: 100 });
+  fire(c, 'pointerup', { pointerId: 1, clientX: 103, clientY: 100 });
+  fire(c, 'click', { clientX: 103, clientY: 100 });
+  check('sub-slop tap still clicks', clicks === 1);
+
+  // drag beyond slop (zoom in first so the pan isn't clamped away at zoom 1)
+  v.zoomAt(2, 448, 288);   // cam (224, 144)
+  fire(c, 'pointerdown', { pointerId: 1, clientX: 400, clientY: 300 });
+  fire(c, 'pointermove', { pointerId: 1, clientX: 360, clientY: 280 });
+  fire(c, 'pointerup', { pointerId: 1, clientX: 360, clientY: 280 });
+  fire(c, 'click', { clientX: 360, clientY: 280 });
+  check('drag does not produce a build click', clicks === 1);
+  // finger left 40 / up 20 css px at scale 1 zoom 2 -> camera +20, +10 world px
+  check('drag pans: css delta / (scale*zoom)',
+    Math.abs(v.camX - 244) < 1e-9 && Math.abs(v.camY - 154) < 1e-9,
+    `cam ${v.camX},${v.camY}`);
+
+  // the suppress flag must not leak into the NEXT tap
+  fire(c, 'pointerdown', { pointerId: 1, clientX: 100, clientY: 100 });
+  fire(c, 'pointerup', { pointerId: 1, clientX: 100, clientY: 100 });
+  fire(c, 'click', { clientX: 100, clientY: 100 });
+  check('tap after a drag clicks again', clicks === 2);
+}
+
+console.log('Gestures: pinch through the real handlers keeps the midpoint world point pinned:');
+{
+  const c = gestureCanvas(896, 576);
+  const v = new Viewport(c, { style: {} }, box(896, 576));
+  let clicks = 0;
+  setupInput(c, { onLeftClick: () => clicks++ }, v);
+
+  // two fingers 200px apart, midpoint at client (458, 308) = world (448, 288)
+  fire(c, 'pointerdown', { pointerId: 1, clientX: 358, clientY: 308 });
+  fire(c, 'pointerdown', { pointerId: 2, clientX: 558, clientY: 308 });
+  const w = v.clientToWorld(458, 308);
+  // spread to 320px, one finger per frame (midpoint wobbles then returns)
+  fire(c, 'pointermove', { pointerId: 1, clientX: 298, clientY: 308 });
+  fire(c, 'pointermove', { pointerId: 2, clientX: 618, clientY: 308 });
+  check('pinch zooms by the distance ratio', Math.abs(v.zoom - 1.6) < 1e-6, String(v.zoom));
+  let u = v.worldToUi(w.x, w.y);
+  check('midpoint world point stays under the midpoint',
+    Math.abs(u.x - 448) < 1e-6 && Math.abs(u.y - 288) < 1e-6, `${u.x.toFixed(2)},${u.y.toFixed(2)}`);
+
+  // midpoint movement pans: both fingers +50px right, distance unchanged
+  fire(c, 'pointermove', { pointerId: 1, clientX: 348, clientY: 308 });
+  fire(c, 'pointermove', { pointerId: 2, clientX: 668, clientY: 308 });
+  u = v.worldToUi(w.x, w.y);
+  check('midpoint pan drags the world point along',
+    Math.abs(v.zoom - 1.6) < 1e-6 && Math.abs(u.x - 498) < 1e-6 && Math.abs(u.y - 288) < 1e-6,
+    `${u.x.toFixed(2)},${u.y.toFixed(2)}`);
+
+  // lifting both fingers must suppress the trailing click
+  fire(c, 'pointerup', { pointerId: 1, clientX: 348, clientY: 308 });
+  fire(c, 'pointerup', { pointerId: 2, clientX: 668, clientY: 308 });
+  fire(c, 'click', { clientX: 508, clientY: 308 });
+  check('pinch suppresses the trailing click', clicks === 0);
+}
+
+console.log('Gestures: wheel zooms about the cursor:');
+{
+  const c = gestureCanvas(896, 576);
+  const v = new Viewport(c, { style: {} }, box(896, 576));
+  setupInput(c, {}, v);
+  fire(c, 'wheel', { clientX: 458, clientY: 308, deltaY: -100 });   // one notch in
+  check('wheel-in = one WHEEL_ZOOM_STEP',
+    Math.abs(v.zoom - CONFIG.CAMERA.WHEEL_ZOOM_STEP) < 1e-9, String(v.zoom));
+  fire(c, 'wheel', { clientX: 458, clientY: 308, deltaY: 100 });    // and back out
+  check('wheel-out returns to fit-all, camera re-clamped',
+    Math.abs(v.zoom - 1) < 1e-9 && v.camX === 0 && v.camY === 0);
+}
+
+console.log('Camera-change hook: fires on real movement, silent on no-op clamps:');
+{
+  const v = new Viewport(fakeCanvas(896, 576), { style: {} }, box(896, 576));
+  let n = 0;
+  v.onCameraChange = () => n++;
+  v.panBy(50, 50);                 // fully clamped at zoom 1: a no-op
+  check('clamped pan at zoom 1 does not fire', n === 0);
+  v.zoomAt(2, 448, 288);
+  check('zoomAt fires', n === 1);
+  v.panBy(10, 10);
+  check('panBy fires', n === 2);
+  v.zoomAt(999, 448, 288);         // clamps at MAX_ZOOM but still moved 2 -> 2.5
+  check('clamped zoom that still moved fires', n === 3);
+  v.zoomAt(2, 448, 288);           // already at MAX_ZOOM: nothing moves
+  check('no-op zoom at the cap does not fire', n === 3);
+  v.resetCamera();
+  check('resetCamera fires when it moves the camera', n === 4);
+  v.resetCamera();
+  check('resetCamera at rest does not fire', n === 4);
+}
+
+console.log('Chevron pinning: nearest edge, spawn-order offsets, safe-area clamp:');
+{
+  // 400x700 ui box, notch-style insets, 40px chevrons (half = 20)
+  const bx = { w: 400, h: 700, inset: { left: 0, top: 44, right: 0, bottom: 34 }, size: 40 };
+  const [on] = pinChevrons([{ x: 200, y: 300 }], bx);
+  check('on-screen anchor passes through untouched', on.x === 200 && on.y === 300 && !on.pinned);
+
+  const [top] = pinChevrons([{ x: 120, y: -80 }], bx);
+  check('off-screen above pins to the top inside the safe inset',
+    top.pinned && top.edge === 'top' && top.x === 120 && top.y === 64);
+
+  const [left] = pinChevrons([{ x: -200, y: -10 }], bx);
+  check('biggest overshoot picks the edge (left beats top)',
+    left.edge === 'left' && left.x === 20 && left.y === 64);
+
+  const two = pinChevrons([{ x: 500, y: 300 }, { x: 520, y: 310 }], bx);
+  check('both pin to the right edge', two[0].edge === 'right' && two[1].edge === 'right'
+    && two[0].x === 380 && two[1].x === 380);
+  check('shared edge offsets in spawn order without overlap',
+    two[0].y === 300 && two[1].y === 340);
+
+  // both crowd the bottom-right corner: the pair backs up the edge, still separated
+  const corner = pinChevrons([{ x: 500, y: 640 }, { x: 520, y: 645 }], bx);
+  check('corner pile-up backs off the far end, separation kept',
+    corner[0].y === 606 && corner[1].y === 646);
+
+  const [bot] = pinChevrons([{ x: 200, y: 800 }], bx);
+  check('bottom pin clamps above the home-bar inset', bot.edge === 'bottom' && bot.y === 646);
 }
 
 console.log(fails === 0 ? 'VIEWPORT_OK' : `VIEWPORT_FAIL (${fails})`);

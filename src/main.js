@@ -147,7 +147,8 @@ const actions = {
   toggleArt: () => { toggleSprites(); },
   toggleAuto: () => { state.autoStart = !state.autoStart; },
   startWave: () => {
-    if (!state.hero || state.waveActive || state.status === 'won' || state.status === 'lost') return;
+    // (the !state.hero check was a hero-era "fully booted" proxy)
+    if ((CONFIG.HEROES_ENABLED && !state.hero) || state.waveActive || state.status === 'won' || state.status === 'lost') return;
     const bonus = payEarlyStart(state, state.buildTimer);
     state.buildTimer = 0;
     startWave(state, state.wave + 1);
@@ -231,7 +232,7 @@ function update(dt) {
     return;
   }
 
-  if (!state.waveActive && state.buildTimer > 0 && state.hero) {
+  if (!state.waveActive && state.buildTimer > 0 && (state.hero || !CONFIG.HEROES_ENABLED)) {
     state.buildTimer = Math.max(0, state.buildTimer - dt);
     if (state.buildTimer <= 0 && state.autoStart) actions.startWave();
   }
@@ -328,6 +329,7 @@ const screens = new Screens(modal, {
   canRevive: () => ads.isReady('REVIVE', state),
 });
 viewport.onResize = () => hud.onViewportResize();
+viewport.onCameraChange = () => hud.onCameraChange();
 loop.start();
 
 // Audio unlock must happen inside the FIRST user gesture (iOS requirement).

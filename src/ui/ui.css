@@ -148,6 +148,12 @@
   padding: 0 4px;
   margin-top: 1px;
 }
+/* pinned to a screen edge while its spawn sits off-screen (pan/zoom): the
+   arrow turns to point at the spawn; an edge marker shouldn't jiggle */
+.chevron.pinned { animation: none; }
+.chevron.pinned[data-edge='top'] .arrow { transform: rotate(180deg); }
+.chevron.pinned[data-edge='left'] .arrow { transform: rotate(90deg); }
+.chevron.pinned[data-edge='right'] .arrow { transform: rotate(-90deg); }
 
 /* ---- radial menus ---------------------------------------------------------- */
 .radial-backdrop {

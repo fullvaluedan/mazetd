@@ -48,6 +48,10 @@ export class HUD {
     if (this.radial) this.radial.close();   // anchors are stale after a resize
   }
 
+  // Called when the camera pans/zooms: same stale-anchor rules — chevrons
+  // track the world, an open ring would point at the wrong cell.
+  onCameraChange() { this.onViewportResize(); }
+
   // ---- radial menus (the KR build/upgrade interaction) ----
   get radialOpen() { return !!(this.radial && this.radial.isOpen); }
 
