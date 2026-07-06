@@ -88,7 +88,17 @@ export function payWaveClear(state, waveNum) {
   addGold(state, bonus);
   const interest = Math.min(CONFIG.INTEREST_CAP, Math.floor(state.gold * CONFIG.INTEREST_RATE));
   addGold(state, interest);
-  return { bonus, interest };
+  // Income towers (U6): flat stats.income gold per tower, paid only here.
+  // Deliberately NOT scaled by waveclearMult (that knob tames the global
+  // clear constants, not tower stats) and added after interest so the
+  // interest math is untouched.
+  let income = 0;
+  for (const t of state.towers) {
+    const inc = t.stats && t.stats.income;
+    if (inc > 0) { income += inc; addFloater(state, t.px, t.py, '+' + inc + 'g', CONFIG.COLORS.gold); }
+  }
+  if (income > 0) addGold(state, income);
+  return { bonus, interest, income };
 }
 
 // Early-start bonus: gold for each whole second left on the build timer.

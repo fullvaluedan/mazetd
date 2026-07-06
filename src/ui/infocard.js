@@ -90,6 +90,7 @@ export function enemyCardHtml(e) {
   if (e.slowTimer > 0) traits.push('slowed');
   if (e.poison.length) traits.push('poisoned');
   if (e.stunTimer > 0) traits.push('stunned');
+  if (e.shredTimer > 0) traits.push('<span style="color:#e09b1a">armor shredded</span>');
   if (e.siegeTarget) traits.push('<span style="color:#ff6b66">attacking your wall!</span>');
   const atk = e.def.atk != null ? e.def.atk : 0;
   const atkLine = atk > 0

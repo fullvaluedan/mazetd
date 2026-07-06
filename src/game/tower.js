@@ -17,7 +17,7 @@ import { CONFIG } from '../config.js';
 import { SIZE, cellCenter, cellCenterX, cellCenterY, cellDist } from '../engine/grid.js';
 import { fieldAt } from '../engine/pathfinding.js';
 import { onMazeChanged, pushEvent } from './state.js';
-import { spawnProjectile, applyTowerHit, applyChain, pushBeam, pushSplash } from './projectile.js';
+import { spawnProjectile, applyTowerHit, applyChain, applyLine, pushBeam, pushSplash } from './projectile.js';
 import { addShake, addFloater } from './economy.js';
 
 // The per-tier upgrade table for a def (KTD3). Entry i = the tier entered at
@@ -70,6 +70,14 @@ function applyMods(s, m) {
   if (m.disrupt) s.disrupt = true;
   if (m.contagion) s.contagion = true;
   if (m.cluster) s.cluster = m.cluster;
+  // U6 mechanics — every one a plain stats key so tiers/forks can grant them.
+  if (m.income) s.income = m.income;
+  if (m.executePct) s.executePct = m.executePct;
+  if (m.armorShred) s.armorShred = m.armorShred;
+  if (m.armorShredDur) s.armorShredDur = m.armorShredDur;
+  if (m.lineDamage) s.lineDamage = true;
+  if (m.lineWidth) s.lineWidth = m.lineWidth;
+  if (m.stunDur) s.stunDur = m.stunDur;
 }
 
 // Resolve a tower's stats at a given level + branch choice.
@@ -95,6 +103,16 @@ export function getTowerStats(typeId, level, branchId) {
     disrupt: false,
     contagion: false,
     cluster: 0,
+    // U6 mechanics (see docs/plans/…U6): income gold/wave-clear, execute
+    // threshold (fraction of maxHp), armor-shred debuff (+% matchup, seconds),
+    // line corridor (flag + half-width in cells), stun on hit (seconds).
+    income: def.income || 0,
+    executePct: def.executePct || 0,
+    armorShred: def.armorShred || 0,
+    armorShredDur: def.armorShredDur || 2,
+    lineDamage: !!def.lineDamage,
+    lineWidth: def.lineWidth || 0.5,
+    stunDur: def.stunDur || 0,
   };
 
   // Aura towers (Beacon): strength/radius come from auraByLevel, not the tier
@@ -273,6 +291,9 @@ export class Tower {
       pushEvent(state, 'shot', this.stats.damageType);   // beams spawn no projectile
       if (this.stats.chainTargets > 0) {
         applyChain(state, primary, this.stats, { x: this.px, y: this.py }, this.def.color);
+      } else if (this.stats.lineDamage) {
+        // railgun: pierce everything along the ray (beam visual pushed inside)
+        applyLine(state, this, primary, this.stats);
       } else {
         // frost-style instant beam (+ slow / shatter handled in applyTowerHit)
         applyTowerHit(state, primary, this.stats);

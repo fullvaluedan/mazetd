@@ -3,9 +3,10 @@
 //
 // dealDamage() is the choke point every weapon goes through: it applies the
 // damage (the enemy itself handles armor/magic/shield/shatter) and then any
-// on-hit riders (slow, poison DoT, shatter debuff, shield-strip/dispel, the
-// contagion mark). spawnProjectile/updateProjectiles handle travelling shots;
-// applyChain/applyTowerHit handle instant hits. Visual effects are pushed to
+// on-hit riders (slow, poison DoT, shatter/armor-shred debuffs, stun,
+// shield-strip/dispel, the contagion mark, and the execute threshold).
+// spawnProjectile/updateProjectiles handle travelling shots; applyChain/
+// applyLine/applyTowerHit handle instant hits. Visual effects are pushed to
 // state.effects and drawn by render.js.
 // =============================================================================
 
@@ -37,8 +38,17 @@ export function dealDamage(state, enemy, amount, stats) {
   // DoT is matrix-scaled once here; tickPoison stays armor/shield-free.
   if (stats.dotDps > 0) enemy.applyPoison(stats.dotDps * matchup('poison', enemy.armorType), stats.dotDur, state);
   if (stats.shatter > 0) enemy.applyShatter(stats.shatter, Math.max(1, stats.slowDur || 1.5));
+  if (stats.armorShred > 0) enemy.applyArmorShred(stats.armorShred, stats.armorShredDur || 2);
+  if (stats.stunDur > 0) enemy.applyStun(stats.stunDur);
   if (stats.disrupt) { enemy.removeShield(); enemy.disrupted = true; }
   if (stats.contagion) enemy._contagion = true;
+  // Execute (U6): a survivor left under the threshold hp fraction dies outright.
+  // Only hp is zeroed — updateEnemies resolves the death through the normal
+  // path (bounty, hero XP, contagion), exactly like any lethal hit. Bosses exempt.
+  if (stats.executePct > 0 && !enemy.boss && enemy.hp > 0 && enemy.hp < enemy.maxHp * stats.executePct) {
+    enemy.hp = 0;
+    addFloater(state, enemy.x, enemy.y - enemy.radius, 'EXECUTED', CONFIG.COLORS.danger);
+  }
   return dealt;
 }
 
@@ -72,6 +82,29 @@ export function applyChain(state, first, stats, origin, color) {
     cur = nearestUnhit(state, cur, hit, stats.chainRange, stats.targetsAir);
   }
   pushChain(state, points, color);
+}
+
+// Railgun line (U6): damage every enemy within stats.lineWidth cells of the
+// tower→target ray, out to the tower's range. Air gating mirrors applySplash.
+export function applyLine(state, tower, target, stats) {
+  const ox = tower.px, oy = tower.py;
+  let dx = target.x - ox, dy = target.y - oy;
+  const len = Math.hypot(dx, dy);
+  if (len < 0.001) return;
+  dx /= len; dy /= len;
+  const rangePx = (tower.effectiveRange ? tower.effectiveRange(state) : stats.range) * SIZE;
+  const widthPx = (stats.lineWidth || 0.5) * SIZE;
+  const amt = baseDamage(state, stats, 1);
+  for (const e of state.enemies) {
+    if (!e.alive) continue;
+    if (e.flying && !stats.targetsAir) continue;   // ground line can't hit air
+    const ex = e.x - ox, ey = e.y - oy;
+    const along = ex * dx + ey * dy;               // px along the ray
+    if (along < 0 || along > rangePx) continue;
+    const perp = Math.abs(ex * dy - ey * dx);      // px off the ray
+    if (perp <= widthPx) dealDamage(state, e, amt, stats);
+  }
+  pushBeam(state, ox, oy, ox + dx * rangePx, oy + dy * rangePx, (tower.def && tower.def.color) || '#e8ecf3');
 }
 
 function nearestUnhit(state, from, hit, rangeCells, targetsAir) {

@@ -12,6 +12,8 @@
 //   - poison DoT : matrix-scaled once at application, ticks ignore shields
 //   - shield     : absorbs non-magic damage until depleted (post-matrix)
 //   - shatter (Frost L4B): victim takes +50% from ALL sources while debuffed
+//   - armor shred (U6): timed debuff scaling the MATCHUP component up — one
+//     instance only, refreshed on reapply (distinct from shatter's flat mult)
 // =============================================================================
 
 import { CONFIG } from '../config.js';
@@ -72,6 +74,7 @@ export class Enemy {
     this.slowTimer = 0; this.slowPct = 0;
     this.stunTimer = 0;
     this.shatterTimer = 0; this.shatterMult = 0;
+    this.shredTimer = 0; this.shredMult = 0;
     this.poison = [];           // [{dps, until}]
     this.disrupted = false;     // regen dispelled (Arcane Disrupt)
     this.bob = state.rng ? state.rng.next() * Math.PI * 2 : 0; // flyer bob phase
@@ -126,6 +129,7 @@ export class Enemy {
   }
   applyStun(dur) { this.stunTimer = Math.max(this.stunTimer, dur); }
   applyShatter(extraMult, dur) { this.shatterMult = extraMult; this.shatterTimer = Math.max(this.shatterTimer, dur); }
+  applyArmorShred(extraMult, dur) { this.shredMult = extraMult; this.shredTimer = Math.max(this.shredTimer, dur); }
   applyPoison(dps, dur, state) {
     this.poison.push({ dps, until: state.time + dur });
     if (this.poison.length > CONFIG.DOT_MAX_STACKS) {
@@ -138,7 +142,9 @@ export class Enemy {
   // Apply a hit. Returns the actual damage dealt to hp (for floating numbers).
   takeDamage(raw, type) {
     if (!this.alive) return 0;
-    let dmg = raw * matchup(type, this.armorType);
+    let m = matchup(type, this.armorType);
+    if (this.shredTimer > 0) m *= (1 + this.shredMult);   // armor shred (U6)
+    let dmg = raw * m;
     if (this.shatterTimer > 0) dmg *= (1 + this.shatterMult);
     // shields absorb everything except magic
     if (type !== 'magic' && this.shieldHp > 0) {
@@ -162,6 +168,7 @@ export class Enemy {
     if (this.slowImmuneLeft > 0) { this.slowImmuneLeft -= dt; this.slowTimer = 0; this.slowPct = 0; }
     if (this.slowTimer > 0) { this.slowTimer -= dt; if (this.slowTimer <= 0) this.slowPct = 0; }
     if (this.shatterTimer > 0) this.shatterTimer -= dt;
+    if (this.shredTimer > 0) this.shredTimer -= dt;
     if (this.burstLeft > 0) this.burstLeft -= dt;
     if (this.hitFlash > 0) this.hitFlash -= dt;
     this.tickPoison(state, dt);
