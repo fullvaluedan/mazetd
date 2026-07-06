@@ -117,8 +117,14 @@ export function towerCardHtml(t) {
   }
   if (t.def.aura) {
     return `<b style="color:${t.def.color}">${t.def.glyph} ${t.def.name}</b> — L${t.level}${branchName(t)}<br>
-      +${Math.round(s.auraDmg * 100)}% dmg · +${Math.round(s.auraSpeed * 100)}% atk speed · radius ${s.auraRange.toFixed(1)}<br>
+      +${Math.round(s.auraDmg * 100)}% dmg · +${Math.round(s.auraSpeed * 100)}% atk speed · radius ${s.auraRange.toFixed(1)}${s.income ? ` · +${s.income}g/wave` : ''}<br>
       <span class="muted">buffs nearby towers · strongest aura wins · sell +${Math.floor(t.invested * CONFIG.SELL_REFUND)}g</span>`;
+  }
+  if (t.def.noAttack) {
+    const next = t.canUpgrade() ? `<br><span style="color:#e09b1a">▲ upgrade: ${t.nextUpgradeCost()}g</span>` : '<br><span class="muted">max level</span>';
+    return `<b style="color:${t.def.color}">${t.def.glyph} ${t.def.name}</b> — L${t.level}<br>
+      💰 +${s.income}g every wave clear · never attacks<br>
+      <span class="muted">${t.def.blurb} · sell +${sellRefund(t)}g</span>${next}`;
   }
   const dps = (s.damage * (s.multishot || 1) / s.cooldown).toFixed(1);
   const sp = specialText(s);
@@ -178,6 +184,11 @@ export function typeCardHtml(typeId, verdictHtml = '') {
   if (def.aura) {
     return `<b style="color:${def.color}">${def.glyph} ${def.name}</b> — ${def.cost}g<br>
       +${Math.round(s.auraDmg * 100)}% dmg · +${Math.round(s.auraSpeed * 100)}% atk speed · radius ${s.auraRange.toFixed(1)}<br>
+      <span class="muted">${def.blurb}</span>${verdictHtml ? '<br>' + verdictHtml : ''}`;
+  }
+  if (def.noAttack) {
+    return `<b style="color:${def.color}">${def.glyph} ${def.name}</b> — ${def.cost}g<br>
+      💰 +${s.income}g every wave clear · never attacks<br>
       <span class="muted">${def.blurb}</span>${verdictHtml ? '<br>' + verdictHtml : ''}`;
   }
   const dps = (s.damage / s.cooldown).toFixed(1);

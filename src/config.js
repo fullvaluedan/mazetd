@@ -140,11 +140,13 @@ export const CONFIG = {
   BOSS_HP_MULT_MAX: 30,
 
   // ---------------------------------------------------------------------------
-  // TOWERS — the player roster is deliberately SMALL and WEAK: walls + three
-  // starter towers. Mazing wins games, not tower stats. Towers cap at LEVEL 3
-  // and each upgrade costs more than the tower did (costMultL2/L3 below).
-  // Defs marked `hidden: true` are the legacy set — kept for the headless
-  // regression sims and as a pool for future unlocks, never shown in the ring.
+  // TOWERS — the campaign roster (U7): the 5g Wall plus the 8-tower WC3-role
+  // set (arrow / cannon / frost / poison / sniper / lightning / support /
+  // gold), every one on 5 tiers with a T5 signature or A/B fork. Mazing still
+  // wins games — T1 towers are deliberately weak; tiers are where power lives.
+  // Defs marked `hidden: true` are the legacy set — kept byte-identical for
+  // the classic-board regression sims (autoplay TYPE_CYCLE) and for old v2
+  // Endless saves (magic/falcon/cannonL), never shown in the ring.
   //
   // Upgrades are per-tier data (U5/KTD3): a def may declare
   //   tiers: [                       // entry i = the tier entered at level i+2
@@ -153,9 +155,9 @@ export const CONFIG = {
   //   ]
   // Max level = tiers.length + 1; the ring shows a straight upgrade at any
   // tier without forks (single-signature tiers are just mods, no forks). The
-  // new roster (U7) uses a 2.5/5/10/20 costMult curve. Defs WITHOUT `tiers`
-  // get a legacy-equivalent table built from UPGRADE below (see tower.js
-  // tierTable), so every current tower keeps its exact numbers.
+  // roster uses the 2.5/5/10/20 costMult curve. Defs WITHOUT `tiers` get a
+  // legacy-equivalent table built from UPGRADE below (see tower.js
+  // tierTable), so every legacy tower keeps its exact numbers.
   // ---------------------------------------------------------------------------
   MAX_TOWER_LEVEL: 3,
   UPGRADE: {
@@ -178,15 +180,151 @@ export const CONFIG = {
       blurb: 'Cheap maze block. Sells back 100%.',
       branches: {},
     },
-    // -- the starter three ----------------------------------------------------
+    // -- the 8-tower WC3 roster (U7) -------------------------------------------
+    arrow: {
+      name: 'Arrow', glyph: 'A', color: '#7fd66b', cost: 10,
+      damage: 5, range: 2.6, cooldown: 0.7, damageType: 'pierce',
+      targetsAir: true, projectileSpeed: 12,
+      blurb: 'Cheap, fast. Hits land AND air.',
+      branches: {},
+      tiers: [
+        { costMult: 2.5, mods: { damageMult: 2, rangeMult: 1.08, cooldownMult: 0.9 } },
+        { costMult: 5,   mods: { damageMult: 2, rangeMult: 1.08, cooldownMult: 0.9 } },
+        { costMult: 10,  mods: { damageMult: 2, cooldownMult: 0.9 } },
+        { costMult: 20,  forks: {
+          A: { id: 'deadeye',   name: 'Deadeye',   desc: 'devastating critical shots (+200% dmg)', mods: { damageMult: 3 } },
+          B: { id: 'multishot', name: 'Multishot', desc: '3 arrows, 0.8x dmg each (anti-swarm/air)', mods: { multishot: 3, damageMult: 0.8 } },
+        } },
+      ],
+    },
     cannon: {
       name: 'Cannon', glyph: 'C', color: '#d98a4b', cost: 15,
       damage: 6, range: 2.2, cooldown: 1.7, damageType: 'siege',
       targetsAir: false, projectileSpeed: 7, splashRadius: 1.0,
       blurb: 'Small splash. Land only.',
       branches: {},
+      tiers: [
+        { costMult: 2.5, mods: { damageMult: 2, splashRadius: 1.15 } },
+        { costMult: 5,   mods: { damageMult: 2, splashRadius: 1.3 } },
+        { costMult: 10,  mods: { damageMult: 2, splashRadius: 1.45 } },
+        { costMult: 20,  forks: {
+          A: { id: 'doomsday', name: 'Doomsday', desc: 'huge blasts (+150% dmg, 2.0 splash)', mods: { damageMult: 2.5, splashRadius: 2.0 } },
+          B: { id: 'cluster',  name: 'Cluster',  desc: '3 mini-bombs re-splash every shell',   mods: { damageMult: 1.5, cluster: 3 } },
+        } },
+      ],
     },
+    frost: {
+      name: 'Frost', glyph: 'Fr', color: '#5bb8d6', cost: 20,
+      damage: 3, range: 2.4, cooldown: 1.0, damageType: 'magic',
+      targetsAir: true, hitscan: true, slowPct: 0.15, slowDur: 1.5,
+      blurb: 'Slows enemies. Hits air.',
+      branches: {},
+      tiers: [
+        { costMult: 2.5, mods: { damageMult: 2, slowPct: 0.4 } },
+        { costMult: 5,   mods: { damageMult: 2, slowPct: 0.45, slowDur: 2.0 } },
+        { costMult: 10,  mods: { damageMult: 2, slowPct: 0.5 } },
+        // T5 single signature: brief freeze on every hit (stun stands in for
+        // "freeze chance" — no chance mechanic exists, and U7 adds none).
+        { costMult: 20,  mods: { damageMult: 2, slowPct: 0.6, slowDur: 2.5, stunDur: 0.35 } },
+      ],
+    },
+    poison: {
+      name: 'Poison', glyph: 'P', color: '#6fc34b', cost: 25,
+      damage: 4, range: 2.5, cooldown: 1.2, damageType: 'poison',
+      targetsAir: false, projectileSpeed: 9, dotDps: 8, dotDur: 3,
+      blurb: 'Poison DoT. Land only.',
+      branches: {},
+      tiers: [
+        { costMult: 2.5, mods: { damageMult: 2, dotDpsMult: 1.5 } },
+        { costMult: 5,   mods: { damageMult: 2, dotDpsMult: 2, dotDur: 4 } },
+        { costMult: 10,  mods: { damageMult: 2, dotDpsMult: 1.5 } },
+        { costMult: 20,  forks: {
+          A: { id: 'contagion', name: 'Contagion', desc: 'poison spreads on kill (DoT x2, 5s)', mods: { dotDpsMult: 2, dotDur: 5, contagion: true } },
+          B: { id: 'corrosion', name: 'Corrosion', desc: 'melts armor: hits amplify ALL damage', mods: { damageMult: 2, armorShred: 0.5, armorShredDur: 3 } },
+        } },
+      ],
+    },
+    sniper: {
+      name: 'Sniper', glyph: 'S', color: '#c9d4e0', cost: 40,
+      damage: 25, range: 5.0, cooldown: 3.0, damageType: 'pierce',
+      targetsAir: true, hitscan: true,
+      blurb: 'Huge single hits, long range. Slow.',
+      branches: {},
+      tiers: [
+        { costMult: 2.5, mods: { damageMult: 2, rangeMult: 1.1 } },
+        { costMult: 5,   mods: { damageMult: 2, rangeMult: 1.1 } },
+        { costMult: 10,  mods: { damageMult: 2, cooldownMult: 0.85 } },
+        { costMult: 20,  forks: {
+          A: { id: 'executioner', name: 'Executioner', desc: 'kills anything left under 20% HP (not bosses)', mods: { damageMult: 2, executePct: 0.2 } },
+          B: { id: 'railgun',     name: 'Railgun',     desc: 'shots pierce everything along the line', mods: { damageMult: 2, lineDamage: true, lineWidth: 0.6 } },
+        } },
+      ],
+    },
+    lightning: {
+      name: 'Lightning', glyph: 'L', color: '#e0c84f', cost: 50,
+      damage: 22, range: 3.6, cooldown: 1.5, damageType: 'magic',
+      targetsAir: true, hitscan: true, chainTargets: 3, chainFalloff: 0.6, chainRange: 1.6,
+      blurb: 'Chain lightning. Hits air.',
+      branches: {},
+      tiers: [
+        { costMult: 2.5, mods: { damageMult: 2 } },
+        { costMult: 5,   mods: { damageMult: 2, chainTargets: 4 } },
+        { costMult: 10,  mods: { damageMult: 2, chainTargets: 5, chainFalloff: 0.8 } },
+        // T5 single signature: the storm — 8 chains, zero falloff.
+        { costMult: 20,  mods: { damageMult: 2, chainTargets: 8, chainFalloff: 1.0 } },
+      ],
+    },
+    support: {
+      name: 'Support', glyph: 'B', color: '#e08ac8', cost: 35,
+      aura: true,                    // non-attacking: buffs towers in radius instead
+      damage: 0, range: 2.0, cooldown: 0, damageType: 'none',
+      targetsAir: false, projectileSpeed: 0,
+      // L1..L5 aura strength/radius (tier mods don't scale auras; this table does).
+      auraByLevel: [
+        { dmg: 0.10, speed: 0.05, range: 2.0 },
+        { dmg: 0.15, speed: 0.08, range: 2.4 },
+        { dmg: 0.20, speed: 0.10, range: 2.8 },
+        { dmg: 0.25, speed: 0.12, range: 3.2 },
+        { dmg: 0.30, speed: 0.15, range: 3.6 },
+      ],
+      blurb: 'Buffs nearby towers. Does not attack.',
+      branches: {},
+      tiers: [
+        { costMult: 2.5 },
+        { costMult: 5 },
+        { costMult: 10 },
+        // Gold-on-kill doesn't exist as a mechanic (and U7 adds none), so the
+        // B fork pays flat income per wave instead — same "support that pays
+        // for itself" flavor on an existing stats key.
+        { costMult: 20,  forks: {
+          A: { id: 'banner',   name: 'War Banner', desc: '+45% damage aura', mods: { auraDmg: 0.45 } },
+          B: { id: 'treasury', name: 'Treasury',   desc: 'aura + pays 25g every wave', mods: { income: 25 } },
+        } },
+      ],
+    },
+    gold: {
+      name: 'Gold Mine', glyph: '$', color: '#f2c14b', cost: 30,
+      noAttack: true,                // a real tower with no attack: income only
+      damage: 0, range: 0, cooldown: 0, damageType: 'none',
+      targetsAir: false, projectileSpeed: 0,
+      income: 3,                     // gold per wave clear; tiers escalate it
+      blurb: 'Pays gold every wave. Never attacks.',
+      branches: {},
+      tiers: [
+        { costMult: 2.5, mods: { income: 8 } },
+        { costMult: 5,   mods: { income: 18 } },
+        { costMult: 10,  mods: { income: 40 } },
+        // T5 single signature: the mint.
+        { costMult: 20,  mods: { income: 100 } },
+      ],
+    },
+    // -- legacy pool (hidden; old-save compat + classic sim regression) --------
+    // magic/falcon: the retired campaign towers — old v2 Endless saves still
+    // load them. cannonL/frostL: byte-identical clones of the pre-U7 cannon
+    // and frost defs so autoplay's classic TYPE_CYCLE (t10validate) keeps its
+    // exact hero-era numbers while the roster cannon/frost carry tier tables.
     magic: {
+      hidden: true,
       name: 'Magic', glyph: 'M', color: '#9a6bd6', cost: 22,
       damage: 3, range: 2.4, cooldown: 1.0, damageType: 'magic',
       targetsAir: true, hitscan: true, slowPct: 0.3, slowDur: 1.2,
@@ -194,13 +332,21 @@ export const CONFIG = {
       branches: {},
     },
     falcon: {
+      hidden: true,
       name: 'Falcon', glyph: 'F', color: '#4fa3d6', cost: 18,
       damage: 5, range: 3.2, cooldown: 0.9, damageType: 'pierce',
       targetsAir: true, airOnly: true, hitscan: true, falcon: true,
       blurb: 'A hunting falcon. AIR only.',
       branches: {},
     },
-    // -- legacy pool (hidden; future unlocks + sim regression) ----------------
+    cannonL: {
+      hidden: true,
+      name: 'Cannon', glyph: 'C', color: '#d98a4b', cost: 15,
+      damage: 6, range: 2.2, cooldown: 1.7, damageType: 'siege',
+      targetsAir: false, projectileSpeed: 7, splashRadius: 1.0,
+      blurb: 'Small splash. Land only.',
+      branches: {},
+    },
     archer: {
       hidden: true,
       name: 'Archer', glyph: 'A', color: '#7fd66b', cost: 35,
@@ -212,7 +358,7 @@ export const CONFIG = {
         B: { id: 'volley',   name: 'Volley',   desc: '3 arrows, 0.6x dmg each (anti-swarm/air)', mods: { multishot: 3, damageMult: 0.6 } },
       },
     },
-    frost: {
+    frostL: {
       hidden: true,
       name: 'Frost', glyph: 'Fr', color: '#5bb8d6', cost: 45,
       damage: 3, range: 2.4, cooldown: 1.0, damageType: 'magic',

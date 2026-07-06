@@ -25,7 +25,10 @@ import { tryBuild, tryUpgrade, trySell, tryConsumable } from '../game/shop.js';
 // Mix favouring anti-air (tesla/arcane/archer/frost can hit flyers). Ordered
 // cheap-first so the early maze fills out before pricey towers appear. One
 // Beacon per cycle: inline in the wall, its aura covers the adjacent walls.
-const TYPE_CYCLE = ['archer', 'cannon', 'frost', 'arcane', 'venom', 'archer', 'tesla', 'beacon', 'frost', 'arcane', 'cannon'];
+// cannonL/frostL are the hidden legacy clones (U7): identical numbers to the
+// pre-roster cannon/frost, so this classic sim (t10validate's hero-era
+// contract) is untouched by the campaign roster's new tier tables.
+const TYPE_CYCLE = ['archer', 'cannonL', 'frostL', 'arcane', 'venom', 'archer', 'tesla', 'beacon', 'frostL', 'arcane', 'cannonL'];
 
 function cheapestAffordable(budget) {
   let best = null, bestCost = Infinity;
@@ -37,7 +40,7 @@ function cheapestAffordable(budget) {
 }
 
 function preferredBranch(type, t) {
-  if (type === 'frost') return 'B';                 // Shatter: team-wide amp
+  if (type === 'frostL') return 'B';                // Shatter: team-wide amp
   if (type === 'arcane') return (t.uid % 2 === 0) ? 'B' : 'A'; // some Disrupt, some Archmage
   return 'A';                                       // offense branches otherwise
 }
@@ -118,7 +121,7 @@ function carelessBuild(state) {
   if (!state._ctargets) { state._ctargets = serpentineTargets(state).slice(0, 20); state._cti = 0; }
   for (const c of state._ctargets) {
     if (state.towerGrid[c.y][c.x]) continue;
-    const type = (state._cti % 2 === 0) ? 'archer' : 'cannon';
+    const type = (state._cti % 2 === 0) ? 'archer' : 'cannonL';
     if (state.gold < CONFIG.TOWERS[type].cost) continue;
     if (canBuildAt(state, c.x, c.y) && !wouldSealAt(state, c.x, c.y) && tryBuild(state, type, c.x, c.y)) state._cti++;
   }

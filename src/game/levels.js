@@ -11,19 +11,24 @@
 //   - Maps are authored (fixed obstacles), so every player sees the same
 //     puzzle; the classic random-obstacle map remains for Endless/sim.
 //   - Tower unlocks are tied to campaign progress (UNLOCK_SCHEDULE below):
-//     Cannon (L1), Magic (L3), Falcon (L7). The roster is intentionally small.
+//     the 8-tower roster spreads across levels 1-13 (arrow first, gold last).
 // =============================================================================
 
 import { CONFIG } from '../config.js';
 
 // Which towers a player has at a given campaign level (1-based, cumulative).
-// The roster starts tiny on purpose: Cannon (land), Magic (slow, land+air),
-// Falcon (air only) — more towers join the pool in later content drops.
+// The 8-tower WC3 roster (U7) spreads across levels 1-13; everything stays
+// available once unlocked, and levels 14-20 run the full roster by design.
 export const UNLOCK_SCHEDULE = [
-  { level: 1, tower: 'wall' },
-  { level: 1, tower: 'cannon' },
-  { level: 3, tower: 'magic' },
-  { level: 7, tower: 'falcon' },   // one level before the first flying wave
+  { level: 1,  tower: 'wall' },
+  { level: 1,  tower: 'arrow' },     // the cheap starter — mazing + arrows
+  { level: 2,  tower: 'cannon' },    // splash vs the first packs
+  { level: 3,  tower: 'frost' },     // slow utility
+  { level: 5,  tower: 'poison' },    // DoT vs the first tanks
+  { level: 7,  tower: 'sniper' },    // one level before the first flying wave (hits air)
+  { level: 9,  tower: 'lightning' }, // chain vs the dense mid-campaign waves
+  { level: 11, tower: 'support' },   // aura once real tower clusters exist
+  { level: 13, tower: 'gold' },      // income once levels are long enough to pay back
 ];
 
 export function towersUnlockedAt(levelNum) {
@@ -75,7 +80,7 @@ export const LEVELS = [
     spawns: [{ id: 'S1', cx: 1, cy: 0 }],
     goals: [{ id: 'G1', cx: 5, cy: 8 }],
     startGold: 100,
-    waves: { count: 8, types: ['normal'], hpMult: 2.9, bountyMult: 0.3, waveclearMult: 0.15 },
+    waves: { count: 8, types: ['normal'], hpMult: 2.8, bountyMult: 0.3, waveclearMult: 0.15 },
     stars: [10, 7],
   }),
   L(2, 'The Bend', {
@@ -119,13 +124,18 @@ export const LEVELS = [
     waves: { count: 12, types: ['normal', 'fast', 'swarm', 'tank'], swarmFrom: 4, hpMult: 3.9, bountyMult: 0.32, waveclearMult: 0.26 },
   }),
   // -- Act 2: the sky and the siege -------------------------------------------
-  L(7, "The Falcon's Watch", {                  // unlock: falcon (flyers next level)
+  L(7, "The Falcon's Watch", {                  // unlock: sniper (flyers next level)
     cols: 11, rows: 17,
     spawns: [{ id: 'S1', cx: 5, cy: 0 }],
     goals: [{ id: 'G1', cx: 5, cy: 16 }],
     checkpoints: [{ id: 'CP1', cx: 2, cy: 8 }, { id: 'CP2', cx: 8, cy: 8 }],
     startGold: 410,
-    waves: { count: 13, types: ['normal', 'fast', 'swarm', 'tank', 'healer'], swarmFrom: 4, hpMult: 4.5, bountyMult: 0.34, waveclearMult: 0.27, countMult: 1.8 },
+    // hpMult 15 (U7): the "upgrades required" wall. Probe-verified window:
+    // the strongest UNUPGRADED build dies at w11 with hp 14-15 while the
+    // upgraded reference still wins with 10 lives (its own cliff is past 16).
+    // Below 14 the saturated T1 maze out-DPSes any hp; per-level speed was a
+    // dead lever up to 1.9x.
+    waves: { count: 13, types: ['normal', 'fast', 'swarm', 'tank', 'healer'], swarmFrom: 4, hpMult: 15, bountyMult: 0.34, waveclearMult: 0.27, countMult: 1.8 },
   }),
   L(8, 'Wings Overhead', {                      // flyers introduced
     cols: 12, rows: 17,

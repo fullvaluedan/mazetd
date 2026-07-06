@@ -7,5 +7,7 @@ scratch/
 .env
 .env.local
 
-# generated image assets (regenerable via tools/gen-assets.mjs)
-assets/
+# assets/ is TRACKED as of U7: store builds clone the repo and hand-provided
+# sprites are not regenerable, so untracked art would silently ship blank.
+# Only generation debris stays ignored (top-level *.log already covers logs).
+assets/**/*.log

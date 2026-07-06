@@ -35,7 +35,18 @@ node tools/gen-assets.mjs --force         # regenerate everything
 ```
 
 Output lands in `assets/towers/`, `assets/enemies/`, `assets/heroes/`,
-`assets/misc/` (all gitignored — they're regenerable).
+`assets/misc/` (tracked in git as of U7 — store builds clone the repo, so the
+art must ship with it).
+
+## U7 roster sprites (art track TODO)
+
+The campaign roster (U7) needs one 1024px PNG per tower under `assets/towers/`:
+`arrow.png`, `cannon.png`, `frost.png`, `poison.png`, `sniper.png`,
+`lightning.png`, `support.png`, `gold.png`. Until they exist,
+`assets/manifest.json` aliases the new ids to the old art
+(arrow→archer.png, poison→venom.png, lightning→tesla.png, support→beacon.png;
+cannon/frost keep their own files) and `sniper`/`gold` fall back to their
+glyph/color canvas shapes.
 
 ⚠️ This calls a **paid** API (~31 images for the full set incl. walk-cycle sheets). Generate a few first.
 

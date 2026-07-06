@@ -3,9 +3,11 @@
 //
 // One generic Radial component (icons on a circle around a cell, backdrop that
 // swallows outside taps, center X) plus the two configurators: the BUILD ring
-// (tap an empty cell -> 7 tower choices with prices, greyed when unaffordable,
-// orange when the placement would seal the maze) and the TOWER ring (upgrade /
-// fork-tier A/B choice / target mode / sell). hud.js owns the single instance.
+// (tap an empty cell -> 9 items: wall + the 8-tower roster, greyed when
+// unaffordable, orange when the placement would seal the maze) and the TOWER
+// ring (upgrade / fork-tier A/B choice / target mode / sell). hud.js owns the
+// single instance. The ring radius grows with item count so every hit area
+// stays >=44px with >=8px spacing even on a 375px-wide viewport (U7).
 // =============================================================================
 
 import { CONFIG } from '../config.js';
@@ -16,8 +18,21 @@ import { towersUnlockedAt, unlockLevelFor } from '../game/levels.js';
 import { div } from './components.js';
 import { getSpriteUrl } from './sprites.js';
 
-const RING_R = 64;          // CSS px from center to item centers
+const RING_R = 64;          // CSS px from center to item centers (small rings)
 const ITEM_HALF = 30;       // half of the largest item box, for clamping
+// .radial-item hit-area diameter: 54px in ui.css, 60px under the
+// (pointer: coarse) media query -- phones are the binding case for spacing.
+export const RING_ITEM = 60;
+export const RING_GAP = 8;    // minimum CSS px between adjacent hit areas
+
+// Ring radius for n items: grow past RING_R until adjacent 60px hit areas
+// keep an 8px gap (U7 bar: >=44px hit areas, >=8px apart at 375px width).
+// At the 9-item build ring this yields r=100 -> a 272px ring, so ONE ring
+// satisfies the bar on a 375px viewport and the two-ring fallback is unused.
+export function ringRadiusFor(n) {
+  if (n < 2) return RING_R;
+  return Math.max(RING_R, Math.ceil((RING_ITEM + RING_GAP) / (2 * Math.sin(Math.PI / n))));
+}
 
 export class Radial {
   constructor(uiLayer, viewport) {
@@ -48,7 +63,8 @@ export class Radial {
 
     const ring = div('radial');
     const a = this.vp.worldToUi((cell.x + 0.5) * CONFIG.CELL, (cell.y + 0.5) * CONFIG.CELL);
-    const pad = RING_R + ITEM_HALF + 6;
+    const radius = ringRadiusFor(items.length);
+    const pad = radius + ITEM_HALF + 6;
     const w = this.ui.clientWidth || 0, h = this.ui.clientHeight || 0;
     const cx = Math.min(Math.max(a.x, pad), Math.max(pad, w - pad));
     const cy = Math.min(Math.max(a.y, pad), Math.max(pad, h - pad));
@@ -66,8 +82,8 @@ export class Radial {
       b.innerHTML = `${icon}
         ${it.price != null ? `<span class="price">${it.price}g</span>` : (it.sub ? `<span class="price sub">${it.sub}</span>` : '')}`;
       b.title = it.label || '';
-      b.style.left = Math.round(Math.cos(ang) * RING_R) + 'px';
-      b.style.top = Math.round(Math.sin(ang) * RING_R) + 'px';
+      b.style.left = Math.round(Math.cos(ang) * radius) + 'px';
+      b.style.top = Math.round(Math.sin(ang) * radius) + 'px';
       b.addEventListener('click', (ev) => { ev.stopPropagation(); if (!b.disabled) it.onTap(); });
       if (it.onHover) {
         b.addEventListener('mouseenter', () => it.onHover(true));
@@ -170,7 +186,7 @@ export function towerRingItems(state, tower, gameActions) {
       }
     }
   }
-  if (!tower.def.aura && !tower.def.wall) {
+  if (!tower.def.aura && !tower.def.wall && !tower.def.noAttack) {
     items.push({
       glyph: '◎', color: '#5cc8ff',
       label: 'Targeting: ' + tower.targetMode + ' (tap to cycle)',
@@ -197,5 +213,6 @@ export function towerStatsLabel(typeId) {
   const def = CONFIG.TOWERS[typeId];
   const s = getTowerStats(typeId, 1, null);
   if (def.aura) return `${def.name}: +${Math.round(s.auraDmg * 100)}% dmg aura, radius ${s.auraRange}`;
+  if (def.noAttack) return `${def.name}: +${s.income}g every wave, never attacks`;
   return `${def.name}: DMG ${s.damage} · RNG ${s.range} · CD ${s.cooldown}s`;
 }

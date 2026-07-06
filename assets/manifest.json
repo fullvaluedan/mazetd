@@ -1,0 +1,118 @@
+{
+  "tower-wall": "assets/towers/wall.png",
+  "tower-cannon": "assets/towers/cannon.png",
+  "tower-magic": "assets/towers/magic.png",
+  "tower-falcon": "assets/towers/falcon.png",
+  "tower-archer": "assets/towers/archer.png",
+  "tower-frost": "assets/towers/frost.png",
+  "tower-arcane": "assets/towers/arcane.png",
+  "tower-venom": "assets/towers/venom.png",
+  "tower-tesla": "assets/towers/tesla.png",
+  "tower-beacon": "assets/towers/beacon.png",
+  "tower-arrow": "assets/towers/archer.png",
+  "tower-poison": "assets/towers/venom.png",
+  "tower-lightning": "assets/towers/tesla.png",
+  "tower-support": "assets/towers/beacon.png",
+  "tower-cannonL": "assets/towers/cannon.png",
+  "tower-frostL": "assets/towers/frost.png",
+  "tower-sniper": "assets/towers/sniper.png",
+  "tower-gold": "assets/towers/gold.png",
+  "enemy-normal": "assets/enemies/normal.png",
+  "enemy-fast": "assets/enemies/fast.png",
+  "enemy-tank": "assets/enemies/tank.png",
+  "enemy-swarm": "assets/enemies/swarm.png",
+  "enemy-flyer": "assets/enemies/flyer.png",
+  "enemy-healer": "assets/enemies/healer.png",
+  "enemy-shield": "assets/enemies/shield.png",
+  "enemy-boss": "assets/enemies/boss.png",
+  "hero-warrior": "assets/heroes/warrior.png",
+  "hero-mage": "assets/heroes/mage.png",
+  "hero-ranger": "assets/heroes/ranger.png",
+  "sheet-enemy-normal": {
+    "src": "assets/sheets/enemy-normal.png",
+    "frames": 4,
+    "grid": [
+      2,
+      2
+    ]
+  },
+  "sheet-enemy-fast": {
+    "src": "assets/sheets/enemy-fast.png",
+    "frames": 4,
+    "grid": [
+      2,
+      2
+    ]
+  },
+  "sheet-enemy-tank": {
+    "src": "assets/sheets/enemy-tank.png",
+    "frames": 4,
+    "grid": [
+      2,
+      2
+    ]
+  },
+  "sheet-enemy-swarm": {
+    "src": "assets/sheets/enemy-swarm.png",
+    "frames": 4,
+    "grid": [
+      2,
+      2
+    ]
+  },
+  "sheet-enemy-healer": {
+    "src": "assets/sheets/enemy-healer.png",
+    "frames": 4,
+    "grid": [
+      2,
+      2
+    ]
+  },
+  "sheet-enemy-shield": {
+    "src": "assets/sheets/enemy-shield.png",
+    "frames": 4,
+    "grid": [
+      2,
+      2
+    ]
+  },
+  "sheet-enemy-boss": {
+    "src": "assets/sheets/enemy-boss.png",
+    "frames": 4,
+    "grid": [
+      2,
+      2
+    ]
+  },
+  "sheet-hero-warrior": {
+    "src": "assets/sheets/hero-warrior.png",
+    "frames": 4,
+    "grid": [
+      2,
+      2
+    ]
+  },
+  "sheet-hero-mage": {
+    "src": "assets/sheets/hero-mage.png",
+    "frames": 4,
+    "grid": [
+      2,
+      2
+    ]
+  },
+  "sheet-hero-ranger": {
+    "src": "assets/sheets/hero-ranger.png",
+    "frames": 4,
+    "grid": [
+      2,
+      2
+    ]
+  },
+  "misc-icon": "assets/misc/icon.png",
+  "misc-background": "assets/misc/background.png",
+  "misc-spawn": "assets/misc/spawn.png",
+  "misc-camp": "assets/misc/camp.png",
+  "misc-falcon": "assets/misc/falcon.png",
+  "misc-worldmap": "assets/misc/worldmap.png",
+  "misc-title": "assets/misc/title.png"
+}

@@ -102,7 +102,7 @@ console.log('Campaign wave composer:');
   const l10 = getLevel('l10');
   check('boss wave from bossWaves[]', levelWaveInfo(l10, 15).isBoss === true && !levelWaveInfo(l10, 14).isBoss);
   check('20 campaign levels defined', LEVELS.length === 20);
-  check('unlocks grow with progress', towersUnlockedAt(1).join() === 'wall,cannon' && towersUnlockedAt(7).length === 4);
+  check('unlocks grow with progress', towersUnlockedAt(1).join() === 'wall,arrow' && towersUnlockedAt(7).length === 6);
 }
 
 console.log('Classic board untouched after restore:');

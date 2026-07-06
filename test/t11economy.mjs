@@ -1,18 +1,22 @@
-// Review gap (testing): the headline maze-first economy rules — wall 100% vs
-// tower 70% refund, Falcon air-only / Cannon land-only / Magic land+air, the
-// level-3 cap, and escalating upgrade cost — were used by the sim but never
-// asserted. Lock them in.
+// The headline maze-first economy rules — wall 100% vs tower 70% refund,
+// air/ground gating per roster def, tier caps, escalating upgrade cost — plus
+// the U7 roster contract: all 8 towers buildable and firing headlessly, the
+// gold tower's no-attack/income path, hidden-legacy save compat (magic/falcon
+// in a v2 Endless save), the unlock schedule, and the radial ring geometry
+// bar (>=44px hit areas, >=8px apart, fits a 375px viewport).
 import { CONFIG } from '../src/config.js';
 import { makeRng } from '../src/engine/rng.js';
 import { setGridSize, cellCenter } from '../src/engine/grid.js';
 import { createState } from '../src/game/state.js';
-import { Enemy } from '../src/game/enemy.js';
-import { addTower, upgradeCostFor, getTowerStats } from '../src/game/tower.js';
-import { sellRefund, tryUpgrade } from '../src/game/shop.js';
+import { Enemy, updateEnemies } from '../src/game/enemy.js';
+import { addTower, upgradeCostFor, getTowerStats, updateTowers } from '../src/game/tower.js';
+import { updateProjectiles } from '../src/game/projectile.js';
+import { sellRefund, tryBuild, tryUpgrade } from '../src/game/shop.js';
 import { buildSnapshot, applySnapshot } from '../src/game/save.js';
-import { getLevel } from '../src/game/levels.js';
+import { getLevel, towersUnlockedAt, UNLOCK_SCHEDULE } from '../src/game/levels.js';
 import { startWave, computeStats } from '../src/game/wave.js';
-import { payWaveClear } from '../src/game/economy.js';
+import { payWaveClear, onEnemyKilled, onEnemyLeaked } from '../src/game/economy.js';
+import { ringRadiusFor, RING_ITEM, RING_GAP } from '../src/ui/radial.js';
 
 let fails = 0;
 const check = (n, c, e = '') => { if (!c) { fails++; console.log('  FAIL', n, e); } else console.log('  ok  ', n, e); };
@@ -24,8 +28,8 @@ function freshL8() {
   st.gold = 1e6;
   return st;
 }
-const parkEnemy = (st, type, cx, cy) => {
-  const e = new Enemy(st, type, 'S1', st.routing['S1'], { hp: 1e6, speed: 1e-9, bounty: 1 });
+const parkEnemy = (st, type, cx, cy, stats = null) => {
+  const e = new Enemy(st, type, 'S1', st.routing['S1'], stats || { hp: 1e6, speed: 1e-9, bounty: 1 });
   const c = cellCenter(cx, cy); e.x = c.x; e.y = c.y; e.cx = cx; e.cy = cy;
   st.enemies.push(e); return e;
 };
@@ -40,53 +44,73 @@ console.log('Refunds: walls sell 100%, towers 70%:');
   check('the two refund rates differ', CONFIG.WALL_REFUND === 1.0 && CONFIG.SELL_REFUND === 0.70);
 }
 
-console.log('Targeting: Falcon air-only, Cannon land-only, Magic both:');
+console.log('Targeting: air/ground gating per roster def:');
 {
+  // land-only: cannon (siege) + poison (DoT)
+  for (const id of ['cannon', 'poison']) {
+    const st = freshL8();
+    const t = addTower(st, id, 5, 5);
+    const ground = parkEnemy(st, 'normal', 5, 6);
+    parkEnemy(st, 'flyer', 6, 5);
+    const c = t.candidates(st);
+    check(`${id} sees only ground`, c.length === 1 && c[0].e === ground);
+  }
+  // land+air: arrow, frost, sniper, lightning
+  for (const id of ['arrow', 'frost', 'sniper', 'lightning']) {
+    const st = freshL8();
+    const t = addTower(st, id, 5, 5);
+    parkEnemy(st, 'normal', 5, 6);
+    parkEnemy(st, 'flyer', 6, 5);
+    check(`${id} sees both land and air`, t.candidates(st).length === 2);
+  }
+  // hidden legacy (retired campaign towers keep their exact gating)
   const st = freshL8();
   const falcon = addTower(st, 'falcon', 5, 5);
-  parkEnemy(st, 'normal', 5, 6);          // ground in range
-  const air = parkEnemy(st, 'flyer', 6, 5);   // air in range
-  let c = falcon.candidates(st);
-  check('falcon sees only air', c.length === 1 && c[0].e === air);
-
-  const st2 = freshL8();
-  const cannon = addTower(st2, 'cannon', 5, 5);
-  const ground = parkEnemy(st2, 'normal', 5, 6);
-  parkEnemy(st2, 'flyer', 6, 5);
-  c = cannon.candidates(st2);
-  check('cannon sees only ground', c.length === 1 && c[0].e === ground);
-
+  parkEnemy(st, 'normal', 5, 6);
+  const air = parkEnemy(st, 'flyer', 6, 5);
+  const c = falcon.candidates(st);
+  check('legacy falcon sees only air', c.length === 1 && c[0].e === air);
   const st3 = freshL8();
   const magic = addTower(st3, 'magic', 5, 5);
   parkEnemy(st3, 'normal', 5, 6);
   parkEnemy(st3, 'flyer', 6, 5);
-  check('magic sees both', magic.candidates(st3).length === 2);
+  check('legacy magic sees both', magic.candidates(st3).length === 2);
 }
 
-console.log('Roster caps at level 3; hidden legacy towers reach 4:');
+console.log('Caps: roster reaches L5; hidden legacy keep their old caps:');
 {
   const st = freshL8();
   const cannon = addTower(st, 'cannon', 5, 5);
   check('L1 can upgrade', cannon.canUpgrade() === true);
-  cannon.level = 3; cannon.refreshStats();
-  check('L3 cannot upgrade (roster cap)', cannon.canUpgrade() === false);
-  const legacy = addTower(st, 'archer', 7, 5);   // hidden: true
+  cannon.level = 5; cannon.refreshStats();
+  check('roster caps at L5 (4 tiers + base)', cannon.canUpgrade() === false);
+  const legacy = addTower(st, 'archer', 7, 5);   // hidden, L4 branch tier
   legacy.level = 3; legacy.refreshStats();
-  check('hidden tower still upgrades at L3', legacy.canUpgrade() === true);
+  check('hidden legacy archer still upgrades at L3', legacy.canUpgrade() === true);
+  legacy.level = 4; legacy.refreshStats();
+  check('hidden legacy archer caps at L4', legacy.canUpgrade() === false);
+  const demoted = addTower(st, 'magic', 9, 5);   // demoted campaign tower, branchless
+  demoted.level = 3; demoted.refreshStats();
+  check('demoted magic keeps its old L3 cap', demoted.canUpgrade() === false);
 }
 
-console.log('Upgrades cost MORE than the tower (escalating):');
+console.log('Upgrades cost MORE than the tower (2.5/5/10/20 roster curve):');
 {
   const base = CONFIG.TOWERS.cannon.cost;     // 15
-  check('L2 = 2x base', upgradeCostFor('cannon', 2) === Math.round(base * CONFIG.UPGRADE.costMultL2));
-  check('L3 = 4x base', upgradeCostFor('cannon', 3) === Math.round(base * CONFIG.UPGRADE.costMultL3));
+  check('L2 = 2.5x base', upgradeCostFor('cannon', 2) === Math.round(base * 2.5));
+  check('L3 = 5x base', upgradeCostFor('cannon', 3) === base * 5);
+  check('L4 = 10x, L5 = 20x', upgradeCostFor('cannon', 4) === base * 10 && upgradeCostFor('cannon', 5) === base * 20);
   check('each upgrade dearer than the build', upgradeCostFor('cannon', 2) > base && upgradeCostFor('cannon', 3) > upgradeCostFor('cannon', 2));
+  // legacy defs stay on the old CONFIG.UPGRADE chain
+  const lbase = CONFIG.TOWERS.cannonL.cost;
+  check('legacy clone still 2x/4x', upgradeCostFor('cannonL', 2) === Math.round(lbase * CONFIG.UPGRADE.costMultL2)
+    && upgradeCostFor('cannonL', 3) === Math.round(lbase * CONFIG.UPGRADE.costMultL3));
   // and tryUpgrade actually charges + caps
   const st = freshL8();
   const cannon = addTower(st, 'cannon', 5, 5);
   const g0 = st.gold;
   tryUpgrade(st, cannon, null);
-  check('L1->L2 charged 2x base', g0 - st.gold === Math.round(base * CONFIG.UPGRADE.costMultL2) && cannon.level === 2);
+  check('L1->L2 charged 2.5x base', g0 - st.gold === Math.round(base * 2.5) && cannon.level === 2);
 }
 
 console.log('U15 feel spike: levels 1-3 deterministic income bands (WC3 scarcity):');
@@ -108,17 +132,18 @@ console.log('U15 feel spike: levels 1-3 deterministic income bands (WC3 scarcity
     }
     return total;
   };
-  // Playtest verdict 2026-07-06: cannons one-shot everything -> no challenge.
-  // Contract: a wave-1 grunt survives one cannon hit; a wave-8 grunt survives two.
+  // Playtest verdict 2026-07-06: starter towers must not one-shot -> no
+  // challenge otherwise. Contract, kept on the CHEAPEST starter damage tower
+  // (arrow since U7): a wave-1 grunt survives one hit; a wave-8 grunt two.
   {
     const lv = getLevel('l1');
     setGridSize(lv.cols, lv.rows);
     const st = createState(makeRng(1), 1, lv);
-    const cannonHit = CONFIG.TOWERS.cannon.damage * CONFIG.DAMAGE_SCALE
-      * CONFIG.DAMAGE_VS_ARMOR.siege.medium;
-    check('L1 w1 grunt needs 2+ cannon shots', computeStats(st, 'normal', 1).hp > cannonHit,
-      `hp=${computeStats(st, 'normal', 1).hp} hit=${cannonHit}`);
-    check('L1 w8 grunt needs 3+ cannon shots', computeStats(st, 'normal', 8).hp > cannonHit * 2,
+    const arrowHit = CONFIG.TOWERS.arrow.damage * CONFIG.DAMAGE_SCALE
+      * CONFIG.DAMAGE_VS_ARMOR.pierce.medium;
+    check('L1 w1 grunt needs 2+ arrow shots', computeStats(st, 'normal', 1).hp > arrowHit,
+      `hp=${computeStats(st, 'normal', 1).hp} hit=${arrowHit}`);
+    check('L1 w8 grunt needs 3+ arrow shots', computeStats(st, 'normal', 8).hp > arrowHit * 2,
       `hp=${computeStats(st, 'normal', 8).hp}`);
   }
   const i1 = income('l1'), i2 = income('l2'), i3 = income('l3');
@@ -227,6 +252,98 @@ console.log('U5 tier machinery: per-tier tables, forks only where declared:');
   delete CONFIG.TOWERS.ttest;
   delete CONFIG.TOWERS.ttestFork;
   delete CONFIG.TOWERS.ttestShort;
+}
+
+console.log('U7 roster: every damage tower builds and gets a kill headlessly:');
+{
+  // land towers see a grunt, land-only ones would ignore a flyer (gated above)
+  for (const id of ['arrow', 'cannon', 'frost', 'poison', 'sniper', 'lightning']) {
+    const st = freshL8();
+    const t = tryBuild(st, id, 5, 5);
+    const e = parkEnemy(st, 'normal', 5, 6, { hp: 5, speed: 1e-9, bounty: 3 });
+    let killed = false;
+    for (let i = 0; i < 200 && !killed; i++) {
+      updateTowers(st, 0.05);
+      updateProjectiles(st, 0.05);
+      updateEnemies(st, 0.05, onEnemyKilled, onEnemyLeaked);
+      killed = !st.enemies.includes(e);
+    }
+    check(`${id} builds and kills`, !!t && killed);
+  }
+  // support: builds, never fires, buffs the neighbour
+  const st = freshL8();
+  const sup = tryBuild(st, 'support', 5, 5);
+  const arrow = addTower(st, 'arrow', 6, 5);
+  check('support builds and buffs the adjacent tower', !!sup && arrow.buffDmg === 0.10 && arrow.stats.buffDmg === 0.10);
+  check('support T5A/B fork declared (dmg aura vs income)', (() => {
+    const f = CONFIG.TOWERS.support.tiers[3].forks;
+    return f && f.A.mods.auraDmg === 0.45 && f.B.mods.income === 25;
+  })());
+}
+
+console.log('U7 gold tower: never targets, pays income per wave:');
+{
+  const st = freshL8();
+  const g = tryBuild(st, 'gold', 5, 5);
+  const e = parkEnemy(st, 'normal', 5, 6, { hp: 50, speed: 1e-9, bounty: 1 });
+  check('gold builds', !!g);
+  check('gold never appears in targeting candidates', g.candidates(st).length === 0);
+  const hp0 = e.hp;
+  for (let i = 0; i < 100; i++) { updateTowers(st, 0.1); updateProjectiles(st, 0.1); }
+  check('gold never fires (no projectiles, target unhurt)', st.projectiles.length === 0 && e.hp === hp0);
+  st.waveActive = false;
+  const pay = payWaveClear(st, 1);
+  check('gold pays its income at wave clear', pay.income === CONFIG.TOWERS.gold.income, `income=${pay.income}`);
+  check('gold T5 signature: large income', getTowerStats('gold', 5, null).income === 100);
+}
+
+console.log('U7 unlock schedule: roster spreads across levels 1-13:');
+{
+  check('L1 = wall + arrow only', towersUnlockedAt(1).join() === 'wall,arrow');
+  const gates = { cannon: 2, frost: 3, poison: 5, sniper: 7, lightning: 9, support: 11, gold: 13 };
+  for (const [id, lvl] of Object.entries(gates)) {
+    check(`${id} unlocks exactly at level ${lvl}`,
+      towersUnlockedAt(lvl).includes(id) && !towersUnlockedAt(lvl - 1).includes(id));
+  }
+  check('full 9-item roster by level 13', towersUnlockedAt(13).length === 9);
+  check('schedule ids all exist and are visible', UNLOCK_SCHEDULE.every((u) => {
+    const d = CONFIG.TOWERS[u.tower];
+    return d && !d.hidden;
+  }));
+}
+
+console.log('U7 ring geometry: 9 items, >=44px hit areas, >=8px apart, 375px-safe:');
+{
+  const n = Object.values(CONFIG.TOWERS).filter((d) => !d.hidden).length;
+  check('build ring shows 9 items (wall + 8 towers)', n === 9);
+  const R = ringRadiusFor(n);
+  const chord = 2 * R * Math.sin(Math.PI / n);   // adjacent item center distance
+  check('hit area >=44 CSS px', RING_ITEM >= 44, `${RING_ITEM}px`);
+  check('adjacent hit areas >=8px apart', chord - RING_ITEM >= RING_GAP, `gap=${(chord - RING_ITEM).toFixed(1)}`);
+  check('one ring fits a 375px viewport (no two-ring fallback needed)',
+    2 * (R + RING_ITEM / 2 + 6) <= 375, `${2 * (R + RING_ITEM / 2 + 6)}px`);
+}
+
+console.log('U7 legacy compat: a v2 Endless save with magic + falcon loads:');
+{
+  const snap = {
+    v: 2, levelId: 'endless', seed: 1337, wave: 12, maxWave: 12, gold: 500, lives: 15,
+    autoStart: false, repairUses: 0, reviveUsed: false, heroUpgrades: {}, towerBoosts: {},
+    hero: null,
+    towers: [
+      { type: 'magic',  cx: 3, cy: 3, level: 3, branch: null, targetMode: 'first', invested: 154, hp: 100 },
+      { type: 'falcon', cx: 5, cy: 3, level: 2, branch: null, targetMode: 'first', invested: 54,  hp: 80 },
+      { type: 'cannon', cx: 7, cy: 3, level: 1, branch: null, targetMode: 'first', invested: 15,  hp: 60 },
+      { type: 'wall',   cx: 9, cy: 3, level: 1, branch: null, targetMode: 'first', invested: 5,   hp: 160 },
+    ],
+  };
+  const st = applySnapshot(snap);
+  const m = st.towers.find((t) => t.type === 'magic');
+  const f = st.towers.find((t) => t.type === 'falcon');
+  check('all four v2 towers restored', st.towers.length === 4 && m && f);
+  check('legacy magic keeps its old L3 cap', m.level === 3 && !m.canUpgrade());
+  check('legacy falcon still air-only with live stats', f.stats.airOnly === true && f.stats.damage > 0);
+  check('gold/lives restored', st.gold === 500 && st.lives === 15);
 }
 
 console.log(fails === 0 ? 'ECONOMY_OK' : `ECONOMY_FAIL (${fails})`);

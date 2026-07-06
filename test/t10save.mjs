@@ -60,7 +60,10 @@ console.log('v2 snapshots still load; towers keep their caps:');
   const st2 = applySnapshot(snap);
   const c2 = st2.towers.find((t) => t.type === 'cannon');
   const a2 = st2.towers.find((t) => t.type === 'archer');
-  check('v2 roster tower at its L3 cap', c2.level === 3 && !c2.canUpgrade());
+  // U7: cannon is a roster tower on the 5-tier table now — a v2 save's L3
+  // cannon loads intact and may keep upgrading (T4/T5 exist); the old L3 cap
+  // lives on in the hidden legacy defs (cannonL, magic, falcon).
+  check('v2 roster tower loads at L3, upgrades onward', c2.level === 3 && c2.canUpgrade());
   check('v2 legacy tower at its L4 cap, branch kept', a2.level === 4 && a2.branch === 'A' && !a2.canUpgrade());
 }
 

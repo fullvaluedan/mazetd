@@ -41,8 +41,12 @@ export function tierTable(def) {
     for (let lvl = 2; lvl <= CONFIG.MAX_TOWER_LEVEL; lvl++) {
       tiers.push({ costMult: U['costMultL' + lvl], mods });
     }
-    // hidden legacy towers keep their L4 branch tier (regression sims only)
-    if (def.hidden) tiers.push({ costMult: U.costMultL4, forks: def.branches });
+    // hidden legacy towers keep their L4 branch tier (regression sims only);
+    // branchless hidden defs (demoted campaign towers, sim clones) cap at L3
+    // exactly like they did when they were the live roster.
+    if (def.hidden && def.branches && Object.keys(def.branches).length) {
+      tiers.push({ costMult: U.costMultL4, forks: def.branches });
+    }
     def._legacyTiers = tiers;
   }
   return def._legacyTiers;
@@ -274,7 +278,8 @@ export class Tower {
   // --- firing ---------------------------------------------------------------
   update(dt, state) {
     if (this.underAttack > 0) this.underAttack -= dt;
-    if (this.def.aura || this.def.wall) return;   // Beacons buff, walls just stand
+    // auras buff, walls stand, no-attack towers (Gold Mine) just earn income
+    if (this.def.aura || this.def.wall || this.def.noAttack) return;
     if (this.muzzle > 0) this.muzzle -= dt;
     this.cooldownLeft -= dt;
     if (this.cooldownLeft > 0) return;
