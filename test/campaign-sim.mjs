@@ -61,7 +61,7 @@ function build(state, lv, cycle, upgrades = true) {
       if (c < bestCost) { bestCost = c; best = t; }
     }
     if (!best || state.gold < bestCost) break;
-    if (!tryUpgrade(state, best, best.level === 3 ? 'A' : null)) break;
+    if (!tryUpgrade(state, best, best.forkChoices() ? 'A' : null)) break;
   }
   // surplus -> convert walls to towers
   let surplus = state.gold - 150;

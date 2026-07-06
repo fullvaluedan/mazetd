@@ -145,6 +145,17 @@ export const CONFIG = {
   // and each upgrade costs more than the tower did (costMultL2/L3 below).
   // Defs marked `hidden: true` are the legacy set — kept for the headless
   // regression sims and as a pool for future unlocks, never shown in the ring.
+  //
+  // Upgrades are per-tier data (U5/KTD3): a def may declare
+  //   tiers: [                       // entry i = the tier entered at level i+2
+  //     { costMult, mods?,           // mods reuse the branch-merge keys
+  //       forks?: { A: { name, desc, mods }, B: {...} } },  // A/B choice tier
+  //   ]
+  // Max level = tiers.length + 1; the ring shows a straight upgrade at any
+  // tier without forks (single-signature tiers are just mods, no forks). The
+  // new roster (U7) uses a 2.5/5/10/20 costMult curve. Defs WITHOUT `tiers`
+  // get a legacy-equivalent table built from UPGRADE below (see tower.js
+  // tierTable), so every current tower keeps its exact numbers.
   // ---------------------------------------------------------------------------
   MAX_TOWER_LEVEL: 3,
   UPGRADE: {

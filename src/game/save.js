@@ -18,11 +18,16 @@ import { getLevel } from './levels.js';
 const SAVE_KEY = 'mazecore_save_v1';
 const HS_KEY = 'mazecore_highscore_v1';
 
+// Snapshot format version. v1: pre-siege (towers load at full HP); v2: towers
+// carry hp; v3: tier-table upgrades (U5) — level/branch fields unchanged, the
+// bump marks the first client with an explicit version gate (see loadSnapshot).
+const SAVE_VERSION = 3;
+
 function ls() { return (typeof localStorage !== 'undefined') ? localStorage : null; }
 
 export function buildSnapshot(state) {
   return {
-    v: 2,                       // v2: towers carry hp (siege mode); v1 loads at full HP
+    v: SAVE_VERSION,
     levelId: state.level ? state.level.id : null,   // 'endless' or null (classic)
     seed: state.seed,
     wave: state.wave,
@@ -58,7 +63,18 @@ export function clearSave() { const s = ls(); if (s) s.removeItem(SAVE_KEY); }
 
 export function loadSnapshot() {
   const store = ls(); if (!store) return null;
-  try { const raw = store.getItem(SAVE_KEY); return raw ? JSON.parse(raw) : null; }
+  try {
+    const raw = store.getItem(SAVE_KEY);
+    const snap = raw ? JSON.parse(raw) : null;
+    // Version gate: older snapshots (v1/v2) load via applySnapshot's tolerant
+    // field-defaulting; anything NEWER than this client is refused outright
+    // rather than half-loaded (callers already treat null as "no save").
+    if (snap && snap.v > SAVE_VERSION) {
+      console.warn(`save is v${snap.v}, this client supports up to v${SAVE_VERSION} — refusing to load`);
+      return null;
+    }
+    return snap;
+  }
   catch { return null; }
 }
 
@@ -85,7 +101,7 @@ export function applySnapshot(snap) {
       t.level = tw.level; t.branch = tw.branch;
       t.targetMode = tw.targetMode; t.invested = tw.invested;
       t.refreshStats();
-      // v2 saves carry wall damage; v1 (no hp field) loads at full HP.
+      // v2+ saves carry wall damage; v1 (no hp field) loads at full HP.
       t.hp = Math.min(t.maxHp, tw.hp != null ? tw.hp : t.maxHp);
     }
   }

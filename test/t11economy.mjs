@@ -7,8 +7,9 @@ import { makeRng } from '../src/engine/rng.js';
 import { setGridSize, cellCenter } from '../src/engine/grid.js';
 import { createState } from '../src/game/state.js';
 import { Enemy } from '../src/game/enemy.js';
-import { addTower, upgradeCostFor } from '../src/game/tower.js';
+import { addTower, upgradeCostFor, getTowerStats } from '../src/game/tower.js';
 import { sellRefund, tryUpgrade } from '../src/game/shop.js';
+import { buildSnapshot, applySnapshot } from '../src/game/save.js';
 import { getLevel } from '../src/game/levels.js';
 import { startWave, computeStats } from '../src/game/wave.js';
 import { payWaveClear } from '../src/game/economy.js';
@@ -136,6 +137,96 @@ console.log('U15 feel spike: levels 1-3 deterministic income bands (WC3 scarcity
   check('level 8 income in the 1100-1700 band', i8 >= 1100 && i8 <= 1700, `i8=${i8}`);
   check('level 14 income in the 2400-3600 band', i14 >= 2400 && i14 <= 3600, `i14=${i14}`);
   check('level 20 income in the 7000-11000 band', i20 >= 7000 && i20 <= 11000, `i20=${i20}`);
+}
+
+console.log('U5 tier machinery: per-tier tables, forks only where declared:');
+{
+  // Synthetic defs on the NEW roster cost curve (2.5/5/10/20 — U7's towers
+  // will declare tables like these; live towers stay on the legacy table).
+  // One single-signature tower (capability at T3, fork-less T5) and one that
+  // forks at T5. Injected for this block only, deleted after the round-trip.
+  const baseDef = {
+    glyph: 'X', color: '#fff', cost: 40,
+    damage: 10, range: 2.0, cooldown: 1.0, damageType: 'pierce',
+    targetsAir: true, projectileSpeed: 10,
+    blurb: 'test-only', branches: {},
+  };
+  CONFIG.TOWERS.ttest = {
+    ...baseDef, name: 'TierTest',
+    tiers: [
+      { costMult: 2.5, mods: { damageMult: 2, cooldownMult: 0.5 } },   // T2
+      { costMult: 5,   mods: { damageMult: 2, splashRadius: 1.2 } },   // T3 capability
+      { costMult: 10,  mods: { damageMult: 2 } },                      // T4
+      { costMult: 20,  mods: { damageMult: 2, multishot: 3 } },        // T5 signature, no fork
+    ],
+  };
+  CONFIG.TOWERS.ttestFork = {
+    ...baseDef, name: 'ForkTest',
+    tiers: [
+      { costMult: 2.5, mods: { damageMult: 2 } },
+      { costMult: 5,   mods: { damageMult: 2 } },
+      { costMult: 10,  mods: { damageMult: 2 } },
+      { costMult: 20,  forks: {
+        A: { name: 'Alpha', desc: '+200% dmg', mods: { damageMult: 3 } },
+        B: { name: 'Beta',  desc: 'slows',     mods: { slowPct: 0.4, slowDur: 2 } },
+      } },
+    ],
+  };
+  CONFIG.TOWERS.ttestShort = { ...baseDef, name: 'ShortTest', tiers: [{ costMult: 2.5 }] };
+
+  const base = CONFIG.TOWERS.ttest.cost;
+  check('tier cost curve 2.5/5/10/20',
+    upgradeCostFor('ttest', 2) === Math.round(base * 2.5)
+    && upgradeCostFor('ttest', 3) === base * 5
+    && upgradeCostFor('ttest', 4) === base * 10
+    && upgradeCostFor('ttest', 5) === base * 20);
+
+  // per-tier mods land at their tier, not before
+  check('T2 cooldownMult applies', getTowerStats('ttest', 2, null).cooldown === 0.5);
+  check('T3 capability unlocks at T3, not T2',
+    getTowerStats('ttest', 2, null).splashRadius === 0
+    && getTowerStats('ttest', 3, null).splashRadius === 1.2);
+  check('T5 signature only at T5',
+    getTowerStats('ttest', 4, null).multishot === 1
+    && getTowerStats('ttest', 5, null).multishot === 3);
+  check('damage stacks 2x per tier',
+    getTowerStats('ttest', 5, null).damage === 10 * 16 * CONFIG.DAMAGE_SCALE);
+
+  const st = freshL8();
+  const t = addTower(st, 'ttest', 5, 5);
+  for (let lvl = 2; lvl <= 5; lvl++) {
+    const noFork = t.forkChoices() === null;
+    check(`L${lvl - 1}->L${lvl} straight (no fork offered)`, noFork && tryUpgrade(st, t, null) && t.level === lvl);
+  }
+  check('caps at L5 (tiers.length + 1)', t.canUpgrade() === false && t.nextUpgradeCost() === 0);
+  check('invested = 38.5x base through T5', t.invested === base * 38.5, `${t.invested}`);
+
+  const f = addTower(st, 'ttestFork', 7, 5);
+  tryUpgrade(st, f, null); tryUpgrade(st, f, null); tryUpgrade(st, f, null);   // -> L4
+  check('fork offered exactly at the declaring tier',
+    f.level === 4 && f.forkChoices() && Object.keys(f.forkChoices()).join('') === 'AB');
+  check('fork tier refuses a branchless upgrade', tryUpgrade(st, f, null) === false && f.level === 4);
+  tryUpgrade(st, f, 'B');
+  check('branch sticks at the fork tier', f.level === 5 && f.branch === 'B' && f.stats.slowPct === 0.4);
+
+  const sh = addTower(st, 'ttestShort', 9, 5);
+  tryUpgrade(st, sh, null);
+  check('short table caps early (1 tier -> L2 max)', sh.level === 2 && sh.canUpgrade() === false);
+
+  // tier + branch survive the v3 save round-trip
+  const snap = buildSnapshot(st);
+  check('snapshot is v3', snap.v === 3);
+  const st2 = applySnapshot(snap);
+  const f2 = st2.towers.find((x) => x.type === 'ttestFork');
+  const t2 = st2.towers.find((x) => x.type === 'ttest');
+  check('tier + branch survive the round-trip',
+    f2 && f2.level === 5 && f2.branch === 'B' && f2.stats.slowPct === 0.4);
+  check('single-signature tier survives the round-trip',
+    t2 && t2.level === 5 && t2.stats.multishot === 3 && !t2.canUpgrade());
+
+  delete CONFIG.TOWERS.ttest;
+  delete CONFIG.TOWERS.ttestFork;
+  delete CONFIG.TOWERS.ttestShort;
 }
 
 console.log(fails === 0 ? 'ECONOMY_OK' : `ECONOMY_FAIL (${fails})`);

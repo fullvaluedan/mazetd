@@ -88,7 +88,7 @@ function referenceBuild(state, reserve) {
       if (c < bestCost) { bestCost = c; best = t; }
     }
     if (!best || state.gold - bestCost < reserve) break;
-    if (!tryUpgrade(state, best, best.level === 3 ? preferredBranch(best.type, best) : null)) break;
+    if (!tryUpgrade(state, best, best.forkChoices() ? preferredBranch(best.type, best) : null)) break;
   }
 
   // Late game: once upgrades saturate and gold piles up, convert walls into

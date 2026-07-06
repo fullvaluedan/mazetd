@@ -2,10 +2,15 @@
 // tower.js — tower entities: stats, targeting, firing, and the upgrade tree.
 //
 // getTowerStats(type, level, branch) is the single source of truth for a tower's
-// numbers at any level. Levels 2 and 3 apply flat multipliers from CONFIG.UPGRADE;
-// level 4 applies one of the two branch "mods". Towers pick a target each cooldown
-// (respecting targetsAir and the player's target mode) and either fire a homing
-// projectile or apply a hitscan effect (frost beam / tesla chain).
+// numbers at any level. Upgrades are per-tier data tables (U5/KTD3): def.tiers[i]
+// describes the tier entered at level i+2 — { costMult, mods?, forks? } — and
+// each reached tier's mods fold onto the stats cumulatively; a tier with forks
+// applies the chosen fork's mods on top. Towers without a declared table get a
+// legacy-equivalent one derived from CONFIG.UPGRADE, so the existing roster
+// (L3 cap) and hidden sim towers (L4 branch) keep their exact numbers. Towers
+// pick a target each cooldown (respecting targetsAir and the player's target
+// mode) and either fire a homing projectile or apply a hitscan effect (frost
+// beam / tesla chain).
 // =============================================================================
 
 import { CONFIG } from '../config.js';
@@ -15,22 +20,63 @@ import { onMazeChanged, pushEvent } from './state.js';
 import { spawnProjectile, applyTowerHit, applyChain, pushBeam, pushSplash } from './projectile.js';
 import { addShake, addFloater } from './economy.js';
 
+// The per-tier upgrade table for a def (KTD3). Entry i = the tier entered at
+// level i+2: { costMult, mods?, forks?: { A: {name, desc, mods}, B: {...} } }.
+// Max level = tiers.length + 1. Defs without a declared `tiers` get a
+// legacy-equivalent table built from CONFIG.UPGRADE: the old costMultL2/L3/L4
+// chain + per-level stat multipliers, roster capped at MAX_TOWER_LEVEL and
+// hidden sim towers keeping their L4 branch tier — nothing changes for them.
+export function tierTable(def) {
+  if (def.tiers) return def.tiers;
+  if (!def._legacyTiers) {
+    const U = CONFIG.UPGRADE;
+    // Aura towers scale via auraByLevel, so the generic per-level multipliers
+    // were always a no-op for them — their legacy tiers carry no mods.
+    const mods = def.aura ? null : {
+      damageMult: U.dmgMultPerLevel,
+      rangeMult: U.rangeMultPerLevel,
+      cooldownMult: U.cooldownMultPerLevel,
+    };
+    const tiers = [];
+    for (let lvl = 2; lvl <= CONFIG.MAX_TOWER_LEVEL; lvl++) {
+      tiers.push({ costMult: U['costMultL' + lvl], mods });
+    }
+    // hidden legacy towers keep their L4 branch tier (regression sims only)
+    if (def.hidden) tiers.push({ costMult: U.costMultL4, forks: def.branches });
+    def._legacyTiers = tiers;
+  }
+  return def._legacyTiers;
+}
+
+// Fold one "mods" bag onto a stats object — shared by per-tier mods and fork
+// (branch) mods. *Mult keys stack multiplicatively across tiers; the rest
+// assign/replace. New capability keys land here so tiers/forks can grant them.
+function applyMods(s, m) {
+  if (m.auraDmg) s.auraDmg = m.auraDmg;
+  if (m.auraSpeed) s.auraSpeed = m.auraSpeed;
+  if (m.damageType) s.damageType = m.damageType;
+  if (m.damageMult) s.damage *= m.damageMult;
+  if (m.rangeMult) s.range *= m.rangeMult;
+  if (m.cooldownMult) s.cooldown *= m.cooldownMult;
+  if (m.multishot) s.multishot = m.multishot;
+  if (m.splashRadius) s.splashRadius = m.splashRadius;
+  if (m.slowPct) s.slowPct = m.slowPct;
+  if (m.slowDur) s.slowDur = m.slowDur;
+  if (m.dotDpsMult) s.dotDps *= m.dotDpsMult;
+  if (m.dotDur) s.dotDur = m.dotDur;
+  if (m.chainTargets) s.chainTargets = m.chainTargets;
+  if (m.chainFalloff != null) s.chainFalloff = m.chainFalloff;
+  if (m.shatter) s.shatter = m.shatter;
+  if (m.disrupt) s.disrupt = true;
+  if (m.contagion) s.contagion = true;
+  if (m.cluster) s.cluster = m.cluster;
+}
+
 // Resolve a tower's stats at a given level + branch choice.
 export function getTowerStats(typeId, level, branchId) {
   const def = CONFIG.TOWERS[typeId];
-  const U = CONFIG.UPGRADE;
-  let damage = def.damage, range = def.range, cooldown = def.cooldown;
-
-  // L2 and L3 each apply the per-level stat multipliers.
-  const ups = Math.min(level, 3) - 1;
-  for (let i = 0; i < ups; i++) {
-    damage *= U.dmgMultPerLevel;
-    range *= U.rangeMultPerLevel;
-    cooldown *= U.cooldownMultPerLevel;
-  }
-
   const s = {
-    damage, range, cooldown,
+    damage: def.damage, range: def.range, cooldown: def.cooldown,
     damageType: def.damageType,
     targetsAir: !!def.targetsAir,
     airOnly: !!def.airOnly,        // Falcon: can't touch ground enemies
@@ -51,49 +97,46 @@ export function getTowerStats(typeId, level, branchId) {
     cluster: 0,
   };
 
-  // Aura towers (Beacon): strength/radius come from auraByLevel, not the
-  // generic level multipliers. These are the EMITTED values; the buff a tower
-  // RECEIVES lives in stats.buffDmg (written by recomputeAuras).
+  // Aura towers (Beacon): strength/radius come from auraByLevel, not the tier
+  // mods. These are the EMITTED values; the buff a tower RECEIVES lives in
+  // stats.buffDmg (written by recomputeAuras).
   if (def.aura) {
-    const a = def.auraByLevel[Math.min(level, 3) - 1];
+    const a = def.auraByLevel[Math.min(level, def.auraByLevel.length) - 1];
     s.auraDmg = a.dmg;
     s.auraSpeed = a.speed;
     s.auraRange = a.range;
     s.range = a.range;          // so generic range displays/rings read sanely
   }
 
-  if (level >= 4 && branchId && def.branches[branchId]) {
-    const m = def.branches[branchId].mods;
-    if (m.auraDmg) s.auraDmg = m.auraDmg;
-    if (m.auraSpeed) s.auraSpeed = m.auraSpeed;
-    if (m.damageType) s.damageType = m.damageType;
-    if (m.damageMult) s.damage *= m.damageMult;
-    if (m.rangeMult) s.range *= m.rangeMult;
-    if (m.multishot) s.multishot = m.multishot;
-    if (m.splashRadius) s.splashRadius = m.splashRadius;
-    if (m.slowPct) s.slowPct = m.slowPct;
-    if (m.slowDur) s.slowDur = m.slowDur;
-    if (m.dotDpsMult) s.dotDps *= m.dotDpsMult;
-    if (m.dotDur) s.dotDur = m.dotDur;
-    if (m.chainTargets) s.chainTargets = m.chainTargets;
-    if (m.chainFalloff != null) s.chainFalloff = m.chainFalloff;
-    if (m.shatter) s.shatter = m.shatter;
-    if (m.disrupt) s.disrupt = true;
-    if (m.contagion) s.contagion = true;
-    if (m.cluster) s.cluster = m.cluster;
+  // Fold every reached tier's mods on cumulatively; a fork tier applies the
+  // chosen branch's mods on top (the old L4 branch merge, now per-tier data).
+  const tiers = tierTable(def);
+  const reached = Math.min(level - 1, tiers.length);
+  for (let i = 0; i < reached; i++) {
+    const t = tiers[i];
+    if (t.mods) applyMods(s, t.mods);
+    if (t.forks && branchId && t.forks[branchId]) applyMods(s, t.forks[branchId].mods);
   }
   s.damage *= CONFIG.DAMAGE_SCALE;   // global balance knob (Phase 8)
   return s;
 }
 
-// Cost to upgrade INTO a given level (2, 3 or 4).
+// Cost to upgrade INTO a given level (tier entry costMult x base cost).
 export function upgradeCostFor(typeId, toLevel) {
-  const base = CONFIG.TOWERS[typeId].cost;
-  const U = CONFIG.UPGRADE;
-  if (toLevel === 2) return Math.round(base * U.costMultL2);
-  if (toLevel === 3) return Math.round(base * U.costMultL3);
-  if (toLevel === 4) return Math.round(base * U.costMultL4);
-  return 0;
+  const def = CONFIG.TOWERS[typeId];
+  const tier = tierTable(def)[toLevel - 2];
+  return tier ? Math.round(def.cost * tier.costMult) : 0;
+}
+
+// The fork definition a chosen branch points at (name/desc for the UI). Scans
+// the tier table so tiers-declared forks and legacy def.branches both resolve.
+export function forkDef(def, branchId) {
+  if (!branchId) return null;
+  const tiers = tierTable(def);
+  for (let i = tiers.length - 1; i >= 0; i--) {
+    if (tiers[i].forks && tiers[i].forks[branchId]) return tiers[i].forks[branchId];
+  }
+  return null;
 }
 
 let NEXT_TID = 1;
@@ -108,7 +151,7 @@ export class Tower {
     this.px = cellCenterX(cx);
     this.py = cellCenterY(cy);
     this.level = 1;
-    this.branch = null;            // 'A' | 'B' once chosen at L4
+    this.branch = null;            // 'A' | 'B' once chosen at the fork tier
     this.targetMode = 'first';
     this.cooldownLeft = 0;
     this.angle = -Math.PI / 2;     // facing up by default
@@ -133,23 +176,29 @@ export class Tower {
     if (this.hp == null || this.hp > this.maxHp) this.hp = this.maxHp;
   }
 
-  // Roster towers cap at L3 (upgrades cost more than the tower itself, so a
-  // maxed tower is a real investment). Hidden legacy towers keep their L4
-  // branch tier — they only exist for the headless regression sims now.
+  // Max level = tier table length + 1 (legacy tables encode the old rule:
+  // roster caps at L3, hidden sim towers keep their L4 branch tier).
   canUpgrade() {
     if (this.def.wall) return false;
-    const max = this.def.hidden ? 4 : CONFIG.MAX_TOWER_LEVEL;
-    return this.level < max;
+    return this.level < tierTable(this.def).length + 1;
   }
-  // At L3->L4 the player must pick a branch; below that, upgrade is straight.
   nextUpgradeCost() { return this.canUpgrade() ? upgradeCostFor(this.type, this.level + 1) : 0; }
 
+  // The A/B fork declared at the NEXT tier, if any (null = straight upgrade).
+  forkChoices() {
+    if (!this.canUpgrade()) return null;
+    const t = tierTable(this.def)[this.level - 1];   // tier entered at level+1
+    return (t && t.forks) || null;
+  }
+
   applyUpgrade(branchId) {
-    if (this.level >= 4) return false;
+    if (!this.canUpgrade()) return false;
     const cost = this.nextUpgradeCost();
     this.invested += cost;
     this.level += 1;
-    if (this.level === 4) this.branch = branchId;
+    // the branch sticks at whichever tier declared the fork
+    const tier = tierTable(this.def)[this.level - 2];
+    if (tier && tier.forks) this.branch = branchId;
     this.refreshStats();
     this.hp = this.maxHp;     // upgrading repairs the wall (gold sink perk)
     return true;

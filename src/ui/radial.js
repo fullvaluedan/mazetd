@@ -5,7 +5,7 @@
 // swallows outside taps, center X) plus the two configurators: the BUILD ring
 // (tap an empty cell -> 7 tower choices with prices, greyed when unaffordable,
 // orange when the placement would seal the maze) and the TOWER ring (upgrade /
-// L3 branch fork / target mode / sell). hud.js owns the single instance.
+// fork-tier A/B choice / target mode / sell). hud.js owns the single instance.
 // =============================================================================
 
 import { CONFIG } from '../config.js';
@@ -141,13 +141,14 @@ export function buildRingItems(state, cell, gameActions) {
   });
 }
 
-// Existing tower: upgrade (or the L3 fork), target mode, sell.
-// Walls are pure maze pieces: sell is their only action.
+// Existing tower: upgrade (or the A/B fork where the next tier declares one),
+// target mode, sell. Walls are pure maze pieces: sell is their only action.
 export function towerRingItems(state, tower, gameActions) {
   const items = [];
   if (tower.canUpgrade()) {
     const cost = tower.nextUpgradeCost();
-    if (tower.level < 3) {
+    const forks = tower.forkChoices();
+    if (!forks) {
       items.push({
         glyph: '▲', color: '#ffd35c',
         label: `Upgrade to L${tower.level + 1} — ${cost}g`,
@@ -156,8 +157,8 @@ export function towerRingItems(state, tower, gameActions) {
         onTap: () => gameActions.upgradeTower(tower, null),
       });
     } else {
-      for (const key of ['A', 'B']) {
-        const br = tower.def.branches[key];
+      for (const key of Object.keys(forks)) {
+        const br = forks[key];
         items.push({
           glyph: key === 'A' ? '◆' : '◇', color: '#ffd35c',
           label: `${br.name} — ${br.desc} (${cost}g)`,

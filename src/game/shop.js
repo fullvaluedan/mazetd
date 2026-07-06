@@ -94,10 +94,10 @@ export function batchSell(state, items) {
   return res;
 }
 
-// branchId only needed (and only used) for the L3 -> L4 upgrade.
+// branchId only needed (and only used) at the tier that declares forks.
 export function tryUpgrade(state, tower, branchId) {
   if (!tower.canUpgrade()) return false;
-  if (tower.level === 3 && !branchId) return false;   // must choose a branch
+  if (tower.forkChoices() && !branchId) return false;   // must choose a branch
   const cost = tower.nextUpgradeCost();
   if (!canAfford(state, cost)) return false;
   spendGold(state, cost);

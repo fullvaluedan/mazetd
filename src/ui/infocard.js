@@ -7,7 +7,7 @@
 
 import { CONFIG } from '../config.js';
 import { strongWeak } from '../game/damage.js';
-import { getTowerStats } from '../game/tower.js';
+import { getTowerStats, forkDef } from '../game/tower.js';
 import { canBuildAt, wouldSealAt } from '../game/state.js';
 import { sellRefund } from '../game/shop.js';
 import { div } from './components.js';
@@ -101,6 +101,12 @@ export function enemyCardHtml(e) {
     <span class="muted">bounty ${e.bounty}g · ${e.damageToLives}♥ if leaked</span>`;
 }
 
+// " Marksman" etc — the chosen fork's name, resolved through the tier table.
+function branchName(t) {
+  const f = forkDef(t.def, t.branch);
+  return f ? ' ' + f.name : '';
+}
+
 export function towerCardHtml(t) {
   const s = t.stats;
   if (t.def.wall) {
@@ -109,7 +115,7 @@ export function towerCardHtml(t) {
       <span class="muted">${t.def.blurb} · sell +${sellRefund(t)}g</span>`;
   }
   if (t.def.aura) {
-    return `<b style="color:${t.def.color}">${t.def.glyph} ${t.def.name}</b> — L${t.level}${t.branch ? ' ' + t.def.branches[t.branch].name : ''}<br>
+    return `<b style="color:${t.def.color}">${t.def.glyph} ${t.def.name}</b> — L${t.level}${branchName(t)}<br>
       +${Math.round(s.auraDmg * 100)}% dmg · +${Math.round(s.auraSpeed * 100)}% atk speed · radius ${s.auraRange.toFixed(1)}<br>
       <span class="muted">buffs nearby towers · strongest aura wins · sell +${Math.floor(t.invested * CONFIG.SELL_REFUND)}g</span>`;
   }
@@ -117,7 +123,7 @@ export function towerCardHtml(t) {
   const sp = specialText(s);
   const hp = t.hp < t.maxHp ? `<br><span style="color:#d8554f">wall HP ${Math.ceil(t.hp)}/${Math.ceil(t.maxHp)}</span>` : '';
   const next = t.canUpgrade() ? `<br><span style="color:#e09b1a">▲ upgrade: ${t.nextUpgradeCost()}g</span>` : '<br><span class="muted">max level</span>';
-  return `<b style="color:${t.def.color}">${t.def.glyph} ${t.def.name}</b> — L${t.level}${t.branch ? ' ' + t.def.branches[t.branch].name : ''}
+  return `<b style="color:${t.def.color}">${t.def.glyph} ${t.def.name}</b> — L${t.level}${branchName(t)}
     ${statBlockHtml(s, t.def)}
     ~DPS ${dps} · ${matchupText(s.damageType) || s.damageType}<br>
     ${sp ? sp + '<br>' : ''}
