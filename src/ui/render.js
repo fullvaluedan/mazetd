@@ -6,17 +6,27 @@
 // mutates state. Phases add more layers (enemies, towers, projectiles, hero,
 // effects) but the structure stays: background -> map -> overlays -> entities ->
 // effects -> cursor.
+//
+// U4 (big boards): render() takes the viewport and culls everything outside
+// the visible world rect (+1 cell margin) when zoomed in; at zoom 1 the view
+// is null and every cull check short-circuits to "draw". The static board
+// (background + grid + border/obstacle cells) is cached to an offscreen canvas
+// at WORLD resolution x dpr (capped 2 — never zoomed device resolution) and
+// blitted under the camera transform; the cache invalidates off state.js's
+// maze-revision counter (build/sell/snapshot-load), never per frame.
 // =============================================================================
 
 import { CONFIG } from '../config.js';
 import { CELL, COLS, ROWS, SIZE, cellCenter, cellCenterX, cellCenterY, worldW, worldH } from '../engine/grid.js';
-import { canBuildAt, wouldSealAt } from '../game/state.js';
+import { canBuildAt, wouldSealAt, getMapRev } from '../game/state.js';
 import { marqueeCells } from '../game/shop.js';
-import { getSprite } from './sprites.js';
+import { getSprite, spriteCount, spritesEnabled } from './sprites.js';
 
 const C = CONFIG.COLORS;
 
-export function render(ctx, state) {
+export function render(ctx, state, viewport = null) {
+  const view = computeView(viewport);
+
   // screen shake (juice): jitter the whole world layer
   const shaking = state.shake > 0.1;
   if (shaking) {
@@ -25,23 +35,120 @@ export function render(ctx, state) {
     ctx.translate((Math.random() - 0.5) * m, (Math.random() - 0.5) * m);
   }
 
-  drawBackground(ctx);
-  drawMap(ctx, state);
+  drawStatic(ctx, state, view);
   if (state.showPath) drawPaths(ctx, state);
-  drawSpawnGoalMarkers(ctx, state);
-  drawTowers(ctx, state);
-  drawEnemies(ctx, state);
-  drawProjectiles(ctx, state);
-  drawEffects(ctx, state);
-  drawParticles(ctx, state);
+  drawSpawnGoalMarkers(ctx, state, view);
+  drawTowers(ctx, state, view);
+  drawEnemies(ctx, state, view);
+  drawProjectiles(ctx, state, view);
+  drawEffects(ctx, state, view);
+  drawParticles(ctx, state, view);
   drawSelected(ctx, state);
   drawHero(ctx, state);
-  drawFloaters(ctx, state);
+  drawFloaters(ctx, state, view);
   drawHover(ctx, state);
   drawMarquee(ctx, state);
   drawMenuCell(ctx, state);
   drawAbilityTarget(ctx, state);
   if (shaking) ctx.restore();
+}
+
+// ---------------------------------------------------------------------------
+// U4: view culling
+// ---------------------------------------------------------------------------
+
+// Visible world rect from the camera, expanded by ONE cell of margin, plus the
+// matching inclusive cell-index bounds. Returns null when everything is
+// visible (no viewport, or zoom 1 = fit-all) so culling costs one null check.
+export function computeView(viewport) {
+  if (!viewport || viewport.zoom <= 1) return null;
+  const m = SIZE;   // +1 cell margin: cells straddling the edge never pop
+  const x0 = viewport.camX - m;
+  const y0 = viewport.camY - m;
+  const x1 = viewport.camX + worldW() / viewport.zoom + m;
+  const y1 = viewport.camY + worldH() / viewport.zoom + m;
+  return {
+    x0, y0, x1, y1,
+    cx0: Math.max(0, Math.floor(x0 / SIZE)),
+    cy0: Math.max(0, Math.floor(y0 / SIZE)),
+    cx1: Math.min(COLS - 1, Math.ceil(x1 / SIZE) - 1),
+    cy1: Math.min(ROWS - 1, Math.ceil(y1 / SIZE) - 1),
+  };
+}
+
+// Cell-indexed cull check (towers, markers). null view = everything visible.
+export function viewHasCell(v, cx, cy) {
+  return !v || (cx >= v.cx0 && cx <= v.cx1 && cy >= v.cy0 && cy <= v.cy1);
+}
+
+// World-point cull check with a per-entity pad (radius, bar/text overhang).
+function inV(v, x, y, pad) {
+  return !v || (x + pad >= v.x0 && x - pad <= v.x1 && y + pad >= v.y0 && y - pad <= v.y1);
+}
+
+// Bounding-box overlap (beams/chains whose endpoints may both sit off-screen
+// while the middle crosses the view). Conservative: may keep a diagonal that
+// misses the corner, never drops a visible one.
+function bboxInV(v, minX, minY, maxX, maxY) {
+  return !v || !(maxX < v.x0 || minX > v.x1 || maxY < v.y0 || minY > v.y1);
+}
+
+// ---------------------------------------------------------------------------
+// U4: static map layer cache (background + grid lines + border/obstacle cells)
+// ---------------------------------------------------------------------------
+// Cached at world px x dpr (capped 2) and scaled by the camera transform on
+// blit. NEVER at zoomed device resolution: a 28x44 board at zoom 2.5 / dpr 2
+// would be a ~126 MB backing store, past iOS canvas limits. Renderer-local
+// state only — nothing is ever written onto the game state.
+// Invalidation: maze rev (build/sell/load), grid size, map identity (level
+// boot), dpr, and sprite availability (background art pops in async + the Art
+// toggle). All integer/reference compares, once per frame.
+let staticCache = null;
+
+function drawStatic(ctx, state, view) {
+  const layer = staticLayer(state);
+  if (!layer) {   // headless / no-canvas environment: direct draws, still culled
+    drawBackground(ctx, view);
+    drawMap(ctx, state, view);
+    return;
+  }
+  const W = worldW(), H = worldH();
+  if (view) {
+    // Blit only the visible sub-rect (source px = world px * cache scale).
+    const s = staticCache.scale;
+    const dx = Math.max(0, view.x0), dy = Math.max(0, view.y0);
+    const dw = Math.min(W, view.x1) - dx, dh = Math.min(H, view.y1) - dy;
+    if (dw > 0 && dh > 0) ctx.drawImage(layer, dx * s, dy * s, dw * s, dh * s, dx, dy, dw, dh);
+  } else {
+    ctx.drawImage(layer, 0, 0, W, H);
+  }
+}
+
+function staticLayer(state) {
+  if (typeof document === 'undefined' || !document.createElement) return null;
+  const scale = Math.min((typeof window !== 'undefined' && window.devicePixelRatio) || 1, 2);
+  const rev = getMapRev(), sprites = spriteCount(), art = spritesEnabled();
+  const c = staticCache;
+  if (c && c.rev === rev && c.map === state.map && c.cols === COLS && c.rows === ROWS &&
+      c.scale === scale && c.sprites === sprites && c.art === art) {
+    return c.canvas;
+  }
+  const w = Math.max(1, Math.round(worldW() * scale));
+  const h = Math.max(1, Math.round(worldH() * scale));
+  let canvas = c && c.canvas;
+  if (!canvas || canvas.width !== w || canvas.height !== h) {
+    canvas = document.createElement('canvas');
+    if (!canvas || !canvas.getContext) return null;
+    canvas.width = w; canvas.height = h;
+  }
+  const g = canvas.getContext('2d');
+  if (!g) return null;
+  g.setTransform(scale, 0, 0, scale, 0, 0);   // draw in world px, store at dpr
+  g.clearRect(0, 0, worldW(), worldH());
+  drawBackground(g, null);                     // full board: the cache is world-sized
+  drawMap(g, state, null);
+  staticCache = { canvas, rev, map: state.map, cols: COLS, rows: ROWS, scale, sprites, art };
+  return canvas;
 }
 
 // Screen-space pass — call AFTER viewport.applyScreenTransform(ctx): with the
@@ -53,9 +160,10 @@ export function renderScreen(ctx, state) {
   if (state.flash > 0) drawFlash(ctx, state);
 }
 
-function drawParticles(ctx, state) {
+function drawParticles(ctx, state, view) {
   if (!state.particles) return;
   for (const p of state.particles) {
+    if (!inV(view, p.x, p.y, 3)) continue;
     const a = Math.max(0, p.life / p.max);
     ctx.globalAlpha = a;
     ctx.fillStyle = p.color;
@@ -206,7 +314,10 @@ function drawBossBars(ctx, state) {
   ctx.textAlign = 'left';
 }
 
-function drawBackground(ctx) {
+// Normally rendered ONCE into the static-layer cache (view = null). The view
+// parameter only matters on the no-canvas fallback path, where these run per
+// frame and cull to the visible rows/cols.
+function drawBackground(ctx, view) {
   const bgImg = getSprite('misc-background');
   if (bgImg) {
     ctx.drawImage(bgImg, 0, 0, worldW(), worldH());
@@ -220,13 +331,15 @@ function drawBackground(ctx) {
   }
   ctx.strokeStyle = C.gridLine;
   ctx.lineWidth = 1;
-  for (let x = 0; x <= COLS; x++) {
+  const gx0 = view ? view.cx0 : 0, gx1 = view ? Math.min(COLS, view.cx1 + 1) : COLS;
+  const gy0 = view ? view.cy0 : 0, gy1 = view ? Math.min(ROWS, view.cy1 + 1) : ROWS;
+  for (let x = gx0; x <= gx1; x++) {
     ctx.beginPath();
     ctx.moveTo(x * SIZE + 0.5, 0);
     ctx.lineTo(x * SIZE + 0.5, worldH());
     ctx.stroke();
   }
-  for (let y = 0; y <= ROWS; y++) {
+  for (let y = gy0; y <= gy1; y++) {
     ctx.beginPath();
     ctx.moveTo(0, y * SIZE + 0.5);
     ctx.lineTo(worldW(), y * SIZE + 0.5);
@@ -234,9 +347,11 @@ function drawBackground(ctx) {
   }
 }
 
-function drawMap(ctx, state) {
-  for (let y = 0; y < ROWS; y++) {
-    for (let x = 0; x < COLS; x++) {
+function drawMap(ctx, state, view) {
+  const y0 = view ? view.cy0 : 0, y1 = view ? view.cy1 : ROWS - 1;
+  const x0 = view ? view.cx0 : 0, x1 = view ? view.cx1 : COLS - 1;
+  for (let y = y0; y <= y1; y++) {
+    for (let x = x0; x <= x1; x++) {
       const t = state.map.cells[y][x];
       if (t === CELL.BORDER) {
         ctx.fillStyle = C.border;
@@ -306,7 +421,7 @@ function drawPaths(ctx, state) {
   ctx.restore();
 }
 
-function drawSpawnGoalMarkers(ctx, state) {
+function drawSpawnGoalMarkers(ctx, state, view) {
   ctx.save();
   ctx.font = 'bold 11px Segoe UI, sans-serif';
   ctx.textAlign = 'center';
@@ -314,6 +429,7 @@ function drawSpawnGoalMarkers(ctx, state) {
 
   // SPAWNS: a swirling dark portal mouth (sprite when generated)
   for (const s of state.map.spawns) {
+    if (!viewHasCell(view, s.cx, s.cy)) continue;
     const c = cellCenter(s.cx, s.cy);
     const img = getSprite('misc-spawn');
     if (img) {
@@ -334,6 +450,7 @@ function drawSpawnGoalMarkers(ctx, state) {
 
   // EXITS: the camp you're protecting — a crackling little campfire
   for (const g of state.map.goals) {
+    if (!viewHasCell(view, g.cx, g.cy)) continue;
     const c = cellCenter(g.cx, g.cy);
     const img = getSprite('misc-camp');
     if (img) {
@@ -370,6 +487,7 @@ function drawSpawnGoalMarkers(ctx, state) {
   const cps = state.map.checkpoints || [];
   for (let i = 0; i < cps.length; i++) {
     const cp = cps[i];
+    if (!viewHasCell(view, cp.cx, cp.cy)) continue;
     const c = cellCenter(cp.cx, cp.cy);
     const wave = Math.sin(state.time * 3 + i) * 2;
     ctx.strokeStyle = '#7a5a2e';
@@ -393,8 +511,11 @@ function drawSpawnGoalMarkers(ctx, state) {
   ctx.restore();
 }
 
-function drawTowers(ctx, state) {
+function drawTowers(ctx, state, view) {
   for (const t of state.towers) {
+    // Cell test + the 1-cell view margin covers every overhang a tower draws
+    // (sprite oversize, falcon orbit ~26px, aura pulse ring, bars, pips).
+    if (!viewHasCell(view, t.cx, t.cy)) continue;
     const px = t.cx * SIZE, py = t.cy * SIZE;
     const cx = cellCenterX(t.cx), cy = cellCenterY(t.cy);
     const sprite = getSprite('tower-' + t.type);
@@ -537,8 +658,9 @@ function drawTowers(ctx, state) {
   ctx.textAlign = 'left';
 }
 
-function drawProjectiles(ctx, state) {
+function drawProjectiles(ctx, state, view) {
   for (const p of state.projectiles) {
+    if (!inV(view, p.x, p.y, 12)) continue;
     // oriented streak along the velocity + bright head
     const dx = p.tx - p.x, dy = p.ty - p.y;
     const d = Math.hypot(dx, dy) || 1;
@@ -557,16 +679,27 @@ function drawProjectiles(ctx, state) {
   }
 }
 
-function drawEffects(ctx, state) {
+function drawEffects(ctx, state, view) {
   for (const e of state.effects) {
     const a = Math.max(0, e.life / e.max);
     if (e.kind === 'beam') {
+      // beams span up to tower range: bbox overlap, not endpoint tests
+      if (!bboxInV(view, Math.min(e.x1, e.x2), Math.min(e.y1, e.y2),
+        Math.max(e.x1, e.x2), Math.max(e.y1, e.y2))) continue;
       ctx.strokeStyle = withAlpha(e.color, a);
       ctx.lineWidth = 2.5;
       ctx.beginPath();
       ctx.moveTo(e.x1, e.y1); ctx.lineTo(e.x2, e.y2);
       ctx.stroke();
     } else if (e.kind === 'chain') {
+      if (view) {
+        let mnx = Infinity, mny = Infinity, mxx = -Infinity, mxy = -Infinity;
+        for (const pt of e.points) {
+          if (pt.x < mnx) mnx = pt.x; if (pt.x > mxx) mxx = pt.x;
+          if (pt.y < mny) mny = pt.y; if (pt.y > mxy) mxy = pt.y;
+        }
+        if (!bboxInV(view, mnx, mny, mxx, mxy)) continue;
+      }
       ctx.strokeStyle = withAlpha(e.color, a);
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -576,17 +709,20 @@ function drawEffects(ctx, state) {
       }
       ctx.stroke();
     } else if (e.kind === 'splash') {
+      if (!inV(view, e.x, e.y, e.r * SIZE)) continue;
       ctx.strokeStyle = withAlpha(e.color, a * 0.9);
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(e.x, e.y, e.r * SIZE * (1 - a * 0.6), 0, Math.PI * 2);
       ctx.stroke();
     } else if (e.kind === 'spark') {
+      if (!inV(view, e.x, e.y, 8)) continue;
       ctx.fillStyle = withAlpha(e.color, a);
       ctx.beginPath();
       ctx.arc(e.x, e.y, 3 * a + 1, 0, Math.PI * 2);
       ctx.fill();
     } else if (e.kind === 'slash') {
+      if (!inV(view, e.x, e.y, 26)) continue;
       // hero sword swing: a bright crescent sweeping across the attack line
       const p = 1 - a;                                    // 0 -> 1 over the swing
       const sweep = -1.2 + p * 2.4;                       // rotate across the arc
@@ -630,9 +766,11 @@ function drawSelected(ctx, state) {
   drawRangeRing(ctx, t.cx, t.cy, t.effectiveRange ? t.effectiveRange(state) : t.stats.range);
 }
 
-function drawEnemies(ctx, state) {
+function drawEnemies(ctx, state, view) {
   for (const e of state.enemies) {
     if (!e.alive) continue;
+    // Pad: body radius + bars/outlines; bosses get extra for the name text.
+    if (!inV(view, e.x, e.y, e.radius + (e.boss ? 80 : 12))) continue;
     let ey = e.y;
     if (e.flying) {
       // soft shadow on the ground + gentle bob
@@ -752,11 +890,12 @@ function outline(ctx, x, y, r, color) {
   ctx.stroke();
 }
 
-function drawFloaters(ctx, state) {
+function drawFloaters(ctx, state, view) {
   ctx.save();
   ctx.font = 'bold 12px Segoe UI, sans-serif';
   ctx.textAlign = 'center';
   for (const f of state.floaters) {
+    if (!inV(view, f.x, f.y, 80)) continue;   // 80: centered text half-width
     ctx.globalAlpha = Math.max(0, Math.min(1, f.life / f.max));
     ctx.fillStyle = f.color;
     ctx.fillText(f.text, f.x, f.y);

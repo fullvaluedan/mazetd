@@ -254,10 +254,20 @@ export function recomputeSiegeFields(state) {
   state.siege = any;
 }
 
+// U4: monotonic maze-revision counter. Bumped by onMazeChanged — the exact
+// set of events that can change the board (build/sell/snapshot-load) — so the
+// renderer can invalidate its static map-layer cache with one integer compare
+// per frame instead of hooking anything. Module-local by design: it is never
+// written onto the state object, and game logic never reads it, so headless
+// sims stay byte-identical.
+let mapRev = 1;
+export function getMapRev() { return mapRev; }
+
 // Call whenever a tower is added or removed: refresh fields (+ siege breach
 // fields), re-trace overlay paths, and nudge every live enemy onto a fresh
 // next-step from the new field.
 export function onMazeChanged(state) {
+  mapRev++;
   recomputeFields(state);
   recomputeSiegeFields(state);
   recomputePaths(state);

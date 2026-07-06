@@ -319,7 +319,7 @@ function draw() {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   viewport.applyTransform(ctx);     // world px -> device px (letterbox + DPR + camera)
-  render(ctx, state);
+  render(ctx, state, viewport);     // viewport: U4 view culling + static-layer blit
   viewport.applyScreenTransform(ctx);   // camera off: screen-fixed chrome
   renderScreen(ctx, state);             // boss bars + damage flash
   drainEvents();
