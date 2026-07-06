@@ -19,7 +19,7 @@ import { onEnemyKilled, onEnemyLeaked, updateFloaters, updateParticles, payWaveC
 import { startWave, processSpawning, waveComplete, updateBosses, waveInfoFor, winWave } from './game/wave.js';
 import { getLevel } from './game/levels.js';
 import { setGridSize } from './engine/grid.js';
-import { tryBuild, trySell, tryUpgrade, tryHeroUpgrade, tryConsumable, tryTowerBoost } from './game/shop.js';
+import { tryBuild, trySell, tryUpgrade, tryHeroUpgrade, tryConsumable, tryTowerBoost, batchBuild, batchSell } from './game/shop.js';
 import { saveGame, hasSave, loadSnapshot, applySnapshot, getHighScore, recordHighScore } from './game/save.js';
 import { render, renderScreen } from './ui/render.js';
 import { HUD } from './ui/hud.js';
@@ -170,6 +170,27 @@ const actions = {
   },
   sellTower: (tower) => { hud.closeRadial(); trySell(state, tower); sfx.play('sell'); },
   cycleTargetAndRefresh: (tower) => { tower.cycleTargetMode(); hud.openTowerRing(state, tower); },
+  // ---- marquee multi-select (U21): mode toggle + batch build/sell ----
+  // The authoritative mode flag lives in the input layer (it routes gestures);
+  // hud.multiselect mirrors it for the toggle button + chooser card.
+  setSelectMode: (on) => {
+    input.setSelectMode(on);
+    hud.closeRadial();                       // ring and marquee never coexist
+    if (hud.multiselect) hud.multiselect.setActive(on);
+    if (!on) state.marquee = null;
+  },
+  toggleSelectMode: () => actions.setSelectMode(!input.isSelectMode()),
+  batchBuild: (typeId, cells) => {
+    const r = batchBuild(state, typeId, cells);   // one 'build' sfx event per batch
+    if (r.of > 0) {
+      showBanner(r.built < r.of ? `Built ${r.built}/${r.of} — out of gold` : `Built ${r.built}/${r.of}`,
+        r.built < r.of ? 'warn' : '', 1.8);
+    }
+  },
+  batchSell: (cells) => {
+    const r = batchSell(state, cells);            // one 'sell' sfx event per batch
+    if (r.sold > 0) showBanner(`Sold ${r.sold} — +${r.refund}g refund`, '', 1.8);
+  },
   cancel: () => {
     if (hud.radialOpen) { hud.closeRadial(); return; }      // Esc unwinds one layer at a time
     state.buildType = null; state.selected = null; state.heroSelected = false; clearTargeting();
@@ -382,9 +403,16 @@ loadSprites().then(() => screens.refreshArt());   // art pops in when ready; sha
 // ---------------------------------------------------------------------------
 // input
 // ---------------------------------------------------------------------------
-setupInput(canvas, {
+const input = setupInput(canvas, {
   onHover(x, y, px, py) { state.hover = { x, y }; if (hud.infocard) hud.infocard.showHover(hoverCardHtml(state, x, y, px, py)); },
   onHoverEnd() { state.hover = null; if (hud.infocard) hud.infocard.clearHover(); },
+  // ---- marquee multi-select (U21) ----
+  onSelectTap() { actions.setSelectMode(false); },   // plain tap exits select mode
+  onMarquee(rect) { state.marquee = rect; },         // live world-space overlay
+  onMarqueeEnd(rect) {
+    if (rect && hud.multiselect) hud.multiselect.openChooser(state, rect);
+    else state.marquee = null;                       // cancelled (pinch / toggle-off)
+  },
   onLeftClick(x, y, px, py) {
     if (state.targetingAbility && state.hero) {
       state.hero.cast(state, state.targetingAbilityIndex, { x, y });

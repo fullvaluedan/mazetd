@@ -8,11 +8,11 @@
 
 import { CONFIG } from '../config.js';
 import { canAfford, spendGold, addGold, addFloater } from './economy.js';
-import { canBuildAt } from './state.js';
+import { canBuildAt, pushEvent } from './state.js';
 import { addTower, removeTower, recomputeAuras } from './tower.js';
 import { applySplash } from './projectile.js';
 import { baseHp } from './wave.js';
-import { cellCenterX, cellCenterY } from '../engine/grid.js';
+import { COLS, ROWS, SIZE, cellCenterX, cellCenterY } from '../engine/grid.js';
 
 export function buildCost(typeId) { return CONFIG.TOWERS[typeId].cost; }
 
@@ -37,6 +37,61 @@ export function trySell(state, tower) {
   addGold(state, refund);
   if (state.selected === tower) state.selected = null;
   return refund;
+}
+
+// --- marquee batches (U21) ---------------------------------------------------
+
+// Every cell the world-px rect between two drag points intersects (inclusive
+// bounds, clamped to the grid), ordered row-major FROM THE DRAG-START corner —
+// batchBuild fills in this order, so walls grow away from where the drag began.
+export function marqueeCells(ax, ay, bx, by) {
+  const cellOf = (w, n) => Math.min(Math.max(Math.floor(w / SIZE), 0), n - 1);
+  const x0 = cellOf(ax, COLS), y0 = cellOf(ay, ROWS);
+  const x1 = cellOf(bx, COLS), y1 = cellOf(by, ROWS);
+  const sx = x0 <= x1 ? 1 : -1, sy = y0 <= y1 ? 1 : -1;
+  const cells = [];
+  for (let y = y0; ; y += sy) {
+    for (let x = x0; ; x += sx) {
+      cells.push({ x, y });
+      if (x === x1) break;
+    }
+    if (y === y1) break;
+  }
+  return cells;
+}
+
+// Build one type across a marquee. Invalid cells (border/obstacle/flag/
+// occupied/enemy-underfoot) are SKIPPED without aborting the batch;
+// affordable-prefix semantics — building simply stops adding towers once gold
+// runs out. `of` counts the valid cells so callers report "Built X of N".
+// ONE build sfx event for the whole batch, not one per wall.
+export function batchBuild(state, typeId, cells) {
+  const def = CONFIG.TOWERS[typeId];
+  const res = { built: 0, of: 0, spent: 0 };
+  if (!def) return res;
+  for (const c of cells) {
+    if (!canBuildAt(state, c.x, c.y)) continue;
+    res.of++;
+    if (tryBuild(state, typeId, c.x, c.y)) { res.built++; res.spent += def.cost; }
+  }
+  if (res.built > 0) pushEvent(state, 'build');
+  return res;
+}
+
+// Sell every tower under the batch. Items may be cells ({x, y}) or tower
+// entities; empty cells pass through harmlessly. ONE sell sfx event per batch.
+export function batchSell(state, items) {
+  const res = { sold: 0, refund: 0 };
+  const seen = new Set();
+  for (const it of items) {
+    const t = it && it.def ? it : (state.towerGrid[it.y] && state.towerGrid[it.y][it.x]);
+    if (!t || seen.has(t)) continue;
+    seen.add(t);
+    res.refund += trySell(state, t);
+    res.sold++;
+  }
+  if (res.sold > 0) pushEvent(state, 'sell');
+  return res;
 }
 
 // branchId only needed (and only used) for the L3 -> L4 upgrade.

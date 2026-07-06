@@ -20,6 +20,7 @@ const SUITES = [
   't11levels.mjs',
   't11profile.mjs',
   't11hero.mjs',
+  't12batch.mjs',
   't10validate.mjs',                 // balance gate: classic board, 6 seeds + all heroes
   'campaign-sim.mjs',                // balance gate: reference wins all 20 + margin bands
   ['campaign-sim.mjs', '--careless'],  // balance gate: naive play first dies in 2..10

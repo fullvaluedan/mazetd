@@ -360,6 +360,65 @@
   .hero-ability .key { display: none; }
 }
 
+/* ---- multi-select marquee (U21): bottom-left toggle + batch chooser card ---- */
+/* The toggle takes the corner the hero dock freed up (heroes off for v1). */
+.mselect-toggle {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  z-index: 12;
+  min-height: 44px;
+}
+.mselect-toggle.on {
+  background: #3fae5d;
+  border-color: #2c7a41;
+  color: #ffffff;
+}
+.mselect-toggle.on:hover:not(:disabled) { background: #46bd66; }
+.mselect-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 11;
+  pointer-events: auto;
+  background: rgba(8, 10, 16, 0.25);
+}
+.mselect-card {
+  position: absolute;
+  left: 50%;
+  bottom: 66px;
+  transform: translateX(-50%);
+  z-index: 12;
+  width: min(300px, 88%);
+  max-height: 62%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--ui-panel);
+  border: 1px solid var(--ui-line);
+  border-radius: var(--ui-radius);
+  box-shadow: var(--ui-shadow);
+  padding: 10px;
+  animation: ui-pop 0.16s ease-out;
+}
+.mselect-card .ms-title {
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--ui-dim);
+}
+.mselect-card .ms-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  text-align: left;
+}
+.mselect-card .ms-price { color: var(--ui-gold); }
+.mselect-card .ms-row:disabled .ms-price { color: var(--ui-red); }
+.mselect-card .ms-row.sell .ms-price { color: var(--ui-green); }
+
 /* ---- info card (docked, replaces the cursor tooltip) ----------------------- */
 .infocard {
   position: absolute;

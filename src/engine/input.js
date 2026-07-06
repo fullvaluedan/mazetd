@@ -12,6 +12,13 @@
 // zoom about the gesture midpoint, midpoint movement panning as usual; wheel
 // zooms about the cursor. The click event that ends a drag/pinch is suppressed
 // so a pan can never build or select.
+//
+// Select mode (U21): setupInput returns { setSelectMode, isSelectMode }. While
+// ON, a one-pointer drag draws a world-space marquee instead of panning
+// (handlers.onMarquee live, onMarqueeEnd(rect) on release, onMarqueeEnd(null)
+// on cancel); two-finger pinch/pan and wheel zoom are untouched; a plain tap
+// routes to handlers.onSelectTap (the "exit select mode" hook) instead of
+// onLeftClick, so the radial can never open in select mode.
 // =============================================================================
 
 import { SIZE } from './grid.js';
@@ -26,12 +33,22 @@ export function setupInput(canvas, handlers, viewport) {
 
   // ---- camera gestures --------------------------------------------------------
   const pointers = new Map();  // active pointers: id -> {x, y} client px
-  let mode = 'idle';           // 'idle' | 'press' (may still be a tap) | 'pan' | 'pinch'
+  let mode = 'idle';           // 'idle' | 'press' (may still be a tap) | 'pan' | 'pinch' | 'marquee'
   let press = null;            // pointerdown origin while deciding tap vs pan
   let last = null;             // previous single-pointer position while panning
   let pinch = null;            // previous pinch frame: { dist, midX, midY }
-  let dragged = false;         // this gesture panned/pinched (not a tap)
+  let dragged = false;         // this gesture panned/pinched/marqueed (not a tap)
   let suppressClick = false;   // eat the click event that ends a drag/pinch
+  let selectMode = false;      // U21: one-pointer drags marquee instead of panning
+  let marquee = null;          // live marquee rect in world px { ax, ay, bx, by }
+
+  // A second finger or a mode toggle kills an in-flight marquee; the UI clears
+  // its overlay on the null.
+  const cancelMarquee = () => {
+    if (!marquee) return;
+    marquee = null;
+    if (handlers.onMarqueeEnd) handlers.onMarqueeEnd(null);
+  };
 
   // CSS-px delta -> world-px delta at the current zoom (no rect offset needed).
   const cssToWorld = () => 1 / (viewport.scale * viewport.zoom);
@@ -52,6 +69,7 @@ export function setupInput(canvas, handlers, viewport) {
       dragged = false;
       suppressClick = false;   // fresh gesture: never eat a legit tap on a stale flag
     } else if (pointers.size === 2) {
+      cancelMarquee();         // two-finger gestures never marquee
       mode = 'pinch';          // a second finger always cancels the tap
       dragged = true;
       pinch = pinchFrame();
@@ -64,11 +82,21 @@ export function setupInput(canvas, handlers, viewport) {
     p.x = ev.clientX; p.y = ev.clientY;
     if (mode === 'press') {
       if (Math.hypot(p.x - press.x, p.y - press.y) <= CONFIG.CAMERA.DRAG_SLOP) return;
-      mode = 'pan';
       dragged = true;
-      last = press;            // pan from the origin: no dead jump at the threshold
+      if (selectMode) {
+        mode = 'marquee';      // select mode: the drag selects, the camera stays put
+        const w = viewport.clientToWorld(press.x, press.y);
+        marquee = { ax: w.x, ay: w.y, bx: w.x, by: w.y };
+      } else {
+        mode = 'pan';
+        last = press;          // pan from the origin: no dead jump at the threshold
+      }
     }
-    if (mode === 'pan') {
+    if (mode === 'marquee') {
+      const w = viewport.clientToWorld(p.x, p.y);
+      marquee.bx = w.x; marquee.by = w.y;
+      if (handlers.onMarquee) handlers.onMarquee(marquee);
+    } else if (mode === 'pan') {
       const k = cssToWorld();  // world follows the finger, so the camera moves opposite
       viewport.panBy((last.x - p.x) * k, (last.y - p.y) * k);
       last = { x: p.x, y: p.y };
@@ -95,6 +123,11 @@ export function setupInput(canvas, handlers, viewport) {
       last = { x: rest.x, y: rest.y };
       pinch = null;
     } else if (pointers.size === 0) {
+      if (mode === 'marquee' && marquee) {
+        const r = marquee;       // release delivers the final rect exactly once
+        marquee = null;
+        if (handlers.onMarqueeEnd) handlers.onMarqueeEnd(r);
+      }
       suppressClick = dragged;   // the trailing click must not build/select
       mode = 'idle'; press = null; last = null; pinch = null; dragged = false;
     }
@@ -122,7 +155,12 @@ export function setupInput(canvas, handlers, viewport) {
   });
 
   canvas.addEventListener('click', (ev) => {
-    if (suppressClick) { suppressClick = false; return; }   // that "click" was a pan
+    if (suppressClick) { suppressClick = false; return; }   // that "click" was a pan/marquee
+    if (selectMode) {
+      // A plain tap in select mode exits it (via the caller) — never builds.
+      handlers.onSelectTap && handlers.onSelectTap();
+      return;
+    }
     const c = toCell(ev);
     handlers.onLeftClick && handlers.onLeftClick(c.x, c.y, c.px, c.py);
   });
@@ -140,4 +178,19 @@ export function setupInput(canvas, handlers, viewport) {
     const handled = handlers.onKey && handlers.onKey(ev.key);
     if (handled) ev.preventDefault();
   });
+
+  // ---- select mode (U21) --------------------------------------------------------
+  return {
+    isSelectMode: () => selectMode,
+    setSelectMode(on) {
+      selectMode = !!on;
+      if (!on && mode === 'marquee') {
+        // toggled off mid-drag: drop the marquee, let the finger keep panning
+        cancelMarquee();
+        const rest = [...pointers.values()][0];
+        if (rest) { mode = 'pan'; last = { x: rest.x, y: rest.y }; }
+        else mode = 'idle';
+      }
+    },
+  };
 }

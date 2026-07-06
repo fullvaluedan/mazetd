@@ -11,6 +11,7 @@
 import { CONFIG } from '../config.js';
 import { CELL, COLS, ROWS, SIZE, cellCenter, cellCenterX, cellCenterY, worldW, worldH } from '../engine/grid.js';
 import { canBuildAt, wouldSealAt } from '../game/state.js';
+import { marqueeCells } from '../game/shop.js';
 import { getSprite } from './sprites.js';
 
 const C = CONFIG.COLORS;
@@ -37,6 +38,7 @@ export function render(ctx, state) {
   drawHero(ctx, state);
   drawFloaters(ctx, state);
   drawHover(ctx, state);
+  drawMarquee(ctx, state);
   drawMenuCell(ctx, state);
   drawAbilityTarget(ctx, state);
   if (shaking) ctx.restore();
@@ -785,6 +787,44 @@ function drawHover(ctx, state) {
     ctx.fillStyle = C.hoverOk;
     ctx.fillRect(x * SIZE, y * SIZE, SIZE, SIZE);
   }
+}
+
+// U21 marquee selection overlay (world space, live while dragging AND while
+// the chooser card is up): green = buildable, blue = existing tower (sellable),
+// orange = buildable but would seal the maze. wouldSealAt BFS-es per cell, so
+// tints recompute only when the covered cell bounds or the tower count change,
+// never per frame. (Enemy-underfoot legality can go momentarily stale in the
+// tint; batchBuild re-validates every cell at execution.)
+const MARQUEE_SELL = 'rgba(47, 143, 199, 0.38)';   // --ui-blue over the board
+let marqueeCache = { key: '', tints: [] };
+function drawMarquee(ctx, state) {
+  const m = state.marquee;
+  if (!m) return;
+  const cells = marqueeCells(m.ax, m.ay, m.bx, m.by);
+  const a = cells[0], b = cells[cells.length - 1];
+  const key = `${a.x},${a.y}:${b.x},${b.y}:${state.towers.length}`;
+  if (marqueeCache.key !== key) {
+    marqueeCache = {
+      key,
+      tints: cells.map((c) => {
+        if (state.towerGrid[c.y][c.x]) return MARQUEE_SELL;
+        if (!canBuildAt(state, c.x, c.y)) return null;
+        return wouldSealAt(state, c.x, c.y) ? C.hoverSeal : C.hoverOk;
+      }),
+    };
+  }
+  for (let i = 0; i < cells.length; i++) {
+    const t = marqueeCache.tints[i];
+    if (!t) continue;
+    ctx.fillStyle = t;
+    ctx.fillRect(cells[i].x * SIZE, cells[i].y * SIZE, SIZE, SIZE);
+  }
+  // thin frame around the whole selection
+  const x0 = Math.min(a.x, b.x) * SIZE, y0 = Math.min(a.y, b.y) * SIZE;
+  const w = (Math.abs(a.x - b.x) + 1) * SIZE, h = (Math.abs(a.y - b.y) + 1) * SIZE;
+  ctx.strokeStyle = C.rangeRing;
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(x0 + 0.75, y0 + 0.75, w - 1.5, h - 1.5);
 }
 
 // Radial build ring open: highlight the chosen cell (orange when the placement

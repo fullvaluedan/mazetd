@@ -72,6 +72,7 @@ export function createState(rng, seed = 0, level = null) {
     selected: null,          // selected placed tower
     hover: null,             // {x,y} hovered cell
     menuCell: null,          // {x,y} cell with an open radial build ring
+    marquee: null,           // {ax,ay,bx,by} world-px multi-select rect (U21; UI-owned)
     pendingBuild: null,      // tower type hovered inside the build ring
     menuSeals: false,        // cached wouldSealAt(menuCell) (computed on open)
     targetingConsumable: null, // consumable def awaiting a target cell

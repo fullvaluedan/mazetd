@@ -19,6 +19,7 @@ import { Radial, buildRingItems, towerRingItems } from './radial.js';
 import { HeroBar } from './herobar.js';
 import { Sheets } from './sheets.js';
 import { InfoCard } from './infocard.js';
+import { MultiSelect } from './multiselect.js';
 
 export class HUD {
   constructor(root, actions, scene = null) {
@@ -29,6 +30,7 @@ export class HUD {
     this.radial = null;
     this.herobar = null;
     this.infocard = null;
+    this.multiselect = null;
     this.sheets = new Sheets(actions);
     if (scene && scene.uiLayer) {
       this.topbar = new TopBar(scene.uiLayer, actions);
@@ -36,6 +38,7 @@ export class HUD {
       this.radial = new Radial(scene.uiLayer, scene.viewport);
       this.herobar = new HeroBar(scene.uiLayer, actions);
       this.infocard = new InfoCard(scene.uiLayer);
+      this.multiselect = new MultiSelect(scene.uiLayer, actions);
     }
   }
 
@@ -46,6 +49,7 @@ export class HUD {
   onViewportResize() {
     if (this.wavebar) this.wavebar.position();
     if (this.radial) this.radial.close();   // anchors are stale after a resize
+    if (this.multiselect) this.multiselect.closeCard();   // same close-on-stale rule
   }
 
   // Called when the camera pans/zooms: same stale-anchor rules — chevrons
@@ -83,6 +87,7 @@ export class HUD {
     if (this.wavebar) this.wavebar.refresh(state);
     if (this.herobar) this.herobar.refresh(state);
     if (this.radial) this.radial.refresh(state);     // live affordability in open rings
+    if (this.multiselect) this.multiselect.refresh(state);   // ...and in the batch card
     if (this.sheets.isOpen) this.sheets.refresh(state);
   }
 }
