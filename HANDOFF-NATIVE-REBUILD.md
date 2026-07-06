@@ -1,5 +1,16 @@
 # Mazecore TD — Native Rebuild Handoff (Google AI Studio / Android)
 
+> **SUPERSEDED (2026-07-06).** This AI-Studio-native-rebuild plan is no longer
+> the mobile path. U8's progression rework confirmed the web game is staying
+> the source of truth (Capacitor wraps it for iOS/Android instead of a native
+> Kotlin+Compose reimplementation), because AI Studio's Android generator has
+> no WebView and cannot import the existing HTML/JS/CSS/assets, and Codemagic
+> can run the iOS build+signing pipeline without a local Mac — removing the
+> main reason a from-scratch native rebuild was on the table. This document is
+> kept for historical context only; see the mobile-ship units in
+> `docs/plans/2026-07-06-001-feat-wc3-progression-mobile-plan.md` (U11-U13)
+> for the current plan.
+
 **Status:** the complete, balanced web game is preserved in this repo at tag
 `web-v1.0` (commit `a89fee1`). This document is the brief for rebuilding it as a
 **native Android app** in **Google AI Studio** (Kotlin + Jetpack Compose) in a

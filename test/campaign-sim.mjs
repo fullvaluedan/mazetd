@@ -107,12 +107,20 @@ export function runLevel(id, verbose = false, strategy = 'reference') {
   const cycle = towersUnlockedAt(lv.num).filter((t) => !CONFIG.TOWERS[t].wall);
   let minLives = state.lives;
 
+  // Per-wave sim-time diagnostics: the guard (300 sim-seconds) exists to bound
+  // runaway waves, but a TRIPPED guard means enemies were still walking when
+  // the wave was cut off — the margin measurement would be corrupt. U8 sizes
+  // every board's effective path (~<=270 cells) so this never fires; gTrips is
+  // returned (and printed by the gate runners) so a regression is loud.
+  const GUARD_TICKS = 60 * 300;
+  let maxWaveSecs = 0, gTrips = 0;
+
   for (let w = 1; w <= lv.waves.count; w++) {
     if (strategy === 'careless') carelessBuild(state, lv, cycle);
     else build(state, lv, cycle, strategy !== 'no-upgrade');
     startWave(state, w);
     let guard = 0;
-    while (!waveComplete(state) && state.status !== 'lost' && guard++ < 60 * 300) {
+    while (!waveComplete(state) && state.status !== 'lost' && guard++ < GUARD_TICKS) {
       state.time += TICK_DT;
       processSpawning(state, TICK_DT);
       updateBosses(state, TICK_DT);
@@ -123,13 +131,15 @@ export function runLevel(id, verbose = false, strategy = 'reference') {
       updateEffects(state, TICK_DT);
       updateFloaters(state, TICK_DT);
     }
+    maxWaveSecs = Math.max(maxWaveSecs, guard / 60);
+    if (guard >= GUARD_TICKS) gTrips++;
     minLives = Math.min(minLives, state.lives);
-    if (state.status === 'lost') return { won: false, wave: w, lives: 0, minLives };
+    if (state.status === 'lost') return { won: false, wave: w, lives: 0, minLives, maxWaveSecs, gTrips };
     state.waveActive = false;
     payWaveClear(state, w);
-    if (verbose) console.log(`  w${String(w).padStart(2)} lives=${state.lives} gold=${Math.floor(state.gold)} towers=${state.towers.length}`);
+    if (verbose) console.log(`  w${String(w).padStart(3)} lives=${String(state.lives).padStart(2)} gold=${String(Math.floor(state.gold)).padStart(6)} towers=${state.towers.length} simT=${(guard / 60).toFixed(0)}s`);
   }
-  return { won: true, lives: state.lives, minLives, towers: state.towers.length };
+  return { won: true, lives: state.lives, minLives, towers: state.towers.length, maxWaveSecs, gTrips };
 }
 
 const isMain = !!process.argv[1] && import.meta.url === `file:///${process.argv[1].replace(/\\/g, '/')}`;

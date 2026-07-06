@@ -26,7 +26,7 @@ const near = (a, b) => Math.abs(a - b) < 1e-9;
 const cc = (n) => n * SIZE + SIZE / 2;   // world px of cell center
 
 function freshL8() {
-  const lv = getLevel('l8');           // 12x17, no obstacles, CP1 (2,8) / CP2 (9,8)
+  const lv = getLevel('l8');           // 18x28 (U8), CP1 (2,13) / CP2 (15,13)
   setGridSize(lv.cols, lv.rows);
   return createState(makeRng(1), 1, lv);
 }
@@ -92,9 +92,9 @@ console.log('batchBuild: invalid cells skipped without aborting the batch:');
     r.built === 2 && r.of === 2, JSON.stringify(r));
   check('walls landed on both open cells', !!st.towerGrid[3][1] && !!st.towerGrid[3][3]);
   check('the pre-existing tower survived', st.towerGrid[3][2] && st.towerGrid[3][2].type === 'cannon');
-  const cp = marqueeCells(cc(1), cc(8), cc(3), cc(8));      // includes checkpoint flag CP1 (2,8)
+  const cp = marqueeCells(cc(1), cc(13), cc(3), cc(13));    // includes checkpoint flag CP1 (2,13)
   const r2 = batchBuild(st, 'wall', cp);
-  check('checkpoint flag cell skipped too', r2.built === 2 && r2.of === 2 && !st.towerGrid[8][2],
+  check('checkpoint flag cell skipped too', r2.built === 2 && r2.of === 2 && !st.towerGrid[13][2],
     JSON.stringify(r2));
 }
 

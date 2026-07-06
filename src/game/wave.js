@@ -187,7 +187,11 @@ export function buildWave(state, w) {
     for (let b = 0; b < bossCount; b++) {
       const sid = active[b % active.length];
       const flying = !campaign && ((w === 50) || (w === 100 && b === 1));
-      const bossTier = campaign ? Math.max(1, Math.ceil(state.level.num / 7)) : w / 10;
+      // Boss ability kits are wave-indexed on BOTH pipelines (U8): campaign
+      // levels run bossWaves every 10th wave, so floor(w/10) escalates the kit
+      // inside a level exactly like the classic w/10 path (tier 2 spawns
+      // swarmlings, 3 adds bursts, 4 adds slow-immunity — see enemy.js).
+      const bossTier = campaign ? Math.max(1, Math.floor(w / 10)) : w / 10;
       entries.push({ type: 'boss', spawnId: sid, goalId: goalFor(sid), time: t + 1.0, flying, bossTier });
       t += 2.0;
     }
