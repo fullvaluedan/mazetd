@@ -44,7 +44,8 @@ export function setupInput(canvas, handlers, viewport) {
   canvas.addEventListener('pointerdown', (ev) => {
     if (ev.pointerType === 'mouse' && ev.button !== 0) return;  // right/middle: not a gesture
     pointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
-    if (canvas.setPointerCapture) canvas.setPointerCapture(ev.pointerId);
+    // capture can throw (stale/synthetic pointer ids); the gesture must survive
+    try { if (canvas.setPointerCapture) canvas.setPointerCapture(ev.pointerId); } catch { /* uncaptured is fine */ }
     if (pointers.size === 1) {
       mode = 'press';
       press = { x: ev.clientX, y: ev.clientY };
