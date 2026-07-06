@@ -125,6 +125,17 @@ console.log('U15 feel spike: levels 1-3 deterministic income bands (WC3 scarcity
   check('level 2 income scarce (300-600)', i2 >= 300 && i2 <= 600, `i2=${i2}`);
   check('level 3 income scarce (350-750)', i3 >= 350 && i3 <= 750, `i3=${i3}`);
   check('order-of-magnitude cut vs the old ~1400g level 1', i1 < 500, `i1=${i1}`);
+
+  // U20 mid/late spot checks: per-level bounty/waveclear mults now cover 4-20.
+  // Bands bracket the tuned values (l8=1378, l14=2946, l20=8876) with room for
+  // future wave-composition drift but not for a return of the fat economy
+  // (l20 under the old mult-free defaults paid ~18k). Boss levels (10/13/15/
+  // 17/18/20) carry deliberately higher bountyMult: the income pays for the
+  // boss-killing DPS; l20 is the extreme (bountyMult 0.9 + two boss bounties).
+  const i8 = income('l8'), i14 = income('l14'), i20 = income('l20');
+  check('level 8 income in the 1100-1700 band', i8 >= 1100 && i8 <= 1700, `i8=${i8}`);
+  check('level 14 income in the 2400-3600 band', i14 >= 2400 && i14 <= 3600, `i14=${i14}`);
+  check('level 20 income in the 7000-11000 band', i20 >= 7000 && i20 <= 11000, `i20=${i20}`);
 }
 
 console.log(fails === 0 ? 'ECONOMY_OK' : `ECONOMY_FAIL (${fails})`);

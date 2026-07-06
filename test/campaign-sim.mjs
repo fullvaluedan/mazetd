@@ -2,8 +2,10 @@
 // level headless — cheap walls form a serpentine, every 3rd piece is a killer
 // tower from the player's UNLOCKED set, surplus gold buys upgrades, and walls
 // convert to towers late. Usage:
-//   node scratch/campaign-sim.mjs            # all 20 levels, one line each
-//   node scratch/campaign-sim.mjs l7         # one level, wave-by-wave detail
+//   node test/campaign-sim.mjs               # all 20 levels + margin gates
+//   node test/campaign-sim.mjs l7            # one level, wave-by-wave detail
+//   node test/campaign-sim.mjs --careless    # naive-play ceiling gate
+//   node test/campaign-sim.mjs --noupgrade   # unupgraded-build-must-fail gate
 import { CONFIG, TICK_DT } from '../src/config.js';
 import { makeRng } from '../src/engine/rng.js';
 import { setGridSize } from '../src/engine/grid.js';
@@ -30,7 +32,7 @@ function serpentine(lv) {
   return t;
 }
 
-function build(state, lv, cycle) {
+function build(state, lv, cycle, upgrades = true) {
   if (!state._targets) { state._targets = serpentine(lv); state._ti = 0; state._si = 0; }
   const reserve = 0;
   for (const c of state._targets) {
@@ -47,9 +49,11 @@ function build(state, lv, cycle) {
       if (type !== 'wall') state._ti++;
     }
   }
-  // cheapest-first upgrades
+  // cheapest-first upgrades (skipped by the 'no-upgrade' strategy: the same
+  // maze + tower cycle with zero upgrades is the STRONGEST unupgraded build,
+  // so it failing mid-campaign is the strictest honest "upgrades required" gate)
   let guard = 0;
-  while (guard++ < 400) {
+  while (upgrades && guard++ < 400) {
     let best = null, bestCost = Infinity;
     for (const t of state.towers) {
       if (!t.canUpgrade()) continue;
@@ -76,8 +80,11 @@ function build(state, lv, cycle) {
 
 // The naive-play ceiling: a few scattered archers, NO walls, NO upgrades —
 // the way a first-timer who ignores mazing plays. Must fail by mid-campaign.
+// (Every 2nd serpentine cell, not 4th: the sim lost its hero warrior when the
+// game went hero-less, and the tiny level-1 board only yields 3 cells at %4 —
+// this recalibrates the naive ceiling so it still clears the tutorial.)
 function carelessBuild(state, lv, cycle) {
-  if (!state._ct) state._ct = serpentine(lv).filter((_, i) => i % 4 === 0).slice(0, 10);
+  if (!state._ct) state._ct = serpentine(lv).filter((_, i) => i % 2 === 0).slice(0, 10);
   for (const c of state._ct) {
     if (state.towerGrid[c.y][c.x] || !canBuildAt(state, c.x, c.y)) continue;
     const type = cycle.length ? cycle[0] : 'archer';
@@ -91,13 +98,15 @@ export function runLevel(id, verbose = false, strategy = 'reference') {
   const lv = getLevel(id);
   setGridSize(lv.cols, lv.rows);
   const state = createState(makeRng(1), 1, lv);
-  createHero(state, 'warrior');
+  // The shipped game is hero-less (CONFIG.HEROES_ENABLED=false); the gates
+  // must measure what players actually field. autoplay/t10validate keep theirs.
+  if (CONFIG.HEROES_ENABLED) createHero(state, 'warrior');
   const cycle = towersUnlockedAt(lv.num).filter((t) => t !== 'wall' && t !== 'beacon');
   let minLives = state.lives;
 
   for (let w = 1; w <= lv.waves.count; w++) {
     if (strategy === 'careless') carelessBuild(state, lv, cycle);
-    else build(state, lv, cycle);
+    else build(state, lv, cycle, strategy !== 'no-upgrade');
     startWave(state, w);
     let guard = 0;
     while (!waveComplete(state) && state.status !== 'lost' && guard++ < 60 * 300) {
@@ -120,15 +129,17 @@ export function runLevel(id, verbose = false, strategy = 'reference') {
   return { won: true, lives: state.lives, minLives, towers: state.towers.length };
 }
 
-const isMain = import.meta.url === `file:///${process.argv[1].replace(/\\/g, '/')}`;
+const isMain = !!process.argv[1] && import.meta.url === `file:///${process.argv[1].replace(/\\/g, '/')}`;
 const args = isMain ? process.argv.slice(2) : [];
 const careless = args.includes('--careless');
+const noupgrade = args.includes('--noupgrade');
 const arg = args.find((a) => !a.startsWith('--')) || null;
 if (!isMain) {
   // imported as a library (probes/tests): expose runLevel only, no CLI run
 } else if (arg) {
-  console.log(`Level ${arg}${careless ? ' (careless)' : ''}:`);
-  const r = runLevel(arg, true, careless ? 'careless' : 'reference');
+  const strategy = careless ? 'careless' : noupgrade ? 'no-upgrade' : 'reference';
+  console.log(`Level ${arg}${strategy !== 'reference' ? ` (${strategy})` : ''}:`);
+  const r = runLevel(arg, true, strategy);
   console.log(r.won ? `  WON lives=${r.lives} (min=${r.minLives})` : `  DIED wave ${r.wave}`);
 } else if (careless) {
   // ceiling gate: naive no-maze play must clear the intro then hit a wall
@@ -141,13 +152,39 @@ if (!isMain) {
   const ok = firstLoss != null && firstLoss >= 2 && firstLoss <= 10;
   console.log(`first careless loss: level ${firstLoss} -> ${ok ? 'CARELESS_OK' : 'CARELESS_FAIL'} (want 2..10)`);
   if (!ok) process.exitCode = 1;
+} else if (noupgrade) {
+  // "upgrades required" gate: the strongest UNUPGRADED build (full reference
+  // maze + tower cycle + wall conversion, zero upgrades) must hit a wall in
+  // the early-mid campaign — playtest 2026-07-06 beat all 20 without upgrading.
+  let firstLoss = null;
+  for (const lv of LEVELS) {
+    const r = runLevel(lv.id, false, 'no-upgrade');
+    console.log(`${lv.id.padEnd(4)} ${lv.name.padEnd(18)} ${r.won ? `won lives=${r.lives}` : `DIED w${r.wave}`}`);
+    if (!r.won && firstLoss == null) firstLoss = lv.num;
+  }
+  const ok = firstLoss != null && firstLoss >= 3 && firstLoss <= 7;
+  console.log(`first no-upgrade loss: level ${firstLoss} -> ${ok ? 'NOUPGRADE_OK' : 'NOUPGRADE_FAIL'} (want 3..7)`);
+  if (!ok) process.exitCode = 1;
 } else {
-  let allWon = true;
+  // Reference gate: wins all 20 AND the margins tighten across the campaign.
+  // Interim bands (U20): levels 1-5 finish with >=6 lives; level 10 <=8;
+  // level 15 <=6; level 20 <=4. Final margins arrive with U8/U10.
+  const MARGIN = { 1: ['>=', 6], 2: ['>=', 6], 3: ['>=', 6], 4: ['>=', 6], 5: ['>=', 6], 10: ['<=', 8], 15: ['<=', 6], 20: ['<=', 4] };
+  let allWon = true, marginFails = 0;
   for (const lv of LEVELS) {
     const r = runLevel(lv.id);
     if (!r.won) allWon = false;
-    console.log(`${lv.id.padEnd(4)} ${lv.name.padEnd(18)} ${r.won ? `WON  lives=${String(r.lives).padStart(2)} (min=${r.minLives})` : `DIED w${r.wave}`}`);
+    let note = '';
+    const band = MARGIN[lv.num];
+    if (band && r.won) {
+      const [op, n] = band;
+      const ok = op === '>=' ? r.lives >= n : r.lives <= n;
+      if (!ok) marginFails++;
+      note = `  margin ${op}${n} ${ok ? 'ok' : 'MARGIN_FAIL'}`;
+    }
+    console.log(`${lv.id.padEnd(4)} ${lv.name.padEnd(18)} ${r.won ? `WON  lives=${String(r.lives).padStart(2)} (min=${r.minLives})` : `DIED w${r.wave}`}${note}`);
   }
-  console.log(allWon ? 'CAMPAIGN_OK' : 'CAMPAIGN_FAIL');
-  if (!allWon) process.exitCode = 1;
+  const ok = allWon && marginFails === 0;
+  console.log(ok ? 'CAMPAIGN_OK' : `CAMPAIGN_FAIL${allWon ? ` (margins: ${marginFails})` : ''}`);
+  if (!ok) process.exitCode = 1;
 }

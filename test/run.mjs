@@ -7,6 +7,7 @@ import { dirname, join } from 'node:path';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
+// Each entry is a file name, or [file, ...args] for suites run in several modes.
 const SUITES = [
   't10matrix.mjs',
   't10aura.mjs',
@@ -19,18 +20,22 @@ const SUITES = [
   't11levels.mjs',
   't11profile.mjs',
   't11hero.mjs',
-  't10validate.mjs',   // balance gate: classic board, 6 seeds + all heroes
-  'campaign-sim.mjs',  // balance gate: reference clears all 20 campaign levels
+  't10validate.mjs',                 // balance gate: classic board, 6 seeds + all heroes
+  'campaign-sim.mjs',                // balance gate: reference wins all 20 + margin bands
+  ['campaign-sim.mjs', '--careless'],  // balance gate: naive play first dies in 2..10
+  ['campaign-sim.mjs', '--noupgrade'], // balance gate: unupgraded build first dies in 3..7
 ];
 
 let failed = 0;
 for (const suite of SUITES) {
+  const [file, ...suiteArgs] = Array.isArray(suite) ? suite : [suite];
+  const label = [file, ...suiteArgs].join(' ');
   const t0 = Date.now();
-  const r = spawnSync(process.execPath, [join(here, suite)], { encoding: 'utf8' });
+  const r = spawnSync(process.execPath, [join(here, file), ...suiteArgs], { encoding: 'utf8' });
   const out = (r.stdout || '') + (r.stderr || '');
   const secs = ((Date.now() - t0) / 1000).toFixed(1);
   const bad = r.status !== 0 || /_FAIL/.test(out);
-  console.log(`${bad ? 'FAIL' : 'pass'}  ${suite}  (${secs}s)`);
+  console.log(`${bad ? 'FAIL' : 'pass'}  ${label}  (${secs}s)`);
   if (bad) {
     failed++;
     console.log(out.split('\n').filter((l) => /FAIL|Error/.test(l)).join('\n') || out.slice(-2000));

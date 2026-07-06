@@ -99,7 +99,7 @@ export const LEVELS = [
     goals: [{ id: 'G1', cx: 2, cy: 14 }],
     checkpoints: [{ id: 'CP1', cx: 7, cy: 7 }],
     startGold: 310,
-    waves: { count: 11, types: ['normal', 'fast', 'swarm'], swarmFrom: 5, hpMult: 0.85 },
+    waves: { count: 11, types: ['normal', 'fast', 'swarm'], swarmFrom: 5, hpMult: 3.6, bountyMult: 0.3, waveclearMult: 0.22 },
   }),
   L(5, 'Cold Snap', {
     cols: 11, rows: 15,
@@ -107,7 +107,7 @@ export const LEVELS = [
     goals: [{ id: 'G1', cx: 5, cy: 14 }],
     checkpoints: [{ id: 'CP1', cx: 2, cy: 7 }, { id: 'CP2', cx: 8, cy: 7 }],
     startGold: 340,
-    waves: { count: 12, types: ['normal', 'fast', 'swarm', 'tank'], swarmFrom: 4, hpMult: 1 },
+    waves: { count: 12, types: ['normal', 'fast', 'swarm', 'tank'], swarmFrom: 4, hpMult: 3.7, bountyMult: 0.31, waveclearMult: 0.24 },
   }),
   L(6, 'Broken Ground', {
     cols: 11, rows: 16,
@@ -116,7 +116,7 @@ export const LEVELS = [
     checkpoints: [{ id: 'CP1', cx: 2, cy: 5 }, { id: 'CP2', cx: 8, cy: 11 }],
     obstacles: [...rect(5, 7, 6, 8), [3, 11], [4, 11]],
     startGold: 360,
-    waves: { count: 12, types: ['normal', 'fast', 'swarm', 'tank'], swarmFrom: 4, hpMult: 1.2 },
+    waves: { count: 12, types: ['normal', 'fast', 'swarm', 'tank'], swarmFrom: 4, hpMult: 3.9, bountyMult: 0.32, waveclearMult: 0.26 },
   }),
   // -- Act 2: the sky and the siege -------------------------------------------
   L(7, "The Falcon's Watch", {                  // unlock: falcon (flyers next level)
@@ -125,7 +125,7 @@ export const LEVELS = [
     goals: [{ id: 'G1', cx: 5, cy: 16 }],
     checkpoints: [{ id: 'CP1', cx: 2, cy: 8 }, { id: 'CP2', cx: 8, cy: 8 }],
     startGold: 410,
-    waves: { count: 13, types: ['normal', 'fast', 'swarm', 'tank', 'healer'], swarmFrom: 4, hpMult: 1.4 },
+    waves: { count: 13, types: ['normal', 'fast', 'swarm', 'tank', 'healer'], swarmFrom: 4, hpMult: 4.5, bountyMult: 0.34, waveclearMult: 0.27, countMult: 1.8 },
   }),
   L(8, 'Wings Overhead', {                      // flyers introduced
     cols: 12, rows: 17,
@@ -133,7 +133,7 @@ export const LEVELS = [
     goals: [{ id: 'G1', cx: 6, cy: 16 }],
     checkpoints: [{ id: 'CP1', cx: 2, cy: 8 }, { id: 'CP2', cx: 9, cy: 8 }],
     startGold: 450,
-    waves: { count: 13, types: ['normal', 'fast', 'swarm', 'tank', 'flyer'], swarmFrom: 4, flyerFrom: 6, hpMult: 1.9 },
+    waves: { count: 13, types: ['normal', 'fast', 'swarm', 'tank', 'flyer'], swarmFrom: 4, flyerFrom: 6, hpMult: 4.55, bountyMult: 0.35, waveclearMult: 0.29 },
   }),
   L(9, 'Verdant Garden', {
     cols: 12, rows: 18,
@@ -142,7 +142,7 @@ export const LEVELS = [
     checkpoints: [{ id: 'CP1', cx: 9, cy: 6 }, { id: 'CP2', cx: 2, cy: 12 }],
     obstacles: rect(5, 8, 7, 9),
     startGold: 480,
-    waves: { count: 14, types: ['normal', 'fast', 'swarm', 'tank', 'healer', 'flyer'], swarmFrom: 4, flyerFrom: 7, hpMult: 2.3 },
+    waves: { count: 14, types: ['normal', 'fast', 'swarm', 'tank', 'healer', 'flyer'], swarmFrom: 4, flyerFrom: 7, hpMult: 4.6, bountyMult: 0.36, waveclearMult: 0.31 },
   }),
   L(10, 'The Wardens', {                        // first boss; Endless unlocks after
     cols: 12, rows: 18,
@@ -150,7 +150,9 @@ export const LEVELS = [
     goals: [{ id: 'G1', cx: 6, cy: 17 }],
     checkpoints: [{ id: 'CP1', cx: 2, cy: 6 }, { id: 'CP2', cx: 9, cy: 12 }],
     startGold: 530,
-    waves: { count: 15, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'flyer'], swarmFrom: 4, flyerFrom: 7, bossWaves: [15], hpMult: 2.6 },
+    lives: 8,                                   // U20 margin band: tightened life budget
+    waves: { count: 15, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'flyer'], swarmFrom: 4, flyerFrom: 7, bossWaves: [15], hpMult: 4.65, bountyMult: 0.8, waveclearMult: 0.33 },
+    stars: [8, 6],
   }),
   // -- Act 3: the long roads ---------------------------------------------------
   L(11, 'The Long Descent', {
@@ -159,7 +161,7 @@ export const LEVELS = [
     goals: [{ id: 'G1', cx: 8, cy: 18 }],
     checkpoints: [{ id: 'CP1', cx: 8, cy: 6 }, { id: 'CP2', cx: 3, cy: 12 }],
     startGold: 560,
-    waves: { count: 15, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'healer', 'flyer'], swarmFrom: 4, flyerFrom: 6, hpMult: 2.6 },
+    waves: { count: 15, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'healer', 'flyer'], swarmFrom: 4, flyerFrom: 6, hpMult: 4.7, bountyMult: 0.39, waveclearMult: 0.34 },
   }),
   L(12, 'Two Roads', {                          // second spawn introduced
     cols: 13, rows: 19,
@@ -167,7 +169,7 @@ export const LEVELS = [
     goals: [{ id: 'G1', cx: 6, cy: 18 }],
     checkpoints: [{ id: 'CP1', cx: 6, cy: 9 }],
     startGold: 620,
-    waves: { count: 15, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'flyer'], swarmFrom: 4, flyerFrom: 7, hpMult: 2.9 },
+    waves: { count: 15, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'flyer'], swarmFrom: 4, flyerFrom: 7, hpMult: 4.7, bountyMult: 0.4, waveclearMult: 0.36 },
   }),
   L(13, 'Storm Warning', {
     cols: 13, rows: 20,
@@ -175,7 +177,7 @@ export const LEVELS = [
     goals: [{ id: 'G1', cx: 6, cy: 19 }],
     checkpoints: [{ id: 'CP1', cx: 2, cy: 7 }, { id: 'CP2', cx: 10, cy: 13 }],
     startGold: 660,
-    waves: { count: 16, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'healer', 'flyer'], swarmFrom: 4, flyerFrom: 6, bossWaves: [16], hpMult: 3.2 },
+    waves: { count: 16, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'healer', 'flyer'], swarmFrom: 4, flyerFrom: 6, bossWaves: [16], hpMult: 4.75, bountyMult: 0.6, waveclearMult: 0.38 },
   }),
   L(14, 'The Gauntlet', {
     cols: 13, rows: 20,
@@ -184,7 +186,7 @@ export const LEVELS = [
     checkpoints: [{ id: 'CP1', cx: 6, cy: 6 }, { id: 'CP2', cx: 2, cy: 13 }, { id: 'CP3', cx: 10, cy: 13 }],
     obstacles: rect(6, 12, 6, 14),
     startGold: 700,
-    waves: { count: 16, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'healer', 'flyer'], swarmFrom: 3, flyerFrom: 6, hpMult: 3.5 },
+    waves: { count: 16, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'healer', 'flyer'], swarmFrom: 3, flyerFrom: 6, hpMult: 4.8, bountyMult: 0.43, waveclearMult: 0.4 },
   }),
   L(15, 'Heart of the Maze', {
     cols: 13, rows: 21,
@@ -192,7 +194,9 @@ export const LEVELS = [
     goals: [{ id: 'G1', cx: 6, cy: 20 }],
     checkpoints: [{ id: 'CP1', cx: 2, cy: 5 }, { id: 'CP2', cx: 10, cy: 10 }, { id: 'CP3', cx: 2, cy: 15 }],
     startGold: 760,
-    waves: { count: 17, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'healer', 'flyer'], swarmFrom: 3, flyerFrom: 5, bossWaves: [17], hpMult: 3.9 },
+    lives: 6,                                   // U20 margin band: tightened life budget
+    waves: { count: 17, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'healer', 'flyer'], swarmFrom: 3, flyerFrom: 5, bossWaves: [17], hpMult: 4.8, bountyMult: 0.6, waveclearMult: 0.41 },
+    stars: [6, 4],
   }),
   // -- Act 4: mastery -----------------------------------------------------------
   L(16, 'Crosswinds', {
@@ -201,7 +205,7 @@ export const LEVELS = [
     goals: [{ id: 'G1', cx: 3, cy: 20 }, { id: 'G2', cx: 10, cy: 20 }],
     checkpoints: [{ id: 'CP1', cx: 7, cy: 10 }],
     startGold: 810,
-    waves: { count: 17, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'healer', 'flyer'], swarmFrom: 3, flyerFrom: 5, hpMult: 4.2 },
+    waves: { count: 17, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'healer', 'flyer'], swarmFrom: 3, flyerFrom: 5, hpMult: 4.85, bountyMult: 0.45, waveclearMult: 0.43 },
   }),
   L(17, 'The Long March', {
     cols: 14, rows: 22,
@@ -210,7 +214,7 @@ export const LEVELS = [
     checkpoints: [{ id: 'CP1', cx: 2, cy: 6 }, { id: 'CP2', cx: 11, cy: 11 }, { id: 'CP3', cx: 2, cy: 16 }],
     obstacles: [...rect(6, 10, 8, 11)],
     startGold: 870,
-    waves: { count: 18, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'healer', 'flyer'], swarmFrom: 3, flyerFrom: 5, bossWaves: [18], hpMult: 4.1 },
+    waves: { count: 18, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'healer', 'flyer'], swarmFrom: 3, flyerFrom: 5, bossWaves: [18], hpMult: 4.85, bountyMult: 0.75, waveclearMult: 0.45 },
   }),
   L(18, 'Siegebreakers', {
     cols: 14, rows: 22,
@@ -218,7 +222,7 @@ export const LEVELS = [
     goals: [{ id: 'G1', cx: 7, cy: 21 }],
     checkpoints: [{ id: 'CP1', cx: 7, cy: 7 }, { id: 'CP2', cx: 7, cy: 14 }],
     startGold: 920,
-    waves: { count: 18, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'healer', 'flyer'], swarmFrom: 3, flyerFrom: 5, bossWaves: [12, 18], hpMult: 4.2 },
+    waves: { count: 18, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'healer', 'flyer'], swarmFrom: 3, flyerFrom: 5, bossWaves: [12, 18], hpMult: 4.9, bountyMult: 0.7, waveclearMult: 0.47 },
   }),
   L(19, 'Threefold Path', {
     cols: 14, rows: 22,
@@ -226,7 +230,7 @@ export const LEVELS = [
     goals: [{ id: 'G1', cx: 7, cy: 21 }],
     checkpoints: [{ id: 'CP1', cx: 2, cy: 5 }, { id: 'CP2', cx: 11, cy: 9 }, { id: 'CP3', cx: 2, cy: 13 }, { id: 'CP4', cx: 11, cy: 17 }],
     startGold: 980,
-    waves: { count: 19, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'healer', 'flyer'], swarmFrom: 3, flyerFrom: 4, bossWaves: [19], hpMult: 4.4 },
+    waves: { count: 19, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'healer', 'flyer'], swarmFrom: 3, flyerFrom: 4, bossWaves: [19], hpMult: 4.9, bountyMult: 0.49, waveclearMult: 0.48 },
   }),
   L(20, 'The Demon King', {
     cols: 14, rows: 22,
@@ -234,8 +238,9 @@ export const LEVELS = [
     goals: [{ id: 'G1', cx: 7, cy: 21 }],
     checkpoints: [{ id: 'CP1', cx: 7, cy: 6 }, { id: 'CP2', cx: 2, cy: 12 }, { id: 'CP3', cx: 11, cy: 16 }],
     startGold: 1060,
-    waves: { count: 20, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'healer', 'flyer'], swarmFrom: 3, flyerFrom: 4, bossWaves: [10, 20], hpMult: 4.2 },
-    stars: [8, 5],
+    lives: 4,                                   // U20 margin band: tightened life budget
+    waves: { count: 20, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'healer', 'flyer'], swarmFrom: 3, flyerFrom: 4, bossWaves: [10, 20], hpMult: 4.95, bountyMult: 0.9, waveclearMult: 0.5 },
+    stars: [4, 2],
   }),
 ];
 
