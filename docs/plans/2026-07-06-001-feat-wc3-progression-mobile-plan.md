@@ -168,6 +168,17 @@ flowchart LR
 **Test scenarios:** the gate assertions themselves (no-upgrade first-fail in 3-7; margin bands; careless band; classic unchanged); income-band spot checks extended to levels 8/14/20; the level-1 2-shot floor still holds.
 **Verification:** `npm test` green with the new gates having gone red-then-green; the user hand-plays a mid-campaign level and reports real pressure.
 
+### U21. Multi-select build and sell (marquee)
+
+**Goal:** Drag-select a region of tiles, then build one tower type across every valid cell in it (gold permitting), or batch-sell the towers in it. The maze-building core loop stops being one-tap-per-wall.
+**Requirements:** R3 (gesture coexistence), user request 2026-07-06 ("much easier for creating maps")
+**Dependencies:** U3 (gesture layer to route around)
+**Files:** `src/engine/input.js`, `src/main.js`, `src/ui/hud.js`, `src/ui/multiselect.js` (new: toggle + chooser card), `src/ui/render.js` (selection overlay), `src/game/shop.js` (batchBuild/batchSell), `src/ui/ui.css`, `test/t12batch.mjs` (new)
+**Approach:** A select-mode toggle button in the freed hero-dock corner. Mode ON: one-finger/mouse drag draws a world-space rect marquee (replaces drag-pan; two-finger pan/pinch and wheel still work); the overlay tints valid build cells green, existing towers blue, and would-seal cells orange. On release, a chooser card lists the unlocked tower types with "xN valid cells, total cost" (plus wall), disabled when even one is unaffordable... affordable-prefix semantics: build fills row-major from the drag-start corner until gold runs out, reporting "Built X of N". If the selection contains towers, the card also offers "Sell N towers (+Xg refund)". Mixed selections offer both. Radial ring is suppressed while mode is ON; a plain tap in mode exits it. One build/sell sfx event per batch, not per cell.
+**Patterns to follow:** tryBuild/trySell in shop.js (legality per cell, sealing legal but warned via wouldSealAt); the radial's cost formatting; hud close-on-stale.
+**Test scenarios:** marquee rect from two world points enumerates exactly the intersected cells; batch build places only valid cells, in row-major order, stopping when gold runs out (assert exact count + remaining gold); occupied/flag/obstacle cells skipped without aborting the batch; batch sell refunds the exact sellRefund sum (walls 100%, towers 70%); in select mode a drag does NOT move the camera and the marquee does not fire on two-finger gestures; exiting mode restores drag-pan.
+**Verification:** t12batch green; live check: paint a 15-wall serpentine row in one drag on a phone-width viewport, then marquee-sell it.
+
 ---
 
 ### Phase 2: Camera and big boards
@@ -369,6 +380,7 @@ User-driven scope changes after the U15 hand-play gate, tracked as tasks alongsi
 - **U18 (new): tile-based map rendering + autotiler.** Boards render from the Art Guide tile set instead of flat cells; connection sets (path/water/cliff) get an autotiler, never raw stamps. Folds into U4's static-layer cache; shape fallback stays.
 - **Working name candidate: "Maze Defenders"** (from the art guide). Store listing name is a user decision before U13 submission. CONFIRMED by the user later on 2026-07-06.
 - **U20 (new): interim campaign-wide difficulty + permanent balance gates.** Second playtest verdict: 3 unupgraded cannons still beat the campaign (levels 4-20 kept the old easy curve and fat economy, and the sim's hero inflated every gate). U20 lands before the tier redesign: hero-less sim, a no-upgrade-must-fail gate, tightening margin bands, and the levels 4-20 retune. U10 inherits this gate suite and tightens margins to the final contract (<=2 lives at level 20).
+- **Third playtest round (user, 2026-07-06):** level 1 beatable with 4 unupgraded cannons -> levels 1-3 tightened again (2.9/3.4/3.55) with new tutorial-bleed gates (careless wins level 1 with <=6 lives; a perfect unupgraded mazer holds at most 9 — the hpMult probe proved 9 is that persona's floor across 2.6-3.2, so the naive-player bar lives in the careless gate). **Waves now auto-start by default** (NEXT WAVE = call early for bonus). **U21 added:** marquee multi-select build/sell for fast maze construction.
 - **Priority reorder (user, 2026-07-06): getting the mobile app up is the TOP priority.** The mobile track (U12 slice A, then U11, then U13 prep) executes immediately in a parallel worktree (`feat/mobile-ship`) rather than waiting behind gameplay phases. Gameplay continues in parallel: U17 then U20, then U3.
 
 ---
