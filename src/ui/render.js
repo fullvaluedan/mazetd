@@ -40,8 +40,13 @@ export function render(ctx, state) {
   drawMenuCell(ctx, state);
   drawAbilityTarget(ctx, state);
   if (shaking) ctx.restore();
+}
 
-  // these stay screen-fixed (not shaken)
+// Screen-space pass — call AFTER viewport.applyScreenTransform(ctx): with the
+// camera gone from the transform these stay glued to the screen under any
+// pan/zoom (and aren't shaken). Coordinates are still world px at the fit
+// scale, so drawing is pixel-identical to the pre-camera letterbox.
+export function renderScreen(ctx, state) {
   drawBossBars(ctx, state);
   if (state.flash > 0) drawFlash(ctx, state);
 }

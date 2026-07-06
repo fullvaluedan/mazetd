@@ -34,6 +34,16 @@ export const CONFIG = {
   OBSTACLE_CLUSTER_CELLS_MAX: 3,
 
   // ---------------------------------------------------------------------------
+  // CAMERA
+  // Zoom is RELATIVE to the fit-all letterbox: 1 = the whole board visible
+  // (survey mode, identical to the pre-camera letterbox). Gestures land later;
+  // the viewport only exposes the programmatic panBy/zoomAt/resetCamera API.
+  // ---------------------------------------------------------------------------
+  CAMERA: {
+    MAX_ZOOM: 2.5,          // closest-in: 2.5x the fit-all scale
+  },
+
+  // ---------------------------------------------------------------------------
   // ECONOMY
   // ---------------------------------------------------------------------------
   START_GOLD: 800,             // tuned in Phase 8 (was 260) — fund an early maze

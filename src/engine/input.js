@@ -1,23 +1,18 @@
 // =============================================================================
 // input.js — translates raw mouse/keyboard events into game intents.
 //
-// The canvas is drawn at a fixed 896x576 but CSS may scale it down to fit, so we
-// convert client pixels back into canvas space (and then into cell coords) using
-// the element's bounding rect. Callers pass a `handlers` object; this module
-// stays ignorant of game rules.
+// All pointer math routes through viewport.clientToWorld — the ONE shared
+// client->world mapping (letterbox + DPR + camera pan/zoom) — so hover/click
+// coordinates can never disagree with the renderer. Callers pass a `handlers`
+// object; this module stays ignorant of game rules.
 // =============================================================================
 
-import { SIZE, COLS, ROWS } from './grid.js';
+import { SIZE } from './grid.js';
 
-// World dimensions are PER-LEVEL since the campaign rebuild — read them live
-// (COLS/ROWS are mutable exports) on every event, never cache at module load.
-// And never derive world coords from canvas.width (DPR backing store).
-export function setupInput(canvas, handlers) {
+export function setupInput(canvas, handlers, viewport) {
   function toCell(ev) {
-    const rect = canvas.getBoundingClientRect();
-    // Map client px -> WORLD px (account for CSS scaling + DPR), then -> cell.
-    const px = (ev.clientX - rect.left) / rect.width * (COLS * SIZE);
-    const py = (ev.clientY - rect.top) / rect.height * (ROWS * SIZE);
+    // Shared mapping: client px -> world px (camera-aware), then -> cell.
+    const { x: px, y: py } = viewport.clientToWorld(ev.clientX, ev.clientY);
     return { x: Math.floor(px / SIZE), y: Math.floor(py / SIZE), px, py };
   }
 

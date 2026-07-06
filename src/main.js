@@ -18,10 +18,10 @@ import { createHero } from './game/hero.js';
 import { onEnemyKilled, onEnemyLeaked, updateFloaters, updateParticles, payWaveClear, payEarlyStart } from './game/economy.js';
 import { startWave, processSpawning, waveComplete, updateBosses, waveInfoFor, winWave } from './game/wave.js';
 import { getLevel } from './game/levels.js';
-import { setGridSize, worldW, worldH } from './engine/grid.js';
+import { setGridSize } from './engine/grid.js';
 import { tryBuild, trySell, tryUpgrade, tryHeroUpgrade, tryConsumable, tryTowerBoost } from './game/shop.js';
 import { saveGame, hasSave, loadSnapshot, applySnapshot, getHighScore, recordHighScore } from './game/save.js';
-import { render } from './ui/render.js';
+import { render, renderScreen } from './ui/render.js';
 import { HUD } from './ui/hud.js';
 import { loadSprites, toggleSprites } from './ui/sprites.js';
 import { Viewport } from './ui/viewport.js';
@@ -198,7 +198,7 @@ const actions = {
     const snap = loadSnapshot();
     if (!snap) { showBanner('No save found', 'warn', 1.4); return; }
     state = applySnapshot(snap);
-    viewport.resize();   // the load may have changed the grid size (Endless 13x24); re-letterbox
+    viewport.resize();   // the load may have changed the grid size (Endless 13x24); re-letterbox + camera reset
     prevStatus = state.status;
     clearTargeting();
     screens.hide();
@@ -292,9 +292,14 @@ function drainEvents() {
 }
 
 function draw() {
-  viewport.applyTransform(ctx);     // world px -> device px (letterbox + DPR)
-  ctx.clearRect(0, 0, worldW(), worldH());
+  // Clear in DEVICE px: under the camera the world no longer fills the canvas
+  // 1:1, so a world-rect clear could leave stale pixels behind.
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  viewport.applyTransform(ctx);     // world px -> device px (letterbox + DPR + camera)
   render(ctx, state);
+  viewport.applyScreenTransform(ctx);   // camera off: screen-fixed chrome
+  renderScreen(ctx, state);             // boss bars + damage flash
   drainEvents();
   hud.refresh(state, { speed: loop.gameSpeed, paused: loop.paused });
   hints.update(state);
@@ -438,7 +443,7 @@ setupInput(canvas, {
     }
     return false;
   },
-});
+}, viewport);
 
 window.MAZECORE = { get state() { return state; }, loop, CONFIG, actions };
 console.log('[main] Mazecore TD ready — pick a hero and build your maze.');
