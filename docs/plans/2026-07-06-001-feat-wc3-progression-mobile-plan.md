@@ -157,6 +157,19 @@ flowchart LR
 
 ---
 
+### U20. Interim campaign-wide difficulty + the permanent balance gates
+
+**Goal:** The current 20 levels challenge a real (hero-less) player NOW; the gate contract encoding "unupgraded builds must fail" becomes permanent.
+**Requirements:** R1, R6 (interim form; final margins arrive with U8/U10)
+**Dependencies:** U17 (heroes off changes what the sim measures; all tuning runs hero-less)
+**Files:** `test/campaign-sim.mjs`, `src/game/levels.js`, `test/t11economy.mjs`, `docs/` (tuning notes)
+**Approach:** Playtest evidence (2026-07-06): 3 unupgraded cannons beat the campaign. Root causes verified: hpMult cliffs from 3.5 (level 3, fixed) down to 0.85 (level 4) and only reaches 4.4 by level 20; levels 4-20 still run the uncut fat economy; and the reference sim fields a hero warrior that real players will no longer have. (1) Sim: drop the hero from reference and careless runs; add a `no-upgrade` strategy (reference maze, upgrade loop disabled). (2) Permanent gates, all bound to `CONFIG.SEED`: no-upgrade first FAILS in levels 3-7; reference-with-upgrades wins all 20 with tightening margins (interim bands: levels 1-5 finish >=6 lives, level 10 <=8, level 15 <=6, level 20 <=4); careless first loss 2-10 unchanged; classic `t10validate` untouched (its sims keep their heroes; they test the hero-era classic contract). (3) Retune via per-level data only (KTD4): extend `bountyMult`/`waveclearMult` across levels 4-20 on the U15 budget curve, rescale `hpMult` monotonically upward from level 3's 3.5. NO global tower-stat changes (tower rebalance is U5-U7's job); if HP alone cannot separate upgraded-wins from unupgraded-fails, escalate to per-level `countMult` (already wired) before ever touching tower globals. (4) Adjust per-level star thresholds where tightened margins make the [9,6] defaults unreachable.
+**Execution note:** sim-first: encode all four gates as failing assertions before touching any level value.
+**Test scenarios:** the gate assertions themselves (no-upgrade first-fail in 3-7; margin bands; careless band; classic unchanged); income-band spot checks extended to levels 8/14/20; the level-1 2-shot floor still holds.
+**Verification:** `npm test` green with the new gates having gone red-then-green; the user hand-plays a mid-campaign level and reports real pressure.
+
+---
+
 ### Phase 2: Camera and big boards
 
 ### U2. Camera core: pan/zoom transform and unified input
@@ -354,7 +367,9 @@ User-driven scope changes after the U15 hand-play gate, tracked as tasks alongsi
 - **U17 (new): heroes disabled for v1.** `HEROES_ENABLED` flag hides hero select, in-level hero, hero dock, and the star hero-upgrade shop; stars keep gating level unlocks. Hero code and its classic-board tests stay intact for a later return. Supersedes the "hero system untouched" scope line.
 - **U16 (restructured): art constitution + reference-driven generation.** The user's Maze Defenders Art Guide v1.0 becomes the art source of truth (bright monster-collecting-RPG style, 30-degree top-down, 32px tiles, tower/enemy families, replacing the cozy-anime direction). Every generation call carries 3 reference images (art guide + perspective guide + family asset sheet) via the images-edit API; static concept approved before sheets; naming convention `category_name_lvN.png`. Deliverables: `docs/art/ART-BIBLE.md`, `docs/art/reference/`, gen-assets v2.
 - **U18 (new): tile-based map rendering + autotiler.** Boards render from the Art Guide tile set instead of flat cells; connection sets (path/water/cliff) get an autotiler, never raw stamps. Folds into U4's static-layer cache; shape fallback stays.
-- **Working name candidate: "Maze Defenders"** (from the art guide). Store listing name is a user decision before U13 submission.
+- **Working name candidate: "Maze Defenders"** (from the art guide). Store listing name is a user decision before U13 submission. CONFIRMED by the user later on 2026-07-06.
+- **U20 (new): interim campaign-wide difficulty + permanent balance gates.** Second playtest verdict: 3 unupgraded cannons still beat the campaign (levels 4-20 kept the old easy curve and fat economy, and the sim's hero inflated every gate). U20 lands before the tier redesign: hero-less sim, a no-upgrade-must-fail gate, tightening margin bands, and the levels 4-20 retune. U10 inherits this gate suite and tightens margins to the final contract (<=2 lives at level 20).
+- **Priority reorder (user, 2026-07-06): getting the mobile app up is the TOP priority.** The mobile track (U12 slice A, then U11, then U13 prep) executes immediately in a parallel worktree (`feat/mobile-ship`) rather than waiting behind gameplay phases. Gameplay continues in parallel: U17 then U20, then U3.
 
 ---
 
