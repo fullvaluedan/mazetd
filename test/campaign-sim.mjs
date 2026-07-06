@@ -143,28 +143,40 @@ if (!isMain) {
   console.log(r.won ? `  WON lives=${r.lives} (min=${r.minLives})` : `  DIED wave ${r.wave}`);
 } else if (careless) {
   // ceiling gate: naive no-maze play must clear the intro then hit a wall
-  let firstLoss = null;
+  let firstLoss = null, l1 = null;
   for (const lv of LEVELS) {
     const r = runLevel(lv.id, false, 'careless');
     console.log(`${lv.id.padEnd(4)} ${lv.name.padEnd(18)} ${r.won ? `won lives=${r.lives}` : `DIED w${r.wave}`}`);
     if (!r.won && firstLoss == null) firstLoss = lv.num;
+    if (lv.num === 1) l1 = r;
   }
-  const ok = firstLoss != null && firstLoss >= 2 && firstLoss <= 10;
-  console.log(`first careless loss: level ${firstLoss} -> ${ok ? 'CARELESS_OK' : 'CARELESS_FAIL'} (want 2..10)`);
-  if (!ok) process.exitCode = 1;
+  const bandOk = firstLoss != null && firstLoss >= 2 && firstLoss <= 10;
+  // the tutorial stays winnable for naive play, but it has to feel dangerous
+  const l1Ok = l1 && l1.won && l1.lives <= 6;
+  console.log(`first careless loss: level ${firstLoss} -> ${bandOk ? 'ok' : 'BAND_FAIL'} (want 2..10)`);
+  console.log(`level 1 careless bleeds: lives=${l1 && l1.won ? l1.lives : 'died'} -> ${l1Ok ? 'ok' : 'L1_FAIL'} (want win with <=6)`);
+  console.log(bandOk && l1Ok ? 'CARELESS_OK' : 'CARELESS_FAIL');
+  if (!bandOk || !l1Ok) process.exitCode = 1;
 } else if (noupgrade) {
   // "upgrades required" gate: the strongest UNUPGRADED build (full reference
   // maze + tower cycle + wall conversion, zero upgrades) must hit a wall in
   // the early-mid campaign — playtest 2026-07-06 beat all 20 without upgrading.
-  let firstLoss = null;
+  let firstLoss = null, l1 = null;
   for (const lv of LEVELS) {
     const r = runLevel(lv.id, false, 'no-upgrade');
     console.log(`${lv.id.padEnd(4)} ${lv.name.padEnd(18)} ${r.won ? `won lives=${r.lives}` : `DIED w${r.wave}`}`);
     if (!r.won && firstLoss == null) firstLoss = lv.num;
+    if (lv.num === 1) l1 = r;
   }
-  const ok = firstLoss != null && firstLoss >= 3 && firstLoss <= 7;
-  console.log(`first no-upgrade loss: level ${firstLoss} -> ${ok ? 'NOUPGRADE_OK' : 'NOUPGRADE_FAIL'} (want 3..7)`);
-  if (!ok) process.exitCode = 1;
+  const bandOk = firstLoss != null && firstLoss >= 3 && firstLoss <= 7;
+  // playtest 2026-07-06 round 2: level 1 must bleed even a PERFECT unupgraded
+  // mazer (probe showed hp 2.6-3.2 all hold it at exactly 9 — a clean 10 means
+  // the tuning regressed; the careless gate below owns the naive-player bar)
+  const l1Ok = l1 && (!l1.won || l1.lives <= 9);
+  console.log(`first no-upgrade loss: level ${firstLoss} -> ${bandOk ? 'ok' : 'BAND_FAIL'} (want 3..7)`);
+  console.log(`level 1 no-upgrade bleeds: lives=${l1 && l1.won ? l1.lives : 'died'} -> ${l1Ok ? 'ok' : 'L1_CLEAN_FAIL'} (want <=9 or loss)`);
+  console.log(bandOk && l1Ok ? 'NOUPGRADE_OK' : 'NOUPGRADE_FAIL');
+  if (!bandOk || !l1Ok) process.exitCode = 1;
 } else {
   // Reference gate: wins all 20 AND the margins tighten across the campaign.
   // Interim bands (U20): levels 1-5 finish with >=6 lives; level 10 <=8;
