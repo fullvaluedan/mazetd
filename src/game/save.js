@@ -17,6 +17,10 @@ import { getLevel } from './levels.js';
 
 const SAVE_KEY = 'mazecore_save_v1';
 const HS_KEY = 'mazecore_highscore_v1';
+// Campaign mid-run snapshots (U14): one slot per level id, separate from the
+// single Endless slot above so campaign auto-saves never collide with (or
+// get clobbered by) a manual Endless save/load.
+const CAMPAIGN_SAVE_PREFIX = 'mazecore_campaign_save_v1:';
 
 // Snapshot format version. v1: pre-siege (towers load at full HP); v2: towers
 // carry hp; v3: tier-table upgrades (U5) — level/branch fields unchanged, the
@@ -60,6 +64,41 @@ export function saveGame(state) {
 
 export function hasSave() { const s = ls(); return !!(s && s.getItem(SAVE_KEY)); }
 export function clearSave() { const s = ls(); if (s) s.removeItem(SAVE_KEY); }
+
+// --- campaign mid-run snapshots (U14) ---------------------------------------
+// Same v3 snapshot shape as the Endless save above (buildSnapshot/applySnapshot
+// are already level-aware via levelId), just keyed per campaign level so a
+// resume prompt only ever offers to resume the level the player is entering.
+function campaignKey(levelId) { return CAMPAIGN_SAVE_PREFIX + levelId; }
+
+export function saveCampaign(state) {
+  const store = ls(); if (!store) return false;
+  if (!state.level || state.level.endless) return false;   // Endless uses the slot above
+  try { store.setItem(campaignKey(state.level.id), JSON.stringify(buildSnapshot(state))); return true; }
+  catch { return false; }
+}
+
+export function hasCampaignSave(levelId) {
+  const s = ls(); return !!(s && levelId && s.getItem(campaignKey(levelId)));
+}
+
+export function clearCampaignSave(levelId) {
+  const s = ls(); if (s && levelId) s.removeItem(campaignKey(levelId));
+}
+
+export function loadCampaignSnapshot(levelId) {
+  const store = ls(); if (!store || !levelId) return null;
+  try {
+    const raw = store.getItem(campaignKey(levelId));
+    const snap = raw ? JSON.parse(raw) : null;
+    if (snap && snap.v > SAVE_VERSION) {
+      console.warn(`campaign save is v${snap.v}, this client supports up to v${SAVE_VERSION} — refusing to load`);
+      return null;
+    }
+    return snap;
+  }
+  catch { return null; }
+}
 
 export function loadSnapshot() {
   const store = ls(); if (!store) return null;

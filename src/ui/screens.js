@@ -88,6 +88,21 @@ export class Screens {
     this._mount('heroSelect', s);
   }
 
+  // U14: a campaign snapshot exists for the level being entered — offer to
+  // pick up where the player left off instead of silently restarting. Reuses
+  // the same modal-card pattern as the other screens (no new CSS needed).
+  // hooks used: resumeCampaign(), restartCampaign().
+  showResumePrompt(level, wave) {
+    const s = div('end-screen', `
+      <div class="title-logo" style="font-size:28px">${level.name}</div>
+      <div class="end-sub">You left off mid-battle on wave <b>${wave}</b>.</div>
+      <div class="end-buttons"></div>`);
+    const btns = s.querySelector('.end-buttons');
+    btns.appendChild(bigBtn(`▶ Resume wave ${wave}`, () => { this.hide(); this.hooks.resumeCampaign(); }, 'green'));
+    btns.appendChild(bigBtn('↺ Restart level', () => { this.hide(); this.hooks.restartCampaign(); }));
+    this._mount('resume', s);
+  }
+
   // The campaign map: star wallet + level path (+ hero strip and star-bought
   // hero upgrades only while HEROES_ENABLED).
   showMap() {

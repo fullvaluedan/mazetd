@@ -20,7 +20,10 @@ import { startWave, processSpawning, waveComplete, updateBosses, waveInfoFor, wi
 import { getLevel } from './game/levels.js';
 import { setGridSize } from './engine/grid.js';
 import { tryBuild, trySell, tryUpgrade, tryHeroUpgrade, tryConsumable, tryTowerBoost, batchBuild, batchSell } from './game/shop.js';
-import { saveGame, hasSave, loadSnapshot, applySnapshot, getHighScore, recordHighScore } from './game/save.js';
+import {
+  saveGame, hasSave, loadSnapshot, applySnapshot, getHighScore, recordHighScore,
+  saveCampaign, hasCampaignSave, loadCampaignSnapshot, clearCampaignSave,
+} from './game/save.js';
 import { render, renderScreen } from './ui/render.js';
 import { HUD } from './ui/hud.js';
 import { loadSprites, toggleSprites } from './ui/sprites.js';
@@ -276,6 +279,10 @@ function update(dt) {
     state.buildTimer = CONFIG.BUILD_TIMER;
     if (state.wave >= winWave(state)) state.status = 'won';
     else if (waveInfoFor(state, state.wave + 1).hasFlying) showBanner('⚠ Flying next wave — get anti-air!', 'warn', 2.5);
+    // U14: auto-save campaign progress at every wave-clear (the safe
+    // between-waves point — no live enemies/projectiles to serialize). A
+    // player killed by the OS mid-run resumes at the last wave cleared.
+    if (state.level && !state.level.endless && state.status !== 'won') saveCampaign(state);
   }
   if (state.lives <= 0) state.status = 'lost';
 
@@ -296,6 +303,9 @@ function showEndModal() {
   if (state.level && !state.level.endless && state.status === 'won') {
     profile.recordStars(state.level.id, starsFor(state));
   }
+  // U14: victory or defeat both end the run — never offer resume into a
+  // finished level.
+  if (state.level && !state.level.endless) clearCampaignSave(state.level.id);
   profile.recordHeroProgress(state.hero);
   screens.showEnd(state);
 }
@@ -342,6 +352,18 @@ const screens = new Screens(modal, {
     }
   },
   continueRun: () => actions.load(),
+  // U14: resume a campaign snapshot in place (no reload — applySnapshot swaps
+  // `state` directly, same as the Endless continueRun path above).
+  resumeCampaign: () => {
+    const snap = loadCampaignSnapshot(bootLevel.id);
+    if (!snap) { enterLevel(); return; }   // snapshot vanished between prompt and click; boot fresh
+    state = applySnapshot(snap);
+    viewport.resize();
+    prevStatus = state.status;
+    clearTargeting();
+    showBanner(`${bootLevel.name} — resumed at wave ${state.wave}`, '', 2.2);
+  },
+  restartCampaign: () => { clearCampaignSave(bootLevel.id); enterLevel(); },
   openSettings: () => actions.openSettings(),
   restart: () => actions.restart(),
   hasSave: () => hasSave(),
@@ -356,6 +378,21 @@ loop.start();
 // Audio unlock must happen inside the FIRST user gesture (iOS requirement).
 ['pointerdown', 'keydown', 'touchstart'].forEach((evt) =>
   window.addEventListener(evt, () => sfx.initAudio(), { once: true, passive: true }));
+
+// U14: the OS can kill a backgrounded mobile WebView at any moment, so back
+// up campaign progress the instant the page is hidden — but only between
+// waves (the same invariant as the wave-clear autosave: never serialize live
+// enemies/projectiles). Mid-wave backgrounding just keeps the last
+// wave-clear snapshot; that's the accepted wave-boundary granularity.
+if (typeof document !== 'undefined' && document.addEventListener) {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'hidden') return;
+    if (state.level && !state.level.endless && !state.waveActive
+      && state.status !== 'won' && state.status !== 'lost') {
+      saveCampaign(state);
+    }
+  });
+}
 
 // The campaign is a VERTICAL game now: landscape phones get the rotate
 // prompt and the sim holds while it's up. Desktop windows just letterbox.
@@ -383,8 +420,10 @@ if (typeof window !== 'undefined') {
   window.__mz = { get state() { return state; }, hud, loop, actions, viewport, screens };
 }
 // Boot: with ?level= go straight into the level (hero from the profile,
-// first-run picks one in place); without it, the title/menu shell.
-if (bootLevel) {
+// first-run picks one in place); without it, the title/menu shell. Factored
+// so the U14 resume prompt's "Restart" choice can re-run the exact same
+// fresh-start flow.
+function enterLevel() {
   const heroId = CONFIG.HEROES_ENABLED ? profile.getProfile().hero.id : null;
   if (heroId) {
     const h = createHero(state, heroId);
@@ -394,6 +433,18 @@ if (bootLevel) {
     screens.showHeroSelect();
   } else {
     showBanner(`${bootLevel.name} — build your maze!`, '', 2.2);
+  }
+}
+if (bootLevel) {
+  // U14: a campaign level (never Endless — that keeps its title-screen
+  // CONTINUE flow) with a snapshot on file offers Resume/Restart before
+  // anything else boots.
+  if (!bootLevel.endless && hasCampaignSave(bootLevel.id)) {
+    const snap = loadCampaignSnapshot(bootLevel.id);
+    if (snap) screens.showResumePrompt(bootLevel, snap.wave);
+    else enterLevel();
+  } else {
+    enterLevel();
   }
 } else {
   screens.showTitle();
