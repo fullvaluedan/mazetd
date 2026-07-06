@@ -81,7 +81,7 @@ export class Sheets {
         maze, exploit armor matchups, and survive every wave.<br><br>
         · Tap an empty cell to build, tap a tower to upgrade or sell.<br>
         · You CAN seal the maze — but the wave will chew through your walls.<br>
-        · Tap your hero, then the ground, to move them. Q/W cast abilities.<br>
+        ${CONFIG.HEROES_ENABLED ? '· Tap your hero, then the ground, to move them. Q/W cast abilities.<br>' : ''}
         · Flying waves ignore the maze — keep anti-air towers up.`));
     });
   }
@@ -98,13 +98,15 @@ export class Sheets {
         return grid;
       };
 
-      const hu = section('Hero upgrades <span class="muted">(between waves)</span>');
-      for (const key of Object.keys(CONFIG.HERO_UPGRADES)) {
-        const b = document.createElement('button');
-        b.className = 'ui-btn store-item';
-        b.addEventListener('click', () => { this.actions.heroUpgrade(key); this.refresh(state); });
-        this.el.storeBtns.hero[key] = b;
-        hu.appendChild(b);
+      if (CONFIG.HEROES_ENABLED) {
+        const hu = section('Hero upgrades <span class="muted">(between waves)</span>');
+        for (const key of Object.keys(CONFIG.HERO_UPGRADES)) {
+          const b = document.createElement('button');
+          b.className = 'ui-btn store-item';
+          b.addEventListener('click', () => { this.actions.heroUpgrade(key); this.refresh(state); });
+          this.el.storeBtns.hero[key] = b;
+          hu.appendChild(b);
+        }
       }
 
       const tb = section('Tower boosts <span class="muted">(permanent, all towers)</span>');
@@ -136,7 +138,7 @@ export class Sheets {
   // live costs/affordability while the store is open (also called per frame)
   refresh(state) {
     if (this.kind !== 'store' || !this.el.storeBtns) return;
-    for (const [key, def] of Object.entries(CONFIG.HERO_UPGRADES)) {
+    for (const [key, def] of Object.entries(CONFIG.HEROES_ENABLED ? CONFIG.HERO_UPGRADES : {})) {
       const b = this.el.storeBtns.hero[key];
       const tier = state.heroUpgrades[key];
       const maxed = heroUpgradeMaxed(state, key);

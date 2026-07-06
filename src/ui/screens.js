@@ -63,7 +63,7 @@ export class Screens {
       <div class="title-buttons"></div>
       ${hs ? `<div class="title-best">Best run: wave ${hs}</div>` : ''}`);
     const btns = s.querySelector('.title-buttons');
-    btns.appendChild(bigBtn('▶ PLAY', () => (profile.getProfile().hero.id ? this.showMap() : this.showHeroSelect()), 'green'));
+    btns.appendChild(bigBtn('▶ PLAY', () => ((CONFIG.HEROES_ENABLED && !profile.getProfile().hero.id) ? this.showHeroSelect() : this.showMap()), 'green'));
     if (this.hooks.hasSave()) btns.appendChild(bigBtn('⟳ CONTINUE', () => { this.hide(); this.hooks.continueRun(); }));
     btns.appendChild(bigBtn('⚙ SETTINGS', () => this.hooks.openSettings()));
     this._mount('title', s);
@@ -88,25 +88,31 @@ export class Screens {
     this._mount('heroSelect', s);
   }
 
-  // The campaign map: hero strip + star wallet + star upgrades + level path.
+  // The campaign map: star wallet + level path (+ hero strip and star-bought
+  // hero upgrades only while HEROES_ENABLED).
   showMap() {
     const p = profile.getProfile();
-    const heroUrl = p.hero.id ? getSpriteUrl('hero-' + p.hero.id) : null;
-    const heroDef = p.hero.id ? CONFIG.HEROES[p.hero.id] : null;
-    const s = div('map-screen', `
-      <div class="map-hero">
+    const heroUrl = CONFIG.HEROES_ENABLED && p.hero.id ? getSpriteUrl('hero-' + p.hero.id) : null;
+    const heroDef = CONFIG.HEROES_ENABLED && p.hero.id ? CONFIG.HEROES[p.hero.id] : null;
+    const heroStrip = CONFIG.HEROES_ENABLED ? `
         <span class="mh-face">${heroUrl ? `<img src="${heroUrl}" alt="">` : (heroDef ? `<span style="color:${heroDef.color};font-size:30px">${heroDef.glyph}</span>` : '❔')}</span>
         <span class="mh-info">
           <b>${heroDef ? heroDef.name : 'Pick a hero'}</b> ${heroDef ? 'L' + p.hero.level : ''}
           <span class="mh-stars">⭐ ${profile.starsAvailable()} <span class="muted">/ ${profile.totalStarsEarned()} earned</span></span>
-        </span>
-      </div>
+        </span>` : `
+        <span class="mh-info">
+          <b>Maze Defenders</b>
+          <span class="mh-stars">⭐ ${profile.totalStarsEarned()} earned <span class="muted">— stars unlock levels</span></span>
+        </span>`;
+    const s = div('map-screen', `
+      <div class="map-hero">${heroStrip}</div>
       <div class="map-upgrades"></div>
       <div class="map-path"></div>`);
 
-    // star-bought permanent hero upgrades
+    // star-bought permanent hero upgrades (hidden while heroes are off; stars
+    // still gate level unlocks so earned totals stay visible above)
     const up = s.querySelector('.map-upgrades');
-    for (const [key, def] of Object.entries(CONFIG.HERO_UPGRADES)) {
+    for (const [key, def] of Object.entries(CONFIG.HEROES_ENABLED ? CONFIG.HERO_UPGRADES : {})) {
       const tier = p.starUpgrades[key] || 0;
       const maxed = tier >= def.maxTier;
       const b = document.createElement('button');
@@ -188,7 +194,7 @@ export class Screens {
         ? `The maze held — all ${state.maxWave} waves broken with ${state.lives} ♥ left.`
         : `Your lives ran out on wave ${state.wave}.`}</div>
       <div class="end-stats">
-        Reached wave <b>${state.maxWave}</b> · Hero L<b>${state.hero ? state.hero.level : 1}</b> · Best ever: wave <b>${hs}</b>
+        Reached wave <b>${state.maxWave}</b>${CONFIG.HEROES_ENABLED && state.hero ? ` · Hero L<b>${state.hero.level}</b>` : ''} · Best ever: wave <b>${hs}</b>
       </div>
       <div class="end-buttons"></div>`);
     const btns = s.querySelector('.end-buttons');

@@ -43,6 +43,11 @@ export const CONFIG = {
     MAX_ZOOM: 2.5,          // closest-in: 2.5x the fit-all scale
   },
 
+  // v1 ships hero-less (user call 2026-07-06). The hero system stays in the
+  // codebase and the classic-board sims; the campaign game never creates one
+  // and every hero UI surface hides behind this flag.
+  HEROES_ENABLED: false,
+
   // ---------------------------------------------------------------------------
   // ECONOMY
   // ---------------------------------------------------------------------------

@@ -63,8 +63,9 @@ export class WaveBar {
     const over = state.status === 'won' || state.status === 'lost';
     const canStart = !state.waveActive && !over && nw <= winWave(state);
 
-    // chevrons: only between waves, for the upcoming wave
-    const showChevrons = canStart && state.hero;
+    // chevrons: only between waves, for the upcoming wave (the old state.hero
+    // check was a "game fully booted" proxy from the hero era)
+    const showChevrons = canStart && (state.hero || !CONFIG.HEROES_ENABLED);
     if (showChevrons && this._chevronWave !== nw) {
       this.buildChevrons(state, nw);
       this._chevronWave = nw;

@@ -362,13 +362,15 @@ if (typeof window !== 'undefined') {
 // Boot: with ?level= go straight into the level (hero from the profile,
 // first-run picks one in place); without it, the title/menu shell.
 if (bootLevel) {
-  const heroId = profile.getProfile().hero.id;
+  const heroId = CONFIG.HEROES_ENABLED ? profile.getProfile().hero.id : null;
   if (heroId) {
     const h = createHero(state, heroId);
     profile.applyHeroProfile(h);
     showBanner(`${bootLevel.name} — ${CONFIG.HEROES[heroId].name} L${h.level} ready!`, '', 2.2);
-  } else {
+  } else if (CONFIG.HEROES_ENABLED) {
     screens.showHeroSelect();
+  } else {
+    showBanner(`${bootLevel.name} — build your maze!`, '', 2.2);
   }
 } else {
   screens.showTitle();
