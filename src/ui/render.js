@@ -938,10 +938,10 @@ const MARQUEE_SELL = 'rgba(47, 143, 199, 0.38)';   // --ui-blue over the board
 let marqueeCache = { key: '', tints: [] };
 function drawMarquee(ctx, state) {
   const m = state.marquee;
-  if (!m) return;
-  const cells = marqueeCells(m.ax, m.ay, m.bx, m.by);
-  const a = cells[0], b = cells[cells.length - 1];
-  const key = `${a.x},${a.y}:${b.x},${b.y}:${state.towers.length}`;
+  if (!m || !m.cells || !m.cells.length) return;
+  const cells = m.cells;   // the traced path (input.js), not a bounding rect
+  const last = cells[cells.length - 1];
+  const key = `${cells.length}:${last.x},${last.y}:${state.towers.length}`;
   if (marqueeCache.key !== key) {
     marqueeCache = {
       key,
@@ -958,12 +958,6 @@ function drawMarquee(ctx, state) {
     ctx.fillStyle = t;
     ctx.fillRect(cells[i].x * SIZE, cells[i].y * SIZE, SIZE, SIZE);
   }
-  // thin frame around the whole selection
-  const x0 = Math.min(a.x, b.x) * SIZE, y0 = Math.min(a.y, b.y) * SIZE;
-  const w = (Math.abs(a.x - b.x) + 1) * SIZE, h = (Math.abs(a.y - b.y) + 1) * SIZE;
-  ctx.strokeStyle = C.rangeRing;
-  ctx.lineWidth = 1.5;
-  ctx.strokeRect(x0 + 0.75, y0 + 0.75, w - 1.5, h - 1.5);
 }
 
 // Radial build ring open: highlight the chosen cell (orange when the placement

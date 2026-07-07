@@ -14,7 +14,7 @@
 
 import { CONFIG } from '../config.js';
 import { canBuildAt } from '../game/state.js';
-import { marqueeCells, sellRefund } from '../game/shop.js';
+import { sellRefund } from '../game/shop.js';
 import { towersUnlockedAt } from '../game/levels.js';
 import { div } from './components.js';
 
@@ -52,9 +52,9 @@ export class MultiSelect {
 
   // Marquee released: group the covered cells and offer the batch actions.
   // Nothing actionable -> no card, just drop the overlay.
-  openChooser(state, rect) {
+  openChooser(state, marquee) {
     this.closeCard();
-    const cells = marqueeCells(rect.ax, rect.ay, rect.bx, rect.by);
+    const cells = (marquee && marquee.cells) || [];
     const empty = cells.filter((c) => canBuildAt(state, c.x, c.y));
     const towers = cells.map((c) => state.towerGrid[c.y][c.x]).filter(Boolean);
     if (empty.length === 0 && towers.length === 0) { state.marquee = null; return; }
@@ -104,7 +104,23 @@ export class MultiSelect {
 
     this.ui.appendChild(card);
     this.card = card;
+    this._positionCard(marquee && marquee.endClient);
     this.refresh(state);
+  }
+
+  // Place the chooser next to where the drag ENDED, clamped inside the #ui box
+  // so it never falls off a screen edge (prefers just above the finger; if
+  // there's no room above, drops below). No endClient -> leave CSS default.
+  _positionCard(endClient) {
+    if (!this.card || !endClient) return;
+    const r = this.ui.getBoundingClientRect();
+    const cw = this.card.offsetWidth, ch = this.card.offsetHeight, pad = 8;
+    let x = endClient.x - r.left + 14;            // just right of the finger
+    let y = endClient.y - r.top - ch - 14;        // above the finger by default
+    if (y < pad) y = endClient.y - r.top + 18;    // no room above -> below it
+    x = Math.min(Math.max(x, pad), r.width - cw - pad);
+    y = Math.min(Math.max(y, pad), r.height - ch - pad);
+    Object.assign(this.card.style, { left: x + 'px', top: y + 'px', bottom: 'auto', transform: 'none' });
   }
 
   // Per-frame (via hud.refresh): a build row greys out only when even one

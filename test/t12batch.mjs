@@ -176,13 +176,15 @@ console.log('Select mode: a one-pointer drag marquees and does NOT move the came
   check('camera did not move during the marquee drag',
     v.camX === 224 && v.camY === 144 && v.zoom === 2, `cam ${v.camX},${v.camY} z${v.zoom}`);
   const m = log.live[log.live.length - 1];
-  check('live marquee rect in world px (client->world under zoom 2)',
-    log.live.length === 1 && near(m.ax, 419) && near(m.ay, 284) && near(m.bx, 399) && near(m.by, 274),
+  // traced path: start cell (client 400,300 -> 13,8) painted to (client 360,280 -> 12,8)
+  check('live marquee is the traced cell path (client->cell under zoom 2)',
+    log.live.length === 1 && m.cells.length === 2 &&
+    m.cells[0].x === 13 && m.cells[0].y === 8 && m.cells[1].x === 12 && m.cells[1].y === 8,
     JSON.stringify(m));
   fire(c, 'pointerup', { pointerId: 1, clientX: 360, clientY: 280 });
   const e = log.ends[0];
-  check('release delivers the final rect exactly once', log.ends.length === 1 && e &&
-    near(e.ax, 419) && near(e.ay, 284) && near(e.bx, 399) && near(e.by, 274), JSON.stringify(e));
+  check('release delivers the final traced path exactly once', log.ends.length === 1 && e &&
+    e.cells.length === 2 && e.cells[1].x === 12 && e.cells[1].y === 8, JSON.stringify(e));
   fire(c, 'click', { clientX: 360, clientY: 280 });
   check('trailing click suppressed (no build, no exit)', log.clicks === 0 && log.taps === 0);
 
@@ -233,6 +235,36 @@ console.log('Select mode: a one-pointer drag marquees and does NOT move the came
   fire(c, 'pointerup', { pointerId: 1, clientX: 100, clientY: 100 });
   fire(c, 'click', { clientX: 100, clientY: 100 });
   check('normal tap clicks again after exit', log.clicks === 2);
+}
+
+console.log('Traced path, not a filled rect: an L-drag (across then up) selects the STROKE:');
+{
+  // The reported bug: dragging 5 across then 2 up selected the bounding box
+  // (10+ cells) instead of the 7 painted cells. Path-tracing fixes it.
+  setGridSize(20, 20);
+  const c = gestureCanvas(640, 640);              // 20*32, zoom 1, rect at (10,20)
+  const v = new Viewport(c, { style: {} }, box(640, 640));
+  const log = { live: [], ends: [] };
+  const input = setupInput(c, {
+    onMarquee: (r) => log.live.push({ cells: r.cells.map((k) => ({ ...k })) }),
+    onMarqueeEnd: (r) => log.ends.push(r ? { cells: r.cells.map((k) => ({ ...k })) } : null),
+  }, v);
+  input.setSelectMode(true);
+  // world->client: client = rect.left/top + worldPx (scale 1 at zoom 1, offset 10/20)
+  const cx = (col) => 10 + col * SIZE + SIZE / 2;
+  const cy = (row) => 20 + row * SIZE + SIZE / 2;
+  // start at cell (2,5), drag 5 across to (6,5), then 2 up to (6,3)
+  fire(c, 'pointerdown', { pointerId: 1, clientX: cx(2), clientY: cy(5) });
+  for (let col = 3; col <= 6; col++) fire(c, 'pointermove', { pointerId: 1, clientX: cx(col), clientY: cy(5) });
+  for (let row = 4; row >= 3; row--) fire(c, 'pointermove', { pointerId: 1, clientX: cx(6), clientY: cy(row) });
+  fire(c, 'pointerup', { pointerId: 1, clientX: cx(6), clientY: cy(3) });
+  const cells = log.ends[0].cells;
+  const has = (x, y) => cells.some((k) => k.x === x && k.y === y);
+  // the L: (2..6, 5) across + (6, 4..3) up = 7 cells, corner (6,5) shared
+  check('L-path selects exactly the 7 stroked cells', cells.length === 7, `n=${cells.length}`);
+  check('all across-cells present', has(2, 5) && has(3, 5) && has(4, 5) && has(5, 5) && has(6, 5));
+  check('all up-cells present', has(6, 4) && has(6, 3));
+  check('interior box cells NOT selected (2,4)/(2,3)/(3,4)', !has(2, 4) && !has(2, 3) && !has(3, 4));
 }
 
 console.log(fails === 0 ? 'BATCH_OK' : `BATCH_FAIL (${fails})`);

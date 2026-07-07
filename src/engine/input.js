@@ -21,7 +21,7 @@
 // onLeftClick, so the radial can never open in select mode.
 // =============================================================================
 
-import { SIZE } from './grid.js';
+import { SIZE, COLS, ROWS } from './grid.js';
 import { CONFIG } from '../config.js';
 
 export function setupInput(canvas, handlers, viewport) {
@@ -42,14 +42,43 @@ export function setupInput(canvas, handlers, viewport) {
   let selectMode = true;       // one-pointer drag = marquee-select by DEFAULT (a tap
                                // still builds one tower); toggle OFF for one-finger pan.
                                // Two-finger drag pans/pinches regardless of this flag.
-  let marquee = null;          // live marquee rect in world px { ax, ay, bx, by }
+  let marquee = null;          // live TRACED-PATH selection: { cells:[{x,y}], endClient:{x,y} }
+  let mqSeen = null;           // Set of "x,y" keys for O(1) path dedup
 
   // A second finger or a mode toggle kills an in-flight marquee; the UI clears
   // its overlay on the null.
   const cancelMarquee = () => {
     if (!marquee) return;
-    marquee = null;
+    marquee = null; mqSeen = null;
     if (handlers.onMarqueeEnd) handlers.onMarqueeEnd(null);
+  };
+
+  // Client px -> grid cell, clamped in-bounds (marquee cells index towerGrid).
+  const cellAt = (clientX, clientY) => {
+    const w = viewport.clientToWorld(clientX, clientY);
+    return {
+      x: Math.min(Math.max(Math.floor(w.x / SIZE), 0), COLS - 1),
+      y: Math.min(Math.max(Math.floor(w.y / SIZE), 0), ROWS - 1),
+    };
+  };
+
+  // Paint the integer line from the last painted cell to `cell` (Bresenham) so
+  // a fast drag never skips cells; only cells NOT already on the path join it.
+  // This selects exactly the drawn stroke — an L stays an L, not a filled box.
+  const paintTo = (cell) => {
+    const last = marquee.cells[marquee.cells.length - 1];
+    let x0 = last.x, y0 = last.y; const x1 = cell.x, y1 = cell.y;
+    const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0);
+    const sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+    let err = dx + dy;
+    for (;;) {
+      const key = x0 + ',' + y0;
+      if (!mqSeen.has(key)) { mqSeen.add(key); marquee.cells.push({ x: x0, y: y0 }); }
+      if (x0 === x1 && y0 === y1) break;
+      const e2 = 2 * err;
+      if (e2 >= dy) { err += dy; x0 += sx; }
+      if (e2 <= dx) { err += dx; y0 += sy; }
+    }
   };
 
   // CSS-px delta -> world-px delta at the current zoom (no rect offset needed).
@@ -86,17 +115,18 @@ export function setupInput(canvas, handlers, viewport) {
       if (Math.hypot(p.x - press.x, p.y - press.y) <= CONFIG.CAMERA.DRAG_SLOP) return;
       dragged = true;
       if (selectMode) {
-        mode = 'marquee';      // select mode: the drag selects, the camera stays put
-        const w = viewport.clientToWorld(press.x, press.y);
-        marquee = { ax: w.x, ay: w.y, bx: w.x, by: w.y };
+        mode = 'marquee';      // select mode: the drag paints a path, camera stays put
+        const start = cellAt(press.x, press.y);
+        mqSeen = new Set([start.x + ',' + start.y]);
+        marquee = { cells: [start], endClient: { x: press.x, y: press.y } };
       } else {
         mode = 'pan';
         last = press;          // pan from the origin: no dead jump at the threshold
       }
     }
     if (mode === 'marquee') {
-      const w = viewport.clientToWorld(p.x, p.y);
-      marquee.bx = w.x; marquee.by = w.y;
+      paintTo(cellAt(p.x, p.y));
+      marquee.endClient = { x: p.x, y: p.y };
       if (handlers.onMarquee) handlers.onMarquee(marquee);
     } else if (mode === 'pan') {
       const k = cssToWorld();  // world follows the finger, so the camera moves opposite
@@ -126,8 +156,8 @@ export function setupInput(canvas, handlers, viewport) {
       pinch = null;
     } else if (pointers.size === 0) {
       if (mode === 'marquee' && marquee) {
-        const r = marquee;       // release delivers the final rect exactly once
-        marquee = null;
+        const r = marquee;       // release delivers the final traced path exactly once
+        marquee = null; mqSeen = null;
         if (handlers.onMarqueeEnd) handlers.onMarqueeEnd(r);
       }
       suppressClick = dragged;   // the trailing click must not build/select
