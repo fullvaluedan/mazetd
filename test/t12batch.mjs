@@ -60,11 +60,11 @@ console.log('batchBuild: affordable prefix, row-major from the start corner, exa
   const st = freshL8();
   const cells = marqueeCells(cc(3), cc(3), cc(5), cc(5));   // 3x3 at (3,3)..(5,5)
   check('precondition: all 9 cells buildable', cells.every((c) => canBuildAt(st, c.x, c.y)));
-  st.gold = CONFIG.TOWERS.wall.cost * 5 + 3;                // 5 walls + 3g change
+  st.gold = CONFIG.TOWERS.wall.cost * 5;                   // exactly 5 walls (wall=1g now)
   const r = batchBuild(st, 'wall', cells);
   check('builds exactly the affordable prefix', r.built === 5 && r.of === 9 &&
     r.spent === CONFIG.TOWERS.wall.cost * 5, JSON.stringify(r));
-  check('gold left = the change, to the unit', st.gold === 3, String(st.gold));
+  check('gold exactly exhausted at the cutoff', st.gold === 0, String(st.gold));
   check('first five cells row-major from the start corner',
     !!st.towerGrid[3][3] && !!st.towerGrid[3][4] && !!st.towerGrid[3][5] &&
     !!st.towerGrid[4][3] && !!st.towerGrid[4][4]);

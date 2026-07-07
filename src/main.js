@@ -19,7 +19,7 @@ import { onEnemyKilled, onEnemyLeaked, updateFloaters, updateParticles, payWaveC
 import { startWave, processSpawning, waveComplete, updateBosses, waveInfoFor, winWave } from './game/wave.js';
 import { getLevel } from './game/levels.js';
 import { setGridSize } from './engine/grid.js';
-import { tryBuild, trySell, tryUpgrade, tryHeroUpgrade, tryConsumable, tryTowerBoost, batchBuild, batchSell } from './game/shop.js';
+import { tryBuild, trySell, tryUpgrade, tryHeroUpgrade, tryConsumable, tryTowerBoost, batchBuild, batchSell, batchUpgrade } from './game/shop.js';
 import {
   saveGame, hasSave, loadSnapshot, applySnapshot, getHighScore, recordHighScore,
   saveCampaign, hasCampaignSave, loadCampaignSnapshot, clearCampaignSave,
@@ -194,6 +194,13 @@ const actions = {
     const r = batchSell(state, cells);            // one 'sell' sfx event per batch
     if (r.sold > 0) showBanner(`Sold ${r.sold} — +${r.refund}g refund`, '', 1.8);
   },
+  batchUpgrade: (cells) => {
+    const r = batchUpgrade(state, cells);         // cheapest-first, one 'build' sfx
+    if (r.upgraded > 0) {
+      const tail = r.upgraded < r.of ? ` (${r.of - r.upgraded} unaffordable)` : '';
+      showBanner(`Upgraded ${r.upgraded}${tail} — ${r.spent}g`, r.upgraded < r.of ? 'warn' : '', 1.8);
+    } else showBanner('No towers to upgrade there', 'warn', 1.4);
+  },
   cancel: () => {
     if (hud.radialOpen) { hud.closeRadial(); return; }      // Esc unwinds one layer at a time
     state.buildType = null; state.selected = null; state.heroSelected = false; clearTargeting();
@@ -258,7 +265,9 @@ function update(dt) {
 
   if (!state.waveActive && state.buildTimer > 0 && (state.hero || !CONFIG.HEROES_ENABLED)) {
     state.buildTimer = Math.max(0, state.buildTimer - dt);
-    if (state.buildTimer <= 0 && state.autoStart) actions.startWave();
+    // Auto-chain waves — but NOT the first: wave 1 waits for a manual NEXT WAVE
+    // tap (state.wave is 0 until the player launches it). (user 2026-07-07)
+    if (state.buildTimer <= 0 && state.autoStart && state.wave >= 1) actions.startWave();
   }
 
   processSpawning(state, dt);

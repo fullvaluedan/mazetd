@@ -94,6 +94,32 @@ export function batchSell(state, items) {
   return res;
 }
 
+// Batch-upgrade every tower under the selection by one tier, cheapest-first
+// while gold lasts. Skips walls/maxed towers and any tower whose next step is
+// a FORK choice (those pick a branch individually so the player isn't locked
+// into A by a bulk action). Items may be cells or tower entities. ONE sfx.
+export function batchUpgrade(state, items) {
+  const res = { upgraded: 0, of: 0, spent: 0, forkSkipped: 0 };
+  const seen = new Set();
+  const towers = [];
+  for (const it of items) {
+    const t = it && it.def ? it : (state.towerGrid[it.y] && state.towerGrid[it.y][it.x]);
+    if (!t || seen.has(t)) continue;
+    seen.add(t);
+    if (!t.canUpgrade()) continue;      // walls + maxed towers
+    res.of++;
+    if (t.forkChoices()) { res.forkSkipped++; continue; }   // needs a per-tower branch pick
+    towers.push(t);
+  }
+  towers.sort((a, b) => a.nextUpgradeCost() - b.nextUpgradeCost());
+  for (const t of towers) {
+    const g0 = state.gold;
+    if (tryUpgrade(state, t, null)) { res.upgraded++; res.spent += g0 - state.gold; }
+  }
+  if (res.upgraded > 0) pushEvent(state, 'build');
+  return res;
+}
+
 // branchId only needed (and only used) at the tier that declares forks.
 export function tryUpgrade(state, tower, branchId) {
   if (!tower.canUpgrade()) return false;

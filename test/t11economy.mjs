@@ -96,7 +96,10 @@ console.log('Caps: roster reaches L5; hidden legacy keep their old caps:');
 
 console.log('Upgrades cost MORE than the tower (2.5/5/10/20 roster curve):');
 {
-  const base = CONFIG.TOWERS.cannon.cost;     // 15
+  // cannon.cost is 5 since the 2026-07-07 rebalance (base cost x0.30, was 15);
+  // this block reads it dynamically so the 2.5/5/10/20 curve is asserted as
+  // ratios, not absolutes — L2 = round(5*2.5) = 13, L3 = 25, L4 = 50, L5 = 100.
+  const base = CONFIG.TOWERS.cannon.cost;     // 5 (was 15 pre-rebalance)
   check('L2 = 2.5x base', upgradeCostFor('cannon', 2) === Math.round(base * 2.5));
   check('L3 = 5x base', upgradeCostFor('cannon', 3) === base * 5);
   check('L4 = 10x, L5 = 20x', upgradeCostFor('cannon', 4) === base * 10 && upgradeCostFor('cannon', 5) === base * 20);
@@ -132,19 +135,30 @@ console.log('U15 feel spike: levels 1-3 deterministic income bands (WC3 scarcity
     }
     return total;
   };
-  // Playtest verdict 2026-07-06: starter towers must not one-shot -> no
-  // challenge otherwise. Contract, kept on the CHEAPEST starter damage tower
-  // (arrow since U7): a wave-1 grunt survives one hit; a wave-8 grunt two.
+  // Starter towers must not one-shot -> no challenge otherwise. Re-derived for
+  // the 2026-07-07 rebalance (base dmg x0.10): a single T1 hit now barely
+  // dents a grunt, so mazing is mandatory. On the shipped SEED an arrow hit is
+  // 0.5*3.0*1.0 = 1.5 and a cannon hit 0.6*3.0*1.0 = 1.8; a L1 w1 grunt has
+  // 21 HP (arrow ~14 shots, cannon ~12) and a L1 w8 grunt 58 HP (arrow ~39).
+  // We assert the "many hits" floor as a multiple of a single hit, not the old
+  // 2-3-shot numbers (which were written for the pre-rebalance strong towers).
   {
     const lv = getLevel('l1');
     setGridSize(lv.cols, lv.rows);
     const st = createState(makeRng(1), 1, lv);
     const arrowHit = CONFIG.TOWERS.arrow.damage * CONFIG.DAMAGE_SCALE
       * CONFIG.DAMAGE_VS_ARMOR.pierce.medium;
-    check('L1 w1 grunt needs 2+ arrow shots', computeStats(st, 'normal', 1).hp > arrowHit,
-      `hp=${computeStats(st, 'normal', 1).hp} hit=${arrowHit}`);
-    check('L1 w8 grunt needs 3+ arrow shots', computeStats(st, 'normal', 8).hp > arrowHit * 2,
-      `hp=${computeStats(st, 'normal', 8).hp}`);
+    const cannonHit = CONFIG.TOWERS.cannon.damage * CONFIG.DAMAGE_SCALE
+      * CONFIG.DAMAGE_VS_ARMOR.siege.medium;
+    const hp1 = computeStats(st, 'normal', 1).hp;
+    const hp8 = computeStats(st, 'normal', 8).hp;
+    check('L1 w1 grunt needs many (>=6) arrow shots', hp1 > arrowHit * 6,
+      `hp=${hp1} arrowHit=${arrowHit} shots=${Math.ceil(hp1 / arrowHit)}`);
+    check('L1 w8 grunt needs many (>=12) arrow shots', hp8 > arrowHit * 12,
+      `hp=${hp8} shots=${Math.ceil(hp8 / arrowHit)}`);
+    // the prompt's cannon spot-check: a weak T1 cannon also needs many hits now
+    check('L1 w1 grunt needs many (>=6) cannon shots', hp1 > cannonHit * 6,
+      `hp=${hp1} cannonHit=${cannonHit} shots=${Math.ceil(hp1 / cannonHit)}`);
   }
   const i1 = income('l1'), i2 = income('l2'), i3 = income('l3');
   check('level 1 income in the 280-400 band', i1 >= 280 && i1 <= 400, `i1=${i1}`);

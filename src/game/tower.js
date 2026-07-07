@@ -139,6 +139,10 @@ export function getTowerStats(typeId, level, branchId) {
     if (t.mods) applyMods(s, t.mods);
     if (t.forks && branchId && t.forks[branchId]) applyMods(s, t.forks[branchId].mods);
   }
+  // Roster towers gain +20% range per reached tier, uniformly (so every tower —
+  // cannon included — grows range on upgrade). Legacy defs keep their own
+  // per-tier rangeMult via the legacy table and are excluded here.
+  if (def.tiers && !def.aura && s.range > 0) s.range *= Math.pow(CONFIG.UPGRADE.rangeMultPerTier, reached);
   s.damage *= CONFIG.DAMAGE_SCALE;   // global balance knob (Phase 8)
   return s;
 }

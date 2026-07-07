@@ -53,7 +53,7 @@ export const CONFIG = {
   // ---------------------------------------------------------------------------
   // ECONOMY
   // ---------------------------------------------------------------------------
-  START_GOLD: 800,             // tuned in Phase 8 (was 260) — fund an early maze
+  START_GOLD: 1000,            // classic/Endless only (campaign sets per-level gold); 800->1000 after wall 5g->1g shifted the classic serpentine + tipped the warrior run
   START_LIVES: 20,
   SELL_REFUND: 0.70,            // 70% of total invested (towers)
   WALL_REFUND: 1.0,            // walls sell back in full — juggling is free
@@ -162,7 +162,8 @@ export const CONFIG = {
   MAX_TOWER_LEVEL: 3,
   UPGRADE: {
     dmgMultPerLevel: 2.0,     // applied at L2 and again at L3
-    rangeMultPerLevel: 1.08,  // applied at L2 and again at L3
+    rangeMultPerLevel: 1.08,  // legacy fallback (hidden classic-sim towers only)
+    rangeMultPerTier: 1.20,   // roster: EVERY upgrade adds +20% range (user 2026-07-07)
     cooldownMultPerLevel: 0.9,// applied at L2 and again at L3
     costMultL2: 2.0,          // upgrades cost MORE than the tower: L2 = 2x base
     costMultL3: 4.0,          // ...and L3 = 4x base (7x total invested at L3)
@@ -173,7 +174,7 @@ export const CONFIG = {
     // The maze piece (Wintermaul/Gem TD economy): dirt cheap, tough, never
     // attacks, sells back at 100% (WALL_REFUND) so juggling costs nothing.
     wall: {
-      name: 'Wall', glyph: '■', color: '#c9b896', cost: 5,
+      name: 'Wall', glyph: '■', color: '#c9b896', cost: 1,
       wall: true,
       damage: 0, range: 0, cooldown: 0, damageType: 'none',
       targetsAir: false, projectileSpeed: 0,
@@ -182,14 +183,14 @@ export const CONFIG = {
     },
     // -- the 8-tower WC3 roster (U7) -------------------------------------------
     arrow: {
-      name: 'Arrow', glyph: 'A', color: '#7fd66b', cost: 10,
-      damage: 5, range: 2.6, cooldown: 0.7, damageType: 'pierce',
+      name: 'Arrow', glyph: 'A', color: '#7fd66b', cost: 3,
+      damage: 0.5, range: 2.6, cooldown: 0.7, damageType: 'pierce',
       targetsAir: true, projectileSpeed: 12,
       blurb: 'Cheap, fast. Hits land AND air.',
       branches: {},
       tiers: [
-        { costMult: 2.5, mods: { damageMult: 2, rangeMult: 1.08, cooldownMult: 0.9 } },
-        { costMult: 5,   mods: { damageMult: 2, rangeMult: 1.08, cooldownMult: 0.9 } },
+        { costMult: 2.5, mods: { damageMult: 2, cooldownMult: 0.9 } },
+        { costMult: 5,   mods: { damageMult: 2, cooldownMult: 0.9 } },
         { costMult: 10,  mods: { damageMult: 2, cooldownMult: 0.9 } },
         { costMult: 20,  forks: {
           A: { id: 'deadeye',   name: 'Deadeye',   desc: 'devastating critical shots (+200% dmg)', mods: { damageMult: 3 } },
@@ -198,8 +199,8 @@ export const CONFIG = {
       ],
     },
     cannon: {
-      name: 'Cannon', glyph: 'C', color: '#d98a4b', cost: 15,
-      damage: 6, range: 2.2, cooldown: 1.7, damageType: 'siege',
+      name: 'Cannon', glyph: 'C', color: '#d98a4b', cost: 5,
+      damage: 0.6, range: 2.2, cooldown: 1.7, damageType: 'siege',
       targetsAir: false, projectileSpeed: 7, splashRadius: 1.0,
       blurb: 'Small splash. Land only.',
       branches: {},
@@ -214,8 +215,8 @@ export const CONFIG = {
       ],
     },
     frost: {
-      name: 'Frost', glyph: 'Fr', color: '#5bb8d6', cost: 20,
-      damage: 3, range: 2.4, cooldown: 1.0, damageType: 'magic',
+      name: 'Frost', glyph: 'Fr', color: '#5bb8d6', cost: 6,
+      damage: 0.3, range: 2.4, cooldown: 1.0, damageType: 'magic',
       targetsAir: true, hitscan: true, slowPct: 0.15, slowDur: 1.5,
       blurb: 'Slows enemies. Hits air.',
       branches: {},
@@ -229,9 +230,9 @@ export const CONFIG = {
       ],
     },
     poison: {
-      name: 'Poison', glyph: 'P', color: '#6fc34b', cost: 25,
-      damage: 4, range: 2.5, cooldown: 1.2, damageType: 'poison',
-      targetsAir: false, projectileSpeed: 9, dotDps: 8, dotDur: 3,
+      name: 'Poison', glyph: 'P', color: '#6fc34b', cost: 8,
+      damage: 0.4, range: 2.5, cooldown: 1.2, damageType: 'poison',
+      targetsAir: false, projectileSpeed: 9, dotDps: 0.8, dotDur: 3,
       blurb: 'Poison DoT. Land only.',
       branches: {},
       tiers: [
@@ -245,14 +246,14 @@ export const CONFIG = {
       ],
     },
     sniper: {
-      name: 'Sniper', glyph: 'S', color: '#c9d4e0', cost: 40,
-      damage: 25, range: 5.0, cooldown: 3.0, damageType: 'pierce',
+      name: 'Sniper', glyph: 'S', color: '#c9d4e0', cost: 12,
+      damage: 2.5, range: 5.0, cooldown: 3.0, damageType: 'pierce',
       targetsAir: true, hitscan: true,
       blurb: 'Huge single hits, long range. Slow.',
       branches: {},
       tiers: [
-        { costMult: 2.5, mods: { damageMult: 2, rangeMult: 1.1 } },
-        { costMult: 5,   mods: { damageMult: 2, rangeMult: 1.1 } },
+        { costMult: 2.5, mods: { damageMult: 2 } },
+        { costMult: 5,   mods: { damageMult: 2 } },
         { costMult: 10,  mods: { damageMult: 2, cooldownMult: 0.85 } },
         { costMult: 20,  forks: {
           A: { id: 'executioner', name: 'Executioner', desc: 'kills anything left under 20% HP (not bosses)', mods: { damageMult: 2, executePct: 0.2 } },
@@ -261,8 +262,8 @@ export const CONFIG = {
       ],
     },
     lightning: {
-      name: 'Lightning', glyph: 'L', color: '#e0c84f', cost: 50,
-      damage: 22, range: 3.6, cooldown: 1.5, damageType: 'magic',
+      name: 'Lightning', glyph: 'L', color: '#e0c84f', cost: 15,
+      damage: 2.2, range: 3.6, cooldown: 1.5, damageType: 'magic',
       targetsAir: true, hitscan: true, chainTargets: 3, chainFalloff: 0.6, chainRange: 1.6,
       blurb: 'Chain lightning. Hits air.',
       branches: {},
@@ -275,7 +276,7 @@ export const CONFIG = {
       ],
     },
     support: {
-      name: 'Support', glyph: 'B', color: '#e08ac8', cost: 35,
+      name: 'Support', glyph: 'B', color: '#e08ac8', cost: 11,
       aura: true,                    // non-attacking: buffs towers in radius instead
       damage: 0, range: 2.0, cooldown: 0, damageType: 'none',
       targetsAir: false, projectileSpeed: 0,
@@ -303,7 +304,7 @@ export const CONFIG = {
       ],
     },
     gold: {
-      name: 'Gold Mine', glyph: '$', color: '#f2c14b', cost: 30,
+      name: 'Gold Mine', glyph: '$', color: '#f2c14b', cost: 9,
       noAttack: true,                // a real tower with no attack: income only
       damage: 0, range: 0, cooldown: 0, damageType: 'none',
       targetsAir: false, projectileSpeed: 0,

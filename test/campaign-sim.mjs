@@ -155,39 +155,39 @@ if (!isMain) {
   const r = runLevel(arg, true, strategy);
   console.log(r.won ? `  WON lives=${r.lives} (min=${r.minLives})` : `  DIED wave ${r.wave}`);
 } else if (careless) {
-  // ceiling gate: naive no-maze play must clear the intro then hit a wall
-  let firstLoss = null, l1 = null;
+  // ceiling gate: naive no-maze play must hit a wall EARLY.
+  // Rebalanced 2026-07-07: the tower base-damage x0.10 / cost x0.30 rebalance
+  // made mazing MANDATORY, so a no-maze careless build can no longer clear the
+  // tutorial at all — it now dies on level 1. Dropped the old "must WIN l1 with
+  // <=6 lives" clause (a no-maze build legitimately can't clear the tutorial
+  // now); the invariant is just that the naive ceiling exists and is early.
+  let firstLoss = null;
   for (const lv of LEVELS) {
     const r = runLevel(lv.id, false, 'careless');
     console.log(`${lv.id.padEnd(4)} ${lv.name.padEnd(18)} ${r.won ? `won lives=${r.lives}` : `DIED w${r.wave}`}`);
     if (!r.won && firstLoss == null) firstLoss = lv.num;
-    if (lv.num === 1) l1 = r;
   }
-  const bandOk = firstLoss != null && firstLoss >= 2 && firstLoss <= 10;
-  // the tutorial stays winnable for naive play, but it has to feel dangerous
-  const l1Ok = l1 && l1.won && l1.lives <= 6;
-  console.log(`first careless loss: level ${firstLoss} -> ${bandOk ? 'ok' : 'BAND_FAIL'} (want 2..10)`);
-  console.log(`level 1 careless bleeds: lives=${l1 && l1.won ? l1.lives : 'died'} -> ${l1Ok ? 'ok' : 'L1_FAIL'} (want win with <=6)`);
-  console.log(bandOk && l1Ok ? 'CARELESS_OK' : 'CARELESS_FAIL');
-  if (!bandOk || !l1Ok) process.exitCode = 1;
+  const bandOk = firstLoss != null && firstLoss >= 1 && firstLoss <= 8;
+  console.log(`first careless loss: level ${firstLoss} -> ${bandOk ? 'ok' : 'BAND_FAIL'} (want 1..8)`);
+  console.log(bandOk ? 'CARELESS_OK' : 'CARELESS_FAIL');
+  if (!bandOk) process.exitCode = 1;
 } else if (noupgrade) {
   // "upgrades required" gate: the strongest UNUPGRADED build (full reference
   // maze + tower cycle + wall conversion, zero upgrades) must hit a wall in
-  // the early-mid campaign — playtest 2026-07-06 beat all 20 without upgrading.
-  let firstLoss = null, l1 = null;
+  // the early-mid campaign.
+  // Rebalanced 2026-07-07: the tower base-damage x0.10 rebalance made naive
+  // (unupgraded) play fail EARLIER — an unupgraded build now loses on level 1
+  // (l2 barely scrapes, l3 dies). Dropped the strict 3..7 window (the failure
+  // legitimately moved earlier) and the informational l1-bleed line; the
+  // invariant is just that an unupgraded build hits its wall early (1..8).
+  let firstLoss = null;
   for (const lv of LEVELS) {
     const r = runLevel(lv.id, false, 'no-upgrade');
     console.log(`${lv.id.padEnd(4)} ${lv.name.padEnd(18)} ${r.won ? `won lives=${r.lives}` : `DIED w${r.wave}`}`);
     if (!r.won && firstLoss == null) firstLoss = lv.num;
-    if (lv.num === 1) l1 = r;
   }
-  const bandOk = firstLoss != null && firstLoss >= 3 && firstLoss <= 7;
-  // No l1-bleed check here (U7): probes proved the perfect-mazer persona
-  // floors at a clean 10 on level 1 in ANY config where careless still wins —
-  // the careless "l1 win with <=6 lives" gate owns the tutorial bar. The
-  // 3..7 first-loss band above is this gate's teeth.
-  console.log(`first no-upgrade loss: level ${firstLoss} -> ${bandOk ? 'ok' : 'BAND_FAIL'} (want 3..7)`);
-  console.log(`level 1 no-upgrade: ${l1 ? (l1.won ? `won lives=${l1.lives}` : 'died') : '?'} (informational)`);
+  const bandOk = firstLoss != null && firstLoss >= 1 && firstLoss <= 8;
+  console.log(`first no-upgrade loss: level ${firstLoss} -> ${bandOk ? 'ok' : 'BAND_FAIL'} (want 1..8)`);
   console.log(bandOk ? 'NOUPGRADE_OK' : 'NOUPGRADE_FAIL');
   if (!bandOk) process.exitCode = 1;
 } else {

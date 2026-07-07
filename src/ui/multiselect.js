@@ -88,6 +88,23 @@ export class MultiSelect {
       }
     }
 
+    // Upgrade row: towers that can advance a tier without a fork choice (fork
+    // tiers are upgraded individually so a bulk action never locks in branch A).
+    const upgradeable = towers.filter((t) => t.canUpgrade() && !t.forkChoices());
+    if (upgradeable.length > 0) {
+      const cost = upgradeable.reduce((sum, t) => sum + t.nextUpgradeCost(), 0);
+      const row = document.createElement('button');
+      row.className = 'ui-btn ms-row upgrade';
+      row.innerHTML = `<span class="ms-name">⬆ Upgrade ${upgradeable.length}</span>` +
+        `<span class="ms-price">${cost}g</span>`;
+      row.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        this.closeCard();
+        this.actions.batchUpgrade(cells);   // cheapest-first while gold lasts
+      });
+      card.appendChild(row);
+    }
+
     if (towers.length > 0) {
       const refund = towers.reduce((sum, t) => sum + sellRefund(t), 0);
       const row = document.createElement('button');
