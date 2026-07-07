@@ -161,14 +161,11 @@ export const LEVELS = [
     goals: [{ id: 'G1', cx: 8, cy: 15 }],
     checkpoints: [{ id: 'CP1', cx: 5, cy: 8 }],
     startGold: 250,
-    // hpMult retuned 13.05->6.0 for the 2026-07-07 tower rebalance (base dmg
-    // x0.10): the old 13.05 was calibrated to the strong pre-rebalance towers
-    // and now DIES at wave 3. Cliff sweep: max-winning ~8.05 (2 lives); 6.0
-    // wins clean at 10 lives, above the l1-5 >=6 band. The no-upgrade/careless
-    // separators no longer live here (both now fail in the tutorial by design —
-    // see campaign-sim gate comments), so this level is tuned purely for the
-    // reference win margin.
-    waves: { count: 18, types: ['normal', 'fast', 'swarm'], swarmFrom: 5, hpMult: 6.0, bountyMult: 0.085, waveclearMult: 0.13 },
+    // hpMult retuned from 3.3: at 11x16 the reference gate needs >=6 lives
+    // (l1-5 band) and 13.05 gives 7; the SAME hpMult makes the no-upgrade
+    // strategy (same maze/cycle, zero upgrades) die at wave 18 — the
+    // no-upgrade gate's required first-loss window is 3..7, and this is l4.
+    waves: { count: 18, types: ['normal', 'fast', 'swarm'], swarmFrom: 5, hpMult: 13.05, bountyMult: 0.085, waveclearMult: 0.13 },
   }),
   L(5, 'Cold Snap', {
     cols: 16, rows: 24,
@@ -194,11 +191,9 @@ export const LEVELS = [
     checkpoints: [{ id: 'CP1', cx: 2, cy: 13 }, { id: 'CP2', cx: 14, cy: 13 }],
     obstacles: [...rect(7, 7, 9, 7), ...rect(7, 19, 9, 19)],
     startGold: 360,
-    // hpMult retuned 1.9->0.7 for the 2026-07-07 tower rebalance (base dmg
-    // x0.10): the weaker towers now lose at w27 at 1.9. Cliff sweep: max-winning
-    // ~0.98 (a sharp single-leak-wave cliff, wins full at 10 below it); 0.7
-    // wins clean at 10 lives with real headroom.
-    waves: { count: 30, types: ['normal', 'fast', 'swarm', 'tank', 'healer'], swarmFrom: 4, hpMult: 0.7, bountyMult: 0.04, waveclearMult: 0.11 },
+    // hpMult retuned from 2.6 (U8 sweep: reference lost by w27; max-winning
+    // ~2.05 at only 2 lives). 1.9 leaves real headroom below that cliff.
+    waves: { count: 30, types: ['normal', 'fast', 'swarm', 'tank', 'healer'], swarmFrom: 4, hpMult: 1.9, bountyMult: 0.04, waveclearMult: 0.11 },
   }),
   L(8, 'Wings Overhead', {                      // flyers introduced
     cols: 18, rows: 28,
@@ -207,10 +202,8 @@ export const LEVELS = [
     checkpoints: [{ id: 'CP1', cx: 2, cy: 13 }, { id: 'CP2', cx: 15, cy: 13 }],
     obstacles: rect(6, 20, 11, 21),
     startGold: 400,
-    // retuned 1.8->1.2 for the 2026-07-07 tower rebalance (base dmg x0.10):
-    // weaker towers now lose at w20 at 1.8. Cliff sweep: max-winning ~1.69
-    // (1 life); 1.2 wins clean at 10 lives with headroom below the cliff.
-    waves: { count: 35, types: ['normal', 'fast', 'swarm', 'tank', 'flyer'], swarmFrom: 4, flyerFrom: 6, hpMult: 1.2, bountyMult: 0.045, waveclearMult: 0.1 },
+    // retuned from 2.3 (sweep max-winning ~1.95 at 5 lives).
+    waves: { count: 35, types: ['normal', 'fast', 'swarm', 'tank', 'flyer'], swarmFrom: 4, flyerFrom: 6, hpMult: 1.8, bountyMult: 0.045, waveclearMult: 0.1 },
   }),
   L(9, 'Verdant Garden', {                      // authored hedge rows: free walls
     cols: 19, rows: 30,
@@ -219,10 +212,8 @@ export const LEVELS = [
     checkpoints: [{ id: 'CP1', cx: 15, cy: 9 }, { id: 'CP2', cx: 2, cy: 17 }, { id: 'CP3', cx: 15, cy: 25 }],
     obstacles: [...rect(1, 8, 13, 8), ...rect(4, 16, 17, 16), ...rect(1, 24, 13, 24)],
     startGold: 440,
-    // retuned 1.5->0.5 for the 2026-07-07 tower rebalance (base dmg x0.10):
-    // weaker towers now lose at w18 at 1.5. Cliff sweep: max-winning ~0.71
-    // (sharp single-leak cliff); 0.5 wins clean at 10 lives with headroom.
-    waves: { count: 39, types: ['normal', 'fast', 'swarm', 'tank', 'healer', 'flyer'], swarmFrom: 4, flyerFrom: 7, hpMult: 0.5, bountyMult: 0.04, waveclearMult: 0.1 },
+    // retuned from 2.1 (sweep max-winning ~1.67, wins clean with room to spare).
+    waves: { count: 39, types: ['normal', 'fast', 'swarm', 'tank', 'healer', 'flyer'], swarmFrom: 4, flyerFrom: 7, hpMult: 1.5, bountyMult: 0.04, waveclearMult: 0.1 },
   }),
   // -- Act 3: bosses and the terrain bands --------------------------------------
   L(10, 'The Wardens', {                        // first boss level; Endless unlocks
@@ -233,10 +224,9 @@ export const LEVELS = [
     obstacles: [...band(20, 10, 11, 15, 17), ...band(20, 21, 22, 1, 3)],
     startGold: 480,
     lives: 8,
-    // retuned 0.6->0.45 for the 2026-07-07 tower rebalance (base dmg x0.10):
-    // weaker towers now lose at w26 at 0.6. Cliff sweep: max-winning ~0.55
-    // (6 lives). U8 gate band: l10 margin <=8 lives — 0.45 lands at 8.
-    waves: { count: 45, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'flyer'], swarmFrom: 4, flyerFrom: 7, bossEvery: 10, hpMult: 0.45, bountyMult: 0.04, waveclearMult: 0.095 },
+    // retuned from 1.9 (sweep: reference died w10 at 1.9; max-winning ~0.78
+    // at 4 lives). U8 gate band: l10 margin <=8 lives — 0.6 lands at 6.
+    waves: { count: 45, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'flyer'], swarmFrom: 4, flyerFrom: 7, bossEvery: 10, hpMult: 0.6, bountyMult: 0.04, waveclearMult: 0.095 },
     stars: [8, 6],
   }),
   L(11, 'The Long Descent', {
@@ -246,10 +236,8 @@ export const LEVELS = [
     checkpoints: [{ id: 'CP1', cx: 16, cy: 10 }, { id: 'CP2', cx: 2, cy: 20 }, { id: 'CP3', cx: 16, cy: 27 }],
     obstacles: [...band(20, 10, 11, 15, 17), ...band(20, 20, 21, 1, 3), ...band(20, 27, 28, 15, 17)],
     startGold: 520,
-    // retuned 0.5->0.22 for the 2026-07-07 tower rebalance (base dmg x0.10):
-    // weaker towers now lose at w38 at 0.5. Cliff sweep: max-winning ~0.29
-    // (sharp single-leak cliff); 0.22 wins clean at 10 lives with headroom.
-    waves: { count: 50, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'healer', 'flyer'], swarmFrom: 4, flyerFrom: 6, bossEvery: 10, hpMult: 0.22, bountyMult: 0.03, waveclearMult: 0.09 },
+    // retuned from 1.75 (sweep max-winning ~0.59).
+    waves: { count: 50, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'healer', 'flyer'], swarmFrom: 4, flyerFrom: 6, bossEvery: 10, hpMult: 0.5, bountyMult: 0.03, waveclearMult: 0.09 },
     stars: [8, 6],
   }),
   L(12, 'The Narrows', {                        // canyon: massif walls + one gate
@@ -259,10 +247,8 @@ export const LEVELS = [
     checkpoints: [{ id: 'CP1', cx: 10, cy: 11 }, { id: 'CP2', cx: 10, cy: 24 }],
     obstacles: [...rect(1, 8, 6, 14), ...rect(14, 8, 19, 14), ...band(21, 24, 25, 9, 11)],
     startGold: 560,
-    // retuned 0.33->0.22 for the 2026-07-07 tower rebalance (base dmg x0.10):
-    // weaker towers now lose at w51 at 0.33. Cliff sweep: max-winning ~0.30;
-    // 0.22 wins clean at 10 lives with headroom below the cliff.
-    waves: { count: 56, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'healer', 'flyer'], swarmFrom: 4, flyerFrom: 6, bossEvery: 10, hpMult: 0.22, bountyMult: 0.027, waveclearMult: 0.09 },
+    // retuned from 1.6 (sweep max-winning ~0.39).
+    waves: { count: 56, types: ['normal', 'fast', 'swarm', 'tank', 'shield', 'healer', 'flyer'], swarmFrom: 4, flyerFrom: 6, bossEvery: 10, hpMult: 0.33, bountyMult: 0.027, waveclearMult: 0.09 },
     stars: [8, 6],
   }),
   L(13, 'Two Roads', {                          // second spawn introduced
