@@ -367,14 +367,24 @@
   left: 10px;
   bottom: 10px;
   z-index: 12;
-  min-height: 44px;
+  min-height: 48px;
+  min-width: 118px;
+  font-weight: 800;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.4);
 }
+/* ON = drag-build (the default): loud green so it never hides in the border. */
 .mselect-toggle.on {
   background: #3fae5d;
   border-color: #2c7a41;
   color: #ffffff;
 }
 .mselect-toggle.on:hover:not(:disabled) { background: #46bd66; }
+/* OFF = pan mode: warm amber, still clearly a live control. */
+.mselect-toggle:not(.on) {
+  background: #e6a44b;
+  border-color: #b87c2c;
+  color: #23180a;
+}
 .mselect-backdrop {
   position: absolute;
   inset: 0;

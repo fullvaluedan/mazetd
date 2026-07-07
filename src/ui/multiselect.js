@@ -30,19 +30,21 @@ export class MultiSelect {
 
     const b = document.createElement('button');
     b.className = 'ui-btn mselect-toggle';
-    b.textContent = '⛶ Select';
-    b.title = 'Multi-select: drag a box to build or sell many cells at once';
+    b.title = 'Drag across cells to build or sell many at once. Tap here to switch to panning the map.';
     b.addEventListener('click', () => {
       if (this.actions.toggleSelectMode) this.actions.toggleSelectMode();
     });
     uiLayer.appendChild(b);
     this.toggle = b;
+    this.setActive(true);   // drag-select is the default (matches input.js)
   }
 
-  // Mode visual + card teardown; the authoritative flag lives in input.js.
+  // Mode visual + label + card teardown; the authoritative flag lives in input.js.
+  // ON = drag builds/sells rows (default). OFF = drag pans the map.
   setActive(on) {
     this.active = on;
     this.toggle.classList.toggle('on', on);
+    this.toggle.textContent = on ? '⛶ Drag-build' : '✋ Pan map';
     if (!on) this.closeCard();
   }
 

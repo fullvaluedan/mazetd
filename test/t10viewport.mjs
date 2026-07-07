@@ -218,20 +218,22 @@ const gestureCanvas = (rectW, rectH) => {
 const fire = (c, type, props) =>
   (c.listeners[type] || []).forEach((f) => f({ preventDefault() {}, button: 0, ...props }));
 
-console.log('Gestures: sub-slop tap clicks; a drag pans and suppresses the click:');
+console.log('Gestures: sub-slop tap clicks; a drag pans (select mode off) and suppresses the click:');
 {
   const c = gestureCanvas(896, 576);
   const v = new Viewport(c, { style: {} }, box(896, 576));
   let clicks = 0;
-  setupInput(c, { onLeftClick: () => clicks++ }, v);
+  const input = setupInput(c, { onLeftClick: () => clicks++ }, v);
 
-  // sub-slop tap: down, 3px wiggle, up -> the click flow fires exactly as today
+  // sub-slop tap: down, 3px wiggle, up -> a tap always builds (onLeftClick)
   fire(c, 'pointerdown', { pointerId: 1, clientX: 100, clientY: 100 });
   fire(c, 'pointermove', { pointerId: 1, clientX: 103, clientY: 100 });
   fire(c, 'pointerup', { pointerId: 1, clientX: 103, clientY: 100 });
   fire(c, 'click', { clientX: 103, clientY: 100 });
   check('sub-slop tap still clicks', clicks === 1);
 
+  // one-finger drag SELECTS by default now; turn select off so a drag pans
+  input.setSelectMode(false);
   // drag beyond slop (zoom in first so the pan isn't clamped away at zoom 1)
   v.zoomAt(2, 448, 288);   // cam (224, 144)
   fire(c, 'pointerdown', { pointerId: 1, clientX: 400, clientY: 300 });

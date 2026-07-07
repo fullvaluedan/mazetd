@@ -39,7 +39,9 @@ export function setupInput(canvas, handlers, viewport) {
   let pinch = null;            // previous pinch frame: { dist, midX, midY }
   let dragged = false;         // this gesture panned/pinched/marqueed (not a tap)
   let suppressClick = false;   // eat the click event that ends a drag/pinch
-  let selectMode = false;      // U21: one-pointer drags marquee instead of panning
+  let selectMode = true;       // one-pointer drag = marquee-select by DEFAULT (a tap
+                               // still builds one tower); toggle OFF for one-finger pan.
+                               // Two-finger drag pans/pinches regardless of this flag.
   let marquee = null;          // live marquee rect in world px { ax, ay, bx, by }
 
   // A second finger or a mode toggle kills an in-flight marquee; the UI clears
@@ -156,11 +158,8 @@ export function setupInput(canvas, handlers, viewport) {
 
   canvas.addEventListener('click', (ev) => {
     if (suppressClick) { suppressClick = false; return; }   // that "click" was a pan/marquee
-    if (selectMode) {
-      // A plain tap in select mode exits it (via the caller) — never builds.
-      handlers.onSelectTap && handlers.onSelectTap();
-      return;
-    }
+    // A plain tap always builds one tower (radial ring) regardless of mode —
+    // only a DRAG selects. So drag-to-select never steals single taps.
     const c = toCell(ev);
     handlers.onLeftClick && handlers.onLeftClick(c.x, c.y, c.px, c.py);
   });

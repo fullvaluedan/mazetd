@@ -186,13 +186,14 @@ console.log('Select mode: a one-pointer drag marquees and does NOT move the came
   fire(c, 'click', { clientX: 360, clientY: 280 });
   check('trailing click suppressed (no build, no exit)', log.clicks === 0 && log.taps === 0);
 
-  // plain sub-slop tap: exits select mode via onSelectTap, never onLeftClick
+  // plain sub-slop tap: a tap ALWAYS builds (onLeftClick), even in select mode —
+  // only a drag selects, so single-tower building never gets stolen
   fire(c, 'pointerdown', { pointerId: 1, clientX: 100, clientY: 100 });
   fire(c, 'pointermove', { pointerId: 1, clientX: 103, clientY: 100 });
   fire(c, 'pointerup', { pointerId: 1, clientX: 103, clientY: 100 });
   fire(c, 'click', { clientX: 103, clientY: 100 });
-  check('plain tap routes to onSelectTap, radial flow suppressed',
-    log.taps === 1 && log.clicks === 0);
+  check('plain tap builds (onLeftClick), never onSelectTap',
+    log.clicks === 1 && log.taps === 0);
 
   // two-finger gesture: marquee cancels (null), pinch still zooms
   const z0 = v.zoom, liveBefore = log.live.length;
@@ -211,7 +212,7 @@ console.log('Select mode: a one-pointer drag marquees and does NOT move the came
   fire(c, 'pointerup', { pointerId: 2, clientX: 582, clientY: 308 });
   fire(c, 'click', { clientX: 439, clientY: 308 });
   check('no rect delivered after a pinch, click eaten',
-    log.ends.length === 2 && log.clicks === 0 && log.taps === 1);
+    log.ends.length === 2 && log.clicks === 1 && log.taps === 0);
 
   // exiting select mode restores drag-pan
   input.setSelectMode(false);
@@ -225,13 +226,13 @@ console.log('Select mode: a one-pointer drag marquees and does NOT move the came
   check('no marquee events outside select mode',
     log.ends.length === ends0 && log.live.length === live0);
   check('pan click still suppressed, no stray tap exit',
-    log.clicks === 0 && log.taps === 1);
+    log.clicks === 1 && log.taps === 0);
 
   // and a normal tap builds again
   fire(c, 'pointerdown', { pointerId: 1, clientX: 100, clientY: 100 });
   fire(c, 'pointerup', { pointerId: 1, clientX: 100, clientY: 100 });
   fire(c, 'click', { clientX: 100, clientY: 100 });
-  check('normal tap clicks again after exit', log.clicks === 1);
+  check('normal tap clicks again after exit', log.clicks === 2);
 }
 
 console.log(fails === 0 ? 'BATCH_OK' : `BATCH_FAIL (${fails})`);

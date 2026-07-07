@@ -19,7 +19,7 @@ export function createHints(overlay, hud) {
     if (state.wave === 0 && state.towers.length === 0) {
       return hud.radialOpen
         ? 'Pick a tower — gold price shown under each. Long-press one for details.'
-        : 'Tap any open cell to raise a tower. Towers are your maze walls!';
+        : 'Tap a cell to build one tower — or DRAG across cells to build a whole row at once.';
     }
     if (state.wave === 0 && state.towers.length > 0 && !state.waveActive) {
       return 'Wall off a long, winding path — then hit NEXT WAVE. Starting early pays gold!';
