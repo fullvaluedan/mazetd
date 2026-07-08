@@ -49,8 +49,16 @@ export class Radial {
   get isOpen() { return !!this.root; }
 
   // items: [{ icon?, glyph, color, label, price?, sub?, disabled?(state),
-  //           warn?, onTap, onHover?(bool) }]
-  open(cell, items, kind, onClose) {
+  //           warn?, onTap, onHover?(bool), slot? }]
+  // opts.totalSlots: fix the angle denominator (and ring size) to a constant
+  // instead of the live items.length, and honor each item's `slot` for its
+  // angle instead of its array index. Lets a ring with a variable item set
+  // (the tower ring: upgrade disappears once maxed) keep every OTHER button
+  // at its usual position rather than re-spacing the whole ring (user
+  // 2026-07-08: "upgrade all the way and it replaces the button location").
+  // Omit both for the old index/count-based layout (the build ring, whose
+  // item set never changes size).
+  open(cell, items, kind, onClose, opts = {}) {
     this.close();
     this.kind = kind || null;
     this.cell = cell;
@@ -63,7 +71,8 @@ export class Radial {
 
     const ring = div('radial');
     const a = this.vp.worldToUi((cell.x + 0.5) * CONFIG.CELL, (cell.y + 0.5) * CONFIG.CELL);
-    const radius = ringRadiusFor(items.length);
+    const n = opts.totalSlots || items.length;
+    const radius = ringRadiusFor(n);
     const pad = radius + ITEM_HALF + 6;
     const w = this.ui.clientWidth || 0, h = this.ui.clientHeight || 0;
     const cx = Math.min(Math.max(a.x, pad), Math.max(pad, w - pad));
@@ -71,9 +80,9 @@ export class Radial {
     ring.style.left = cx + 'px';
     ring.style.top = cy + 'px';
 
-    const n = items.length;
     this._items = items.map((it, i) => {
-      const ang = -Math.PI / 2 + (i / n) * Math.PI * 2;   // first item on top
+      const slot = it.slot != null ? it.slot : i;
+      const ang = -Math.PI / 2 + (slot / n) * Math.PI * 2;   // first item on top
       const b = document.createElement('button');
       b.className = 'radial-item' + (it.warn ? ' warn' : '');
       const icon = it.icon
@@ -157,6 +166,12 @@ export function buildRingItems(state, cell, gameActions) {
   });
 }
 
+// Fixed role slots for the tower ring (see Radial.open's `slot`/`totalSlots`):
+// upgrade or fork A always sits at 0, fork B at 1, targeting at 2, sell at 3.
+// A role's button simply doesn't render when absent (e.g. maxed = no slot 0)
+// instead of the whole ring re-spacing around the remaining items.
+export const TOWER_RING_SLOTS = 4;
+
 // Existing tower: upgrade (or the A/B fork where the next tier declares one),
 // target mode, sell. Walls are pure maze pieces: sell is their only action.
 export function towerRingItems(state, tower, gameActions) {
@@ -166,6 +181,7 @@ export function towerRingItems(state, tower, gameActions) {
     const forks = tower.forkChoices();
     if (!forks) {
       items.push({
+        slot: 0,
         glyph: '▲', color: '#ffd35c',
         label: `Upgrade to L${tower.level + 1} — ${cost}g`,
         price: cost,
@@ -176,6 +192,7 @@ export function towerRingItems(state, tower, gameActions) {
       for (const key of Object.keys(forks)) {
         const br = forks[key];
         items.push({
+          slot: key === 'A' ? 0 : 1,
           glyph: key === 'A' ? '◆' : '◇', color: '#ffd35c',
           label: `${br.name} — ${br.desc} (${cost}g)`,
           price: cost,
@@ -188,6 +205,7 @@ export function towerRingItems(state, tower, gameActions) {
   }
   if (!tower.def.aura && !tower.def.wall && !tower.def.noAttack) {
     items.push({
+      slot: 2,
       glyph: '◎', color: '#5cc8ff',
       label: 'Targeting: ' + tower.targetMode + ' (tap to cycle)',
       sub: tower.targetMode,
@@ -196,6 +214,7 @@ export function towerRingItems(state, tower, gameActions) {
   }
   const refund = sellRefund(tower);
   items.push({
+    slot: 3,
     glyph: '$', color: '#ff6b66',
     label: `Sell — refund ${refund}g${tower.def.wall ? ' (100%)' : ''}`,
     sub: `+${refund}g`,

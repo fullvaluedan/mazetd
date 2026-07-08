@@ -84,14 +84,17 @@ export function onEnemyLeaked(state, e) {
 export function payWaveClear(state, waveNum) {
   const lv = state.level && state.level.waves;
   const mult = lv && lv.waveclearMult != null ? lv.waveclearMult : 1;
-  const bonus = Math.floor((CONFIG.WAVECLEAR_BASE + CONFIG.WAVECLEAR_PER_WAVE * waveNum) * mult);
+  // GOLD_PER_ROUND_SCALE (-35%, user 2026-07-08) hits only the wave-clear
+  // bonus and (in wave.js computeStats) kill bounties — interest and income
+  // towers below are deliberately untouched.
+  const bonus = Math.floor((CONFIG.WAVECLEAR_BASE + CONFIG.WAVECLEAR_PER_WAVE * waveNum) * mult * CONFIG.GOLD_PER_ROUND_SCALE);
   addGold(state, bonus);
   const interest = Math.min(CONFIG.INTEREST_CAP, Math.floor(state.gold * CONFIG.INTEREST_RATE));
   addGold(state, interest);
   // Income towers (U6): flat stats.income gold per tower, paid only here.
-  // Deliberately NOT scaled by waveclearMult (that knob tames the global
-  // clear constants, not tower stats) and added after interest so the
-  // interest math is untouched.
+  // Deliberately NOT scaled by waveclearMult or GOLD_PER_ROUND_SCALE (those
+  // knobs tame the global clear constants, not tower stats) and added after
+  // interest so the interest math is untouched.
   let income = 0;
   for (const t of state.towers) {
     const inc = t.stats && t.stats.income;
@@ -101,9 +104,18 @@ export function payWaveClear(state, waveNum) {
   return { bonus, interest, income };
 }
 
-// Early-start bonus: gold for each whole second left on the build timer.
-export function payEarlyStart(state, secondsLeft) {
-  const bonus = Math.max(0, Math.floor(secondsLeft * CONFIG.EARLY_START_BONUS_PER_SEC));
+// Early-start bonus cap for calling wave `w` the instant its build timer
+// opens (elapsed=0): 10/15/20/... +5g per wave (user 2026-07-08).
+export function earlyStartCap(wave = 1) {
+  return CONFIG.WAVE_CALL_BONUS_BASE + CONFIG.WAVE_CALL_BONUS_PER_WAVE * Math.max(0, wave - 1);
+}
+
+// Early-start bonus: starts at earlyStartCap(wave) the instant the timer
+// opens and decays 1g per second elapsed since then (same rate as before —
+// only the starting cap is now wave-dependent instead of flat).
+export function payEarlyStart(state, secondsLeft, wave) {
+  const elapsed = Math.max(0, CONFIG.BUILD_TIMER - secondsLeft);
+  const bonus = Math.max(0, Math.floor(earlyStartCap(wave) - elapsed * CONFIG.EARLY_START_BONUS_PER_SEC));
   if (bonus > 0) addGold(state, bonus);
   return bonus;
 }

@@ -64,6 +64,8 @@ export function createState(rng, seed = 0, level = null) {
     buildTimer: CONFIG.BUILD_TIMER,  // seconds of build time left (early-start bonus)
     autoStart: true,         // waves auto-chain when the build timer expires (user call
                              // 2026-07-06: mobile default; NEXT WAVE = call early for bonus gold)
+    nextWaveCooldown: 0,     // seconds until the next wave can be called (waves may now
+                             // stack on the field while this is 0 — user 2026-07-07)
     flash: 0,                // red screen-flash intensity (leaks)
 
     // ui / interaction

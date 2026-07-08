@@ -43,9 +43,10 @@ export function computeStats(state, type, w) {
   const hpMult = def.boss ? bossHpMult(w) : def.hpMult;
   const lvHp = lv && lv.hpMult != null ? lv.hpMult : 1;
   const lvBounty = lv && lv.bountyMult != null ? lv.bountyMult : 1;
-  const hp = Math.max(1, Math.floor(baseHp(w) * hpMult * CONFIG.DIFFICULTY * lvHp));
+  const globalHp = def.boss ? CONFIG.BOSS_HP_SCALE : CONFIG.ENEMY_HP_SCALE;
+  const hp = Math.max(1, Math.floor(baseHp(w) * hpMult * CONFIG.DIFFICULTY * lvHp * globalHp));
   const speed = CONFIG.ENEMY_BASE_SPEED * def.speedMult * waveSpeedFactor(w);
-  const bounty = Math.max(1, Math.floor(waveBounty(w) * def.bountyMult * lvBounty));
+  const bounty = Math.max(1, Math.floor(waveBounty(w) * def.bountyMult * lvBounty * CONFIG.GOLD_PER_ROUND_SCALE));
   return { hp, speed, bounty };
 }
 
@@ -219,13 +220,26 @@ function pushEnemy(entries, type, spawnId, goalId, time) {
 }
 
 // ---- runtime ---------------------------------------------------------------
+// Waves can now stack: calling startWave() while a previous wave's enemies are
+// still on the field APPENDS the new wave's spawns (time-offset onto the
+// shared spawnElapsed clock) instead of replacing the queue (user 2026-07-07).
+// Each entry carries its own `wave` so computeStats() scales it correctly even
+// after state.wave has moved on to a later call.
 export function startWave(state, w) {
   const rng = makeRng((CONFIG.SEED * 31337 + w) >>> 0);
+  const stacking = state.waveActive;
   state.wave = w;
   state.maxWave = Math.max(state.maxWave, w);
   setupWaveRouting(state, w, rng);
-  state.spawnQueue = buildWave(state, w);
-  state.spawnElapsed = 0;
+  const entries = buildWave(state, w);
+  const offset = stacking ? state.spawnElapsed : 0;
+  for (const e of entries) { e.time += offset; e.wave = w; }
+  if (stacking && state.spawnQueue && state.spawnQueue.length) {
+    state.spawnQueue = state.spawnQueue.concat(entries).sort((a, b) => a.time - b.time);
+  } else {
+    state.spawnQueue = entries;
+    state.spawnElapsed = 0;
+  }
   state.waveActive = true;
   state.status = 'playing';
   pushEvent(state, 'horn');
@@ -236,7 +250,7 @@ export function processSpawning(state, dt) {
   state.spawnElapsed += dt;
   while (state.spawnQueue.length && state.spawnQueue[0].time <= state.spawnElapsed) {
     const sp = state.spawnQueue.shift();
-    const stats = computeStats(state, sp.type, state.wave);
+    const stats = computeStats(state, sp.type, sp.wave != null ? sp.wave : state.wave);
     const opts = {};
     if (sp.flying != null && sp.type === 'boss') opts.flying = sp.flying;
     if (sp.bossTier) opts.bossTier = sp.bossTier;

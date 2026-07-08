@@ -7,6 +7,7 @@
 
 import { CONFIG } from '../config.js';
 import { waveInfoFor, winWave } from '../game/wave.js';
+import { earlyStartCap } from '../game/economy.js';
 import { ROWS } from '../engine/grid.js';
 import { div, EGLYPH } from './components.js';
 
@@ -148,10 +149,14 @@ export class WaveBar {
   refresh(state) {
     const nw = state.wave + 1;
     const over = state.status === 'won' || state.status === 'lost';
-    const canStart = !state.waveActive && !over && nw <= winWave(state);
+    // Waves can stack now (user 2026-07-07): calling next is gated by the
+    // cooldown, not by state.waveActive — the button stays live while a
+    // previous wave's enemies are still on the field.
+    const onCooldown = state.nextWaveCooldown > 0;
+    const canStart = !onCooldown && !over && nw <= winWave(state);
 
-    // chevrons: only between waves, for the upcoming wave (the old state.hero
-    // check was a "game fully booted" proxy from the hero era)
+    // chevrons preview the wave that WOULD be appended next; shown whenever
+    // a call is actually available (cooldown clear), stacked or not.
     const showChevrons = canStart && (state.hero || !CONFIG.HEROES_ENABLED);
     if (showChevrons && this._chevronWave !== nw) {
       this.buildChevrons(state, nw);
@@ -168,9 +173,10 @@ export class WaveBar {
     let label;
     if (state.siege && state.waveActive) label = '⚠ WALLS UNDER ATTACK';
     else if (over) label = state.status === 'won' ? 'VICTORY' : 'DEFEAT';
-    else if (state.waveActive) label = `WAVE ${state.wave} …`;
+    else if (onCooldown) label = `WAVE ${state.wave} … (${Math.ceil(state.nextWaveCooldown)}s)`;
     else {
-      const bonus = Math.floor(state.buildTimer * CONFIG.EARLY_START_BONUS_PER_SEC);
+      const elapsed = Math.max(0, CONFIG.BUILD_TIMER - state.buildTimer);
+      const bonus = Math.max(0, Math.floor(earlyStartCap(nw) - elapsed * CONFIG.EARLY_START_BONUS_PER_SEC));
       label = bonus > 0 ? `NEXT WAVE ▶ |+${bonus}g` : 'NEXT WAVE ▶';
     }
     if (this._label !== label) {

@@ -148,10 +148,15 @@ export function getTowerStats(typeId, level, branchId) {
 }
 
 // Cost to upgrade INTO a given level (tier entry costMult x base cost).
+// UPGRADE_COST_SCALE is a roster-only global lever (def.tiers is only set on
+// the live 8-tower roster; legacy/hidden defs fall back to a synthesized
+// table and stay untouched, same isolation as the range-per-tier growth).
 export function upgradeCostFor(typeId, toLevel) {
   const def = CONFIG.TOWERS[typeId];
   const tier = tierTable(def)[toLevel - 2];
-  return tier ? Math.round(def.cost * tier.costMult) : 0;
+  if (!tier) return 0;
+  const scale = def.tiers ? CONFIG.UPGRADE_COST_SCALE : 1;
+  return Math.round(def.cost * tier.costMult * scale);
 }
 
 // The fork definition a chosen branch points at (name/desc for the UI). Scans

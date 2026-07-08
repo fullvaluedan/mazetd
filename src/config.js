@@ -59,7 +59,9 @@ export const CONFIG = {
   WALL_REFUND: 1.0,            // walls sell back in full — juggling is free
   INTEREST_RATE: 0.05,         // +5% of current gold on wave clear
   INTEREST_CAP: 40,            // capped at +40 gold
-  EARLY_START_BONUS_PER_SEC: 1, // gold per second remaining on the build timer
+  EARLY_START_BONUS_PER_SEC: 1, // gold decayed per second elapsed since the build timer opened
+  WAVE_CALL_BONUS_BASE: 10,     // early-call bonus cap at wave 1 (user 2026-07-08)
+  WAVE_CALL_BONUS_PER_WAVE: 5,  // +5g cap per wave: wave1=10, wave2=15, wave3=20, ...
 
   // ---------------------------------------------------------------------------
   // WAVES & ENEMY SCALING (waves 1..100)
@@ -69,7 +71,12 @@ export const CONFIG = {
   HP_LINEAR: 0.15,
   HP_EXP: 1.05,               // tuned in Phase 8 (was 1.10 — too steep to beat)
   DIFFICULTY: 0.65,           // global hp multiplier; tuned in Phase 8
+  ENEMY_HP_SCALE: 4,          // core global: +300% HP on all non-boss enemies (user 2026-07-07)
+  BOSS_HP_SCALE: 11,          // core global: +1000% HP on bosses
   DAMAGE_SCALE: 3.0,          // global tower-damage multiplier; tuned in Phase 8
+  UPGRADE_COST_SCALE: 2,      // roster-only: +100% upgrade cost (user 2026-07-08)
+  GOLD_PER_ROUND_SCALE: 0.65, // -35% gold-per-round: wave-clear bonus + bounties only,
+                               // NOT interest or income towers (user 2026-07-08)
 
   ENEMY_BASE_SPEED: 1.7,       // cells/second at speedMult 1.0, wave 1
   SPEED_WAVE_FACTOR: 0.004,    // speed(w) = base * min(1.6, 1 + 0.004*w)
@@ -87,6 +94,7 @@ export const CONFIG = {
 
   SPAWN_STAGGER: 0.5,          // seconds between enemies in a wave
   BUILD_TIMER: 18,             // seconds of build time before a wave auto-readies (for early-start bonus)
+  WAVE_CALL_COOLDOWN: 10,      // seconds between wave-calls; waves can now stack on the field (user 2026-07-07)
 
   // ---------------------------------------------------------------------------
   // ENEMY TYPES

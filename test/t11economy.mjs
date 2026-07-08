@@ -99,12 +99,15 @@ console.log('Upgrades cost MORE than the tower (2.5/5/10/20 roster curve):');
   // cannon.cost is 5 since the 2026-07-07 rebalance (base cost x0.30, was 15);
   // this block reads it dynamically so the 2.5/5/10/20 curve is asserted as
   // ratios, not absolutes — L2 = round(5*2.5) = 13, L3 = 25, L4 = 50, L5 = 100.
+  // CONFIG.UPGRADE_COST_SCALE (roster-only, +100% since 2026-07-08) then
+  // multiplies every tier's cost on top of that ratio — read dynamically too.
   const base = CONFIG.TOWERS.cannon.cost;     // 5 (was 15 pre-rebalance)
-  check('L2 = 2.5x base', upgradeCostFor('cannon', 2) === Math.round(base * 2.5));
-  check('L3 = 5x base', upgradeCostFor('cannon', 3) === base * 5);
-  check('L4 = 10x, L5 = 20x', upgradeCostFor('cannon', 4) === base * 10 && upgradeCostFor('cannon', 5) === base * 20);
+  const scale = CONFIG.UPGRADE_COST_SCALE;
+  check('L2 = 2.5x base', upgradeCostFor('cannon', 2) === Math.round(base * 2.5 * scale));
+  check('L3 = 5x base', upgradeCostFor('cannon', 3) === base * 5 * scale);
+  check('L4 = 10x, L5 = 20x', upgradeCostFor('cannon', 4) === base * 10 * scale && upgradeCostFor('cannon', 5) === base * 20 * scale);
   check('each upgrade dearer than the build', upgradeCostFor('cannon', 2) > base && upgradeCostFor('cannon', 3) > upgradeCostFor('cannon', 2));
-  // legacy defs stay on the old CONFIG.UPGRADE chain
+  // legacy defs stay on the old CONFIG.UPGRADE chain (UPGRADE_COST_SCALE is roster-only)
   const lbase = CONFIG.TOWERS.cannonL.cost;
   check('legacy clone still 2x/4x', upgradeCostFor('cannonL', 2) === Math.round(lbase * CONFIG.UPGRADE.costMultL2)
     && upgradeCostFor('cannonL', 3) === Math.round(lbase * CONFIG.UPGRADE.costMultL3));
@@ -113,7 +116,7 @@ console.log('Upgrades cost MORE than the tower (2.5/5/10/20 roster curve):');
   const cannon = addTower(st, 'cannon', 5, 5);
   const g0 = st.gold;
   tryUpgrade(st, cannon, null);
-  check('L1->L2 charged 2.5x base', g0 - st.gold === Math.round(base * 2.5) && cannon.level === 2);
+  check('L1->L2 charged 2.5x base', g0 - st.gold === Math.round(base * 2.5 * scale) && cannon.level === 2);
 }
 
 console.log('U15 feel spike: levels 1-3 deterministic income bands (WC3 scarcity):');
@@ -160,25 +163,24 @@ console.log('U15 feel spike: levels 1-3 deterministic income bands (WC3 scarcity
     check('L1 w1 grunt needs many (>=6) cannon shots', hp1 > cannonHit * 6,
       `hp=${hp1} cannonHit=${cannonHit} shots=${Math.ceil(hp1 / cannonHit)}`);
   }
+  // GOLD_PER_ROUND_SCALE (-35% on wave-clear bonus + bounties, user
+  // 2026-07-08) cut every band below by that same ~0.65x. Re-measured on the
+  // shipped SEED post-cut: l1=213, l2=276, l3=823 — banded with ~20% headroom.
   const i1 = income('l1'), i2 = income('l2'), i3 = income('l3');
-  check('level 1 income in the 280-400 band', i1 >= 280 && i1 <= 400, `i1=${i1}`);
-  check('level 2 income scarce (300-600)', i2 >= 300 && i2 <= 600, `i2=${i2}`);
-  // level 3 re-derived (U8): grid/waves grew (14x20, 15 waves) and
-  // bountyMult/waveclearMult were retuned during the campaign rebuild;
-  // measured income is 932 on the shipped SEED — banded with ~20% headroom.
-  check('level 3 income in the 750-1150 band', i3 >= 750 && i3 <= 1150, `i3=${i3}`);
+  check('level 1 income in the 170-260 band', i1 >= 170 && i1 <= 260, `i1=${i1}`);
+  check('level 2 income scarce (220-330)', i2 >= 220 && i2 <= 330, `i2=${i2}`);
+  check('level 3 income in the 650-990 band', i3 >= 650 && i3 <= 990, `i3=${i3}`);
   check('order-of-magnitude cut vs the old ~1400g level 1', i1 < 500, `i1=${i1}`);
 
   // U20 mid/late spot checks: per-level bounty/waveclear mults now cover 4-20.
-  // Re-derived for U8's final authored levels (grids/waves/mults all moved
-  // from the draft this test was written against). Measured on the shipped
-  // SEED: l8=2405, l14=7764, l20=15685 — banded with ~20% headroom each way.
+  // Re-measured post GOLD_PER_ROUND_SCALE on the shipped SEED:
+  // l8=1823, l14=5823, l20=10997 — banded with ~20% headroom each way.
   // Boss levels (10/13/15/17/18/20) still carry deliberately higher
   // bountyMult: the income pays for the boss-killing DPS.
   const i8 = income('l8'), i14 = income('l14'), i20 = income('l20');
-  check('level 8 income in the 1900-2900 band', i8 >= 1900 && i8 <= 2900, `i8=${i8}`);
-  check('level 14 income in the 6200-9300 band', i14 >= 6200 && i14 <= 9300, `i14=${i14}`);
-  check('level 20 income in the 12500-18800 band', i20 >= 12500 && i20 <= 18800, `i20=${i20}`);
+  check('level 8 income in the 1450-2200 band', i8 >= 1450 && i8 <= 2200, `i8=${i8}`);
+  check('level 14 income in the 4650-7000 band', i14 >= 4650 && i14 <= 7000, `i14=${i14}`);
+  check('level 20 income in the 8800-13200 band', i20 >= 8800 && i20 <= 13200, `i20=${i20}`);
 }
 
 console.log('U5 tier machinery: per-tier tables, forks only where declared:');
@@ -217,11 +219,12 @@ console.log('U5 tier machinery: per-tier tables, forks only where declared:');
   CONFIG.TOWERS.ttestShort = { ...baseDef, name: 'ShortTest', tiers: [{ costMult: 2.5 }] };
 
   const base = CONFIG.TOWERS.ttest.cost;
+  const scale = CONFIG.UPGRADE_COST_SCALE;   // ttest has def.tiers -> roster-scaled like any live tower
   check('tier cost curve 2.5/5/10/20',
-    upgradeCostFor('ttest', 2) === Math.round(base * 2.5)
-    && upgradeCostFor('ttest', 3) === base * 5
-    && upgradeCostFor('ttest', 4) === base * 10
-    && upgradeCostFor('ttest', 5) === base * 20);
+    upgradeCostFor('ttest', 2) === Math.round(base * 2.5 * scale)
+    && upgradeCostFor('ttest', 3) === base * 5 * scale
+    && upgradeCostFor('ttest', 4) === base * 10 * scale
+    && upgradeCostFor('ttest', 5) === base * 20 * scale);
 
   // per-tier mods land at their tier, not before
   check('T2 cooldownMult applies', getTowerStats('ttest', 2, null).cooldown === 0.5);
@@ -241,7 +244,8 @@ console.log('U5 tier machinery: per-tier tables, forks only where declared:');
     check(`L${lvl - 1}->L${lvl} straight (no fork offered)`, noFork && tryUpgrade(st, t, null) && t.level === lvl);
   }
   check('caps at L5 (tiers.length + 1)', t.canUpgrade() === false && t.nextUpgradeCost() === 0);
-  check('invested = 38.5x base through T5', t.invested === base * 38.5, `${t.invested}`);
+  // build (1x, unscaled) + tiers 2.5/5/10/20 each x UPGRADE_COST_SCALE
+  check('invested = (1 + 37.5x scale)x base through T5', t.invested === base * (1 + 37.5 * scale), `${t.invested} scale=${scale}`);
 
   const f = addTower(st, 'ttestFork', 7, 5);
   tryUpgrade(st, f, null); tryUpgrade(st, f, null); tryUpgrade(st, f, null);   // -> L4

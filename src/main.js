@@ -151,10 +151,16 @@ const actions = {
   toggleAuto: () => { state.autoStart = !state.autoStart; },
   startWave: () => {
     // (the !state.hero check was a hero-era "fully booted" proxy)
-    if ((CONFIG.HEROES_ENABLED && !state.hero) || state.waveActive || state.status === 'won' || state.status === 'lost') return;
-    const bonus = payEarlyStart(state, state.buildTimer);
+    // Waves can stack now (user 2026-07-07): the old `state.waveActive` block
+    // gate is gone — a wave-call is only gated by the cooldown, so the next
+    // wave can be called while the previous one's enemies are still on the
+    // field. wave.js's startWave() appends the new spawns onto the existing
+    // queue instead of replacing it.
+    if ((CONFIG.HEROES_ENABLED && !state.hero) || state.nextWaveCooldown > 0 || state.status === 'won' || state.status === 'lost') return;
+    const bonus = payEarlyStart(state, state.buildTimer, state.wave + 1);
     state.buildTimer = 0;
     startWave(state, state.wave + 1);
+    state.nextWaveCooldown = CONFIG.WAVE_CALL_COOLDOWN;
     const info = waveInfoFor(state, state.wave);
     if (bonus > 0) showBanner(`Early start! +${bonus}g`, 'warn', 1.6);
     if (info.hasFlying) showBanner('⚠ Flying incoming!', 'warn');
@@ -263,10 +269,16 @@ function update(dt) {
     return;
   }
 
-  if (!state.waveActive && state.buildTimer > 0 && (state.hero || !CONFIG.HEROES_ENABLED)) {
+  if (state.nextWaveCooldown > 0) state.nextWaveCooldown = Math.max(0, state.nextWaveCooldown - dt);
+
+  // buildTimer now ticks regardless of waveActive — waves can stack, so
+  // there's no guaranteed "empty field" gap between calls anymore. It still
+  // drives the early-call gold bonus and the auto-chain below (user 2026-07-07).
+  if (state.buildTimer > 0 && (state.hero || !CONFIG.HEROES_ENABLED)) {
     state.buildTimer = Math.max(0, state.buildTimer - dt);
     // Auto-chain waves — but NOT the first: wave 1 waits for a manual NEXT WAVE
     // tap (state.wave is 0 until the player launches it). (user 2026-07-07)
+    // If still on cooldown, this call just no-ops each frame until it clears.
     if (state.buildTimer <= 0 && state.autoStart && state.wave >= 1) actions.startWave();
   }
 

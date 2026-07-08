@@ -15,7 +15,7 @@
 
 import { TopBar } from './topbar.js';
 import { WaveBar } from './wavebar.js';
-import { Radial, buildRingItems, towerRingItems } from './radial.js';
+import { Radial, buildRingItems, towerRingItems, TOWER_RING_SLOTS } from './radial.js';
 import { HeroBar } from './herobar.js';
 import { Sheets } from './sheets.js';
 import { InfoCard } from './infocard.js';
@@ -73,7 +73,7 @@ export class HUD {
   openTowerRing(state, tower) {
     if (!this.radial) return;
     this.radial.open({ x: tower.cx, y: tower.cy }, towerRingItems(state, tower, this.actions), 'tower',
-      () => { if (state.selected === tower) state.selected = null; });
+      () => { if (state.selected === tower) state.selected = null; }, { totalSlots: TOWER_RING_SLOTS });
     state.menuCell = null;
     state.selected = tower;    // (re)select after open — open() closes any prior ring
     this.radial.refresh(state);
