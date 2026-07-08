@@ -377,6 +377,30 @@ export const LEVELS = [
   }),
 ];
 
+// Maze Mode (user 2026-07-08): a pure maze-building challenge. WALL is the only
+// buildable — no attack towers — so nothing ever dies; a single fixed wave of
+// GROUND mobs (no flyers, they'd ignore the maze) is released and a survival
+// timer measures how long the player keeps them contained. Selling locks once
+// the wave starts; building stays open so the player can juggle/re-route in
+// real time with the remaining gold. Score = seconds until the last mob exits.
+// Big open board so board space, not the generous 1000g, is the real limit.
+export const MAZE_MODE_LEVEL = {
+  num: 98, id: 'maze', name: 'Maze Mode',
+  cols: 22, rows: 30,
+  spawns: [{ id: 'S1', cx: 11, cy: 0 }],
+  goals: [{ id: 'G1', cx: 11, cy: 29 }],
+  checkpoints: [],
+  obstacles: [],
+  startGold: 1000,
+  lives: 999999,               // leaks don't end the run — the timer does
+  // 1 wave, ground types only (no flyerFrom/swarmFrom → no flyers/packs).
+  // bounty/waveclear 0: nothing dies and score isn't gold. countMult 4 → ~28 mobs.
+  waves: { count: 1, types: ['normal', 'fast'], hpMult: 1, bountyMult: 0, waveclearMult: 0, countMult: 4 },
+  stars: [1, 1],
+  mazeMode: true,
+  endless: false,
+};
+
 // Endless: a tall portrait map on the classic procedural 1–100 wave engine.
 export const ENDLESS_LEVEL = {
   num: 99, id: 'endless', name: 'Endless Depths',
@@ -394,5 +418,6 @@ export const ENDLESS_LEVEL = {
 
 export function getLevel(id) {
   if (id === 'endless') return ENDLESS_LEVEL;
+  if (id === 'maze') return MAZE_MODE_LEVEL;
   return LEVELS.find((l) => l.id === id) || null;
 }

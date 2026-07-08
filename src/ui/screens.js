@@ -10,6 +10,7 @@
 import { CONFIG } from '../config.js';
 import { LEVELS } from '../game/levels.js';
 import * as profile from '../services/profile.js';
+import { getScores, addScore, getLastName, setLastName, formatMazeTime } from '../services/leaderboard.js';
 import { div } from './components.js';
 import { getSpriteUrl } from './sprites.js';
 
@@ -65,6 +66,7 @@ export class Screens {
     const btns = s.querySelector('.title-buttons');
     btns.appendChild(bigBtn('▶ PLAY', () => ((CONFIG.HEROES_ENABLED && !profile.getProfile().hero.id) ? this.showHeroSelect() : this.showMap()), 'green'));
     if (this.hooks.hasSave()) btns.appendChild(bigBtn('⟳ CONTINUE', () => { this.hide(); this.hooks.continueRun(); }));
+    btns.appendChild(bigBtn('🧱 MAZE MODE', () => { location.href = '?level=maze'; }, 'gold'));
     btns.appendChild(bigBtn('⚙ SETTINGS', () => this.hooks.openSettings()));
     this._mount('title', s);
     this.refreshArt();
@@ -233,6 +235,64 @@ export class Screens {
     }
     this._mount(won ? 'victory' : 'defeat', s);
   }
+
+  // Maze Mode end: the survival time, a name entry to save it, then the board.
+  showMazeEnd(state) {
+    const time = state.mazeTimer || 0;
+    const prevBest = getScores()[0];
+    const isBest = !prevBest || time > prevBest.time;
+    const s = div('end-screen maze-end', `
+      <div class="end-title" style="color:var(--ui-gold)">HORDE CONTAINED</div>
+      <div class="maze-time">⏱ ${formatMazeTime(time)}</div>
+      <div class="end-sub">${isBest ? '🏆 New best time!' : `Best: ${formatMazeTime(prevBest.time)}`}</div>
+      <div class="maze-save">
+        <input class="maze-name" type="text" maxlength="16" placeholder="Your name" />
+        <button class="ui-btn green maze-save-btn">💾 Save score</button>
+      </div>
+      <div class="end-buttons"></div>`);
+    const input = s.querySelector('.maze-name');
+    input.value = getLastName();
+    const save = () => {
+      const name = input.value.trim() || 'Anon';
+      setLastName(name);
+      const { rank, entries } = addScore(name, time);
+      this.showLeaderboard(rank, entries);
+    };
+    s.querySelector('.maze-save-btn').addEventListener('click', save);
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') save(); });
+    const btns = s.querySelector('.end-buttons');
+    btns.appendChild(bigBtn('↺ Play again', () => { location.href = '?level=maze'; }, 'green'));
+    btns.appendChild(bigBtn('🗺 Menu', () => { location.href = location.pathname; }));
+    this._mount('mazeEnd', s);
+  }
+
+  // The Maze Mode leaderboard (device-local). highlightRank/entries are passed
+  // straight after a save so the fresh score is marked; called bare it reads
+  // the stored board.
+  showLeaderboard(highlightRank = -1, entries = null) {
+    const rows = entries || getScores();
+    const list = rows.length
+      ? rows.map((e, i) => `
+          <div class="lb-row${i + 1 === highlightRank ? ' me' : ''}">
+            <span class="lb-rank">${i + 1}</span>
+            <span class="lb-name">${escapeHtml(e.name)}</span>
+            <span class="lb-time">${formatMazeTime(e.time)}</span>
+          </div>`).join('')
+      : '<div class="lb-empty">No runs yet — be the first.</div>';
+    const s = div('end-screen maze-board', `
+      <div class="end-title" style="color:var(--ui-gold)">🏆 MAZE MODE</div>
+      <div class="lb-list">${list}</div>
+      <div class="end-buttons"></div>`);
+    const btns = s.querySelector('.end-buttons');
+    btns.appendChild(bigBtn('▶ Play', () => { location.href = '?level=maze'; }, 'green'));
+    btns.appendChild(bigBtn('🗺 Menu', () => { location.href = location.pathname; }));
+    this._mount('leaderboard', s);
+  }
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, (c) => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
 function bigBtn(label, onTap, cls = '') {

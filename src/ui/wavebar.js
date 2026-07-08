@@ -8,6 +8,7 @@
 import { CONFIG } from '../config.js';
 import { waveInfoFor, winWave } from '../game/wave.js';
 import { earlyStartCap } from '../game/economy.js';
+import { formatMazeTime } from '../services/leaderboard.js';
 import { ROWS } from '../engine/grid.js';
 import { div, EGLYPH } from './components.js';
 
@@ -147,6 +148,8 @@ export class WaveBar {
   }
 
   refresh(state) {
+    const mazeMode = !!(state.level && state.level.mazeMode);
+    if (mazeMode) { this._refreshMaze(state); return; }
     const nw = state.wave + 1;
     const over = state.status === 'won' || state.status === 'lost';
     // Waves can stack now (user 2026-07-07): calling next is gated by the
@@ -183,6 +186,28 @@ export class WaveBar {
       this._label = label;
       const [main, bonus] = label.split('|');
       this.btn.innerHTML = bonus ? `${main}<span class="bonus">${bonus}</span>` : main;
+    }
+  }
+
+  // Maze Mode: before release the button starts the single wave; during the
+  // run it becomes a live containment-timer readout; when the horde is through
+  // it goes quiet (the end screen takes over).
+  _refreshMaze(state) {
+    // never any spawn chevrons in maze mode
+    if (this.chevrons.length) { for (const c of this.chevrons) c.el.remove(); this.chevrons = []; this._chevronWave = -1; this._visible = null; }
+    const over = state.status === 'won' || state.status === 'lost';
+    const running = state.waveActive;
+    this.btn.disabled = over || running;      // live only before release
+    this.btn.classList.toggle('siege', !!state.siege);
+    this.btn.classList.toggle('maze-timer', running);
+    let label;
+    if (over) label = `⏱ ${formatMazeTime(state.mazeTimer)}`;
+    else if (running) label = `⏱ ${formatMazeTime(state.mazeTimer)}`;
+    else label = '▶ RELEASE THE HORDE';
+    // timer updates every frame while running, so bypass the label cache then
+    if (running || this._label !== label) {
+      this._label = label;
+      this.btn.innerHTML = label;
     }
   }
 }

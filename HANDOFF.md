@@ -36,6 +36,22 @@ revision, not a polish pass — see the plan doc linked above for the full
 spec (WC3-style economy, pan/zoom camera on bigger boards, 5-tier upgrades,
 new 8-tower roster, 20 levels scaling 10→100 waves).
 
+**Side branch `feat/maze-mode`** (off `feat/wc3-progression`): a standalone
+**Maze Mode** — wall-only, 1000 gold, one fixed wave of ground mobs, a
+survival timer for how long the maze contains the horde, + a local
+leaderboard. Nothing kills the mobs (no attack towers), so it's a pure
+maze-design + real-time-juggling challenge (build stays open during the run;
+selling locks the instant the horde releases). Entry: title-screen
+`🧱 MAZE MODE` button → `?level=maze`. Key pieces: `MAZE_MODE_LEVEL` in
+`levels.js` (`mazeMode` flag), `state.mazeTimer`, `sellLocked()` in shop.js,
+wall-only `buildRingItems`, `services/leaderboard.js` (localStorage;
+online board via Worker+D1 is a clean follow-up — same module surface),
+`screens.showMazeEnd/showLeaderboard`, a maze-timer wavebar readout, and a
+topbar that hides lives/store. Maze Mode is excluded from campaign
+save/resume (it's a fresh challenge each launch). Verified headless + live
+in-browser (open board ~29s, a serpentine maze ~89s — longer maze = higher
+score, as intended).
+
 **Done** (tracked as U1–U21 in the plan doc): test suite promoted into the
 repo, economy feel spike, camera core + gestures, render perf for big
 boards, 5-tier upgrade machinery, new combat mechanics (income/execute/

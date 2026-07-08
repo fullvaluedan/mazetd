@@ -67,6 +67,13 @@ function spreadContagion(state, e) {
 }
 
 export function onEnemyLeaked(state, e) {
+  // Maze Mode: leaks are the expected end state (nothing can kill the mobs),
+  // so a leak just removes the mob — no life loss, no red flash/shake framing.
+  // The survival timer, not lives, decides the run.
+  if (state.level && state.level.mazeMode) {
+    pushEvent(state, 'leak');
+    return;
+  }
   state.lives -= e.damageToLives;
   addFloater(state, e.x, e.y, '-' + e.damageToLives + '♥', CONFIG.COLORS.danger);
   pushEvent(state, 'leak');

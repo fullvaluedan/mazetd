@@ -39,9 +39,22 @@ export class TopBar {
   }
 
   refresh(state, ui) {
+    // Maze Mode: lives are meaningless (leaks don't cost any) and there's no
+    // tower store — hide both once, and repurpose the wave chip as a live
+    // "mobs still contained" counter.
+    const maze = !!(state.level && state.level.mazeMode);
+    if (this._maze !== maze) {
+      this._maze = maze;
+      this.el.lives.parentElement.style.display = maze ? 'none' : '';
+      this.el.store.style.display = maze ? 'none' : '';
+    }
     setText(this.el.gold, Math.floor(state.gold));
-    setText(this.el.lives, state.lives);
-    setText(this.el.wave, `${state.wave}/${winWave(state)}`);
+    if (maze) {
+      setText(this.el.wave, state.waveActive ? String(state.enemies.length) : '—');
+    } else {
+      setText(this.el.lives, state.lives);
+      setText(this.el.wave, `${state.wave}/${winWave(state)}`);
+    }
     setText(this.el.speed, ui.speed + '×');
     setText(this.el.pause, ui.paused ? '▶' : '▮▮');
     this.el.pause.classList.toggle('gold', !!ui.paused);

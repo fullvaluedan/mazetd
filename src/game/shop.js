@@ -31,6 +31,12 @@ export function sellRefund(tower) {
   return Math.floor(tower.invested * rate);
 }
 
+// Maze Mode locks selling the instant the horde is released — you commit your
+// maze, then only build (juggle) as it walks. Selling is free before the wave.
+export function sellLocked(state) {
+  return !!(state.level && state.level.mazeMode && state.waveActive);
+}
+
 export function trySell(state, tower) {
   const refund = sellRefund(tower);
   removeTower(state, tower);

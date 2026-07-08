@@ -19,7 +19,8 @@ import { onEnemyKilled, onEnemyLeaked, updateFloaters, updateParticles, payWaveC
 import { startWave, processSpawning, waveComplete, updateBosses, waveInfoFor, winWave } from './game/wave.js';
 import { getLevel } from './game/levels.js';
 import { setGridSize } from './engine/grid.js';
-import { tryBuild, trySell, tryUpgrade, tryHeroUpgrade, tryConsumable, tryTowerBoost, batchBuild, batchSell, batchUpgrade } from './game/shop.js';
+import { tryBuild, trySell, tryUpgrade, tryHeroUpgrade, tryConsumable, tryTowerBoost, batchBuild, batchSell, batchUpgrade, sellLocked } from './game/shop.js';
+import { formatMazeTime } from './services/leaderboard.js';
 import {
   saveGame, hasSave, loadSnapshot, applySnapshot, getHighScore, recordHighScore,
   saveCampaign, hasCampaignSave, loadCampaignSnapshot, clearCampaignSave,
@@ -177,7 +178,11 @@ const actions = {
   upgradeTower: (tower, branch) => {
     if (tryUpgrade(state, tower, branch)) { sfx.play('upgrade'); hud.openTowerRing(state, tower); }  // rebuilt with new level/prices
   },
-  sellTower: (tower) => { hud.closeRadial(); trySell(state, tower); sfx.play('sell'); },
+  sellTower: (tower) => {
+    hud.closeRadial();
+    if (sellLocked(state)) { showBanner("Can't sell once the horde is loose", 'warn', 1.4); return; }
+    trySell(state, tower); sfx.play('sell');
+  },
   cycleTargetAndRefresh: (tower) => { tower.cycleTargetMode(); hud.openTowerRing(state, tower); },
   // ---- marquee multi-select (U21): mode toggle + batch build/sell ----
   // The authoritative mode flag lives in the input layer (it routes gestures);
@@ -197,6 +202,7 @@ const actions = {
     }
   },
   batchSell: (cells) => {
+    if (sellLocked(state)) { showBanner("Can't sell once the horde is loose", 'warn', 1.4); return; }
     const r = batchSell(state, cells);            // one 'sell' sfx event per batch
     if (r.sold > 0) showBanner(`Sold ${r.sold} — +${r.refund}g refund`, '', 1.8);
   },
@@ -225,7 +231,7 @@ const actions = {
   },
   cycleTarget: () => { if (state.selected) state.selected.cycleTargetMode(); },
   upgrade: (branch) => { if (state.selected) tryUpgrade(state, state.selected, branch); },
-  sell: () => { if (state.selected) trySell(state, state.selected); },
+  sell: () => { if (state.selected && !sellLocked(state)) trySell(state, state.selected); },
   save: () => {
     if (state.level && !state.level.endless) { showBanner('Saving is for Endless runs (campaign levels are short)', 'warn', 1.8); return; }
     if (state.waveActive) { showBanner('Save between waves only', 'warn', 1.4); return; }
@@ -282,6 +288,11 @@ function update(dt) {
     if (state.buildTimer <= 0 && state.autoStart && state.wave >= 1) actions.startWave();
   }
 
+  // Maze Mode survival timer: counts up for as long as the horde is on the
+  // field. Stops naturally when waveComplete fires below (all mobs exited).
+  const mazeMode = !!(state.level && state.level.mazeMode);
+  if (mazeMode && state.waveActive) state.mazeTimer += dt;
+
   processSpawning(state, dt);
   updateBosses(state, dt);
   updateTowers(state, dt);
@@ -295,15 +306,21 @@ function update(dt) {
   if (waveComplete(state)) {
     state.waveActive = false;
     if (state.wave >= 1) hints.finish();
-    const pay = payWaveClear(state, state.wave);
-    showBanner(`Wave ${state.wave} cleared!  +${pay.bonus}g${pay.interest ? ` (+${pay.interest} interest)` : ''}`, '', 2);
-    state.buildTimer = CONFIG.BUILD_TIMER;
-    if (state.wave >= winWave(state)) state.status = 'won';
-    else if (waveInfoFor(state, state.wave + 1).hasFlying) showBanner('⚠ Flying next wave — get anti-air!', 'warn', 2.5);
-    // U14: auto-save campaign progress at every wave-clear (the safe
-    // between-waves point — no live enemies/projectiles to serialize). A
-    // player killed by the OS mid-run resumes at the last wave cleared.
-    if (state.level && !state.level.endless && state.status !== 'won') saveCampaign(state);
+    if (mazeMode) {
+      // The horde is fully through — the run is over, score = mazeTimer.
+      showBanner(`Horde escaped — ${formatMazeTime(state.mazeTimer)}`, '', 2.5);
+      state.status = 'won';
+    } else {
+      const pay = payWaveClear(state, state.wave);
+      showBanner(`Wave ${state.wave} cleared!  +${pay.bonus}g${pay.interest ? ` (+${pay.interest} interest)` : ''}`, '', 2);
+      state.buildTimer = CONFIG.BUILD_TIMER;
+      if (state.wave >= winWave(state)) state.status = 'won';
+      else if (waveInfoFor(state, state.wave + 1).hasFlying) showBanner('⚠ Flying next wave — get anti-air!', 'warn', 2.5);
+      // U14: auto-save campaign progress at every wave-clear (the safe
+      // between-waves point — no live enemies/projectiles to serialize). A
+      // player killed by the OS mid-run resumes at the last wave cleared.
+      if (state.level && !state.level.endless && state.status !== 'won') saveCampaign(state);
+    }
   }
   if (state.lives <= 0) state.status = 'lost';
 
@@ -319,6 +336,9 @@ function update(dt) {
 }
 
 function showEndModal() {
+  // Maze Mode has its own end flow: the survival time + name entry + the
+  // local leaderboard (no stars, no wave high-score, no campaign save).
+  if (state.level && state.level.mazeMode) { screens.showMazeEnd(state); return; }
   recordHighScore(state.maxWave);
   // campaign: bank stars + the hero's earned progression
   if (state.level && !state.level.endless && state.status === 'won') {
@@ -408,7 +428,8 @@ loop.start();
 if (typeof document !== 'undefined' && document.addEventListener) {
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState !== 'hidden') return;
-    if (state.level && !state.level.endless && !state.waveActive
+    // Maze Mode is a fresh challenge every launch — never save/resume it.
+    if (state.level && !state.level.endless && !state.level.mazeMode && !state.waveActive
       && state.status !== 'won' && state.status !== 'lost') {
       saveCampaign(state);
     }
@@ -460,7 +481,7 @@ if (bootLevel) {
   // U14: a campaign level (never Endless — that keeps its title-screen
   // CONTINUE flow) with a snapshot on file offers Resume/Restart before
   // anything else boots.
-  if (!bootLevel.endless && hasCampaignSave(bootLevel.id)) {
+  if (!bootLevel.endless && !bootLevel.mazeMode && hasCampaignSave(bootLevel.id)) {
     const snap = loadCampaignSnapshot(bootLevel.id);
     if (snap) screens.showResumePrompt(bootLevel, snap.wave);
     else enterLevel();

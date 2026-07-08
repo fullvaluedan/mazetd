@@ -13,7 +13,7 @@
 import { CONFIG } from '../config.js';
 import { getTowerStats } from '../game/tower.js';
 import { wouldSealAt } from '../game/state.js';
-import { sellRefund } from '../game/shop.js';
+import { sellRefund, sellLocked } from '../game/shop.js';
 import { towersUnlockedAt, unlockLevelFor } from '../game/levels.js';
 import { div } from './components.js';
 import { getSpriteUrl } from './sprites.js';
@@ -139,8 +139,15 @@ export class Radial {
 // beyond the unlock schedule show as locked slots ("unlocks at level N").
 export function buildRingItems(state, cell, gameActions) {
   const seals = safeSeal(state, cell.x, cell.y);
-  const allowed = (state.level && !state.level.endless) ? towersUnlockedAt(state.level.num) : null;
-  return Object.entries(CONFIG.TOWERS).filter(([, def]) => !def.hidden).map(([id, def]) => {
+  const mazeMode = !!(state.level && state.level.mazeMode);
+  // Campaign levels gate the roster by unlock schedule; Endless/classic offer
+  // everything. Maze Mode is filtered down to the wall entirely below.
+  const allowed = (state.level && !state.level.endless && !mazeMode) ? towersUnlockedAt(state.level.num) : null;
+  // In Maze Mode the ring is just the wall — no locked slots for the disabled
+  // roster, just the one buildable piece.
+  const entries = Object.entries(CONFIG.TOWERS)
+    .filter(([id, def]) => !def.hidden && (!mazeMode || id === 'wall'));
+  return entries.map(([id, def]) => {
     if (allowed && !allowed.includes(id)) {
       return {
         glyph: '🔒', color: '#9aa3b2',
@@ -213,12 +220,14 @@ export function towerRingItems(state, tower, gameActions) {
     });
   }
   const refund = sellRefund(tower);
+  const locked = sellLocked(state);
   items.push({
     slot: 3,
-    glyph: '$', color: '#ff6b66',
-    label: `Sell — refund ${refund}g${tower.def.wall ? ' (100%)' : ''}`,
-    sub: `+${refund}g`,
-    onTap: () => gameActions.sellTower(tower),
+    glyph: locked ? '🔒' : '$', color: locked ? '#9aa3b2' : '#ff6b66',
+    label: locked ? 'Selling is locked — the horde is loose' : `Sell — refund ${refund}g${tower.def.wall ? ' (100%)' : ''}`,
+    sub: locked ? 'locked' : `+${refund}g`,
+    disabled: () => locked,
+    onTap: () => { if (!locked) gameActions.sellTower(tower); },
   });
   return items;
 }
