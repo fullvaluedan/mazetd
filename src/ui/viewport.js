@@ -5,8 +5,8 @@
 // World coordinates NEVER change: every draw call still works in world px. Only
 // the canvas backing store (cssSize x dpr) and its CSS box are dynamic; one
 // setTransform at the top of each frame maps world -> device pixels. The #ui
-// overlay div is kept to the exact same CSS box as the canvas, so DOM widgets
-// can anchor to world objects through worldToUi().
+// overlay div spans the full stage while the canvas letterboxes inside it, so
+// DOM widgets can anchor to world objects through stage-relative worldToUi().
 //
 // Camera: camX/camY are the world coords of the top-left visible corner; zoom
 // is RELATIVE to the fit-all letterbox (zoom 1 = whole board visible, which IS
@@ -21,6 +21,13 @@ import { worldW, worldH } from '../engine/grid.js';
 import { CONFIG } from '../config.js';
 
 const MAX_DPR = 2;   // phones report 3-4; backing stores that big waste GPU/battery
+export const HUD_TOP_GUTTER = 0;
+export const HUD_BOTTOM_GUTTER = 0;
+
+function setCssVar(style, name, value) {
+  if (style && typeof style.setProperty === 'function') style.setProperty(name, value);
+  else if (style) style[name] = value;
+}
 
 export class Viewport {
   constructor(canvas, uiLayer = null, container = null) {
@@ -35,7 +42,16 @@ export class Viewport {
     this.onResize = null;    // hook: close menus / reposition widgets
     this.onCameraChange = null;   // hook: camera actually moved (pan/zoom/reset)
 
-    this._resize = () => this.resize();
+    this._resizeTimer = 0;
+    this._resize = () => {
+      if (typeof setTimeout !== 'undefined') {
+        clearTimeout(this._resizeTimer);
+        this._resizeTimer = setTimeout(() => {
+          this._resizeTimer = 0;
+          this.resize();
+        }, 0);
+      } else this.resize();
+    };
     if (typeof window !== 'undefined' && window.addEventListener) {
       window.addEventListener('resize', this._resize);
       window.addEventListener('orientationchange', this._resize);
@@ -57,11 +73,12 @@ export class Viewport {
     const vh = (this.container && this.container.clientHeight) ||
       (typeof window !== 'undefined' && window.innerHeight) || worldH();
 
-    this.scale = Math.min(vw / worldW(), vh / worldH());
+    const innerH = Math.max(1, vh - HUD_TOP_GUTTER - HUD_BOTTOM_GUTTER);
+    this.scale = Math.min(vw / worldW(), innerH / worldH());
     this.cssW = Math.floor(worldW() * this.scale);
     this.cssH = Math.floor(worldH() * this.scale);
     this.left = Math.floor((vw - this.cssW) / 2);
-    this.top = Math.floor((vh - this.cssH) / 2);
+    this.top = Math.floor(HUD_TOP_GUTTER + (innerH - this.cssH) / 2);
 
     const dpr = Math.min((typeof window !== 'undefined' && window.devicePixelRatio) || 1, MAX_DPR);
     this.canvas.width = Math.max(1, Math.round(this.cssW * dpr));
@@ -82,10 +99,14 @@ export class Viewport {
     if (this.ui) {
       const us = this.ui.style;
       us.position = 'absolute';
-      us.width = this.cssW + 'px';
-      us.height = this.cssH + 'px';
-      us.left = this.left + 'px';
-      us.top = this.top + 'px';
+      us.width = vw + 'px';
+      us.height = vh + 'px';
+      us.left = '0px';
+      us.top = '0px';
+      setCssVar(us, '--board-left', this.left + 'px');
+      setCssVar(us, '--board-top', this.top + 'px');
+      setCssVar(us, '--board-width', this.cssW + 'px');
+      setCssVar(us, '--board-height', this.cssH + 'px');
     }
 
     if (this.onResize) this.onResize();
@@ -157,8 +178,12 @@ export class Viewport {
 
   // World px -> CSS px inside the #ui layer (for anchoring DOM widgets).
   worldToUi(wx, wy) {
-    const s = this.scale * this.zoom;
-    return { x: (wx - this.camX) * s, y: (wy - this.camY) * s };
+    const sx = (this.cssW / worldW()) * this.zoom;
+    const sy = (this.cssH / worldH()) * this.zoom;
+    return {
+      x: this.left + (wx - this.camX) * sx,
+      y: this.top + (wy - this.camY) * sy,
+    };
   }
 
   // Client (event) px -> world px. Uses the live canvas rect so it stays

@@ -17,6 +17,7 @@ import { sellRefund, sellLocked } from '../game/shop.js';
 import { towersUnlockedAt, unlockLevelFor } from '../game/levels.js';
 import { div } from './components.js';
 import { getSpriteUrl } from './sprites.js';
+import { icon } from './icons.js';
 
 const RING_R = 64;          // CSS px from center to item centers (small rings)
 const ITEM_HALF = 30;       // half of the largest item box, for clamping
@@ -72,25 +73,29 @@ export class Radial {
     const ring = div('radial');
     const a = this.vp.worldToUi((cell.x + 0.5) * CONFIG.CELL, (cell.y + 0.5) * CONFIG.CELL);
     const n = opts.totalSlots || items.length;
-    const radius = ringRadiusFor(n);
-    const pad = radius + ITEM_HALF + 6;
     const w = this.ui.clientWidth || 0, h = this.ui.clientHeight || 0;
-    const cx = Math.min(Math.max(a.x, pad), Math.max(pad, w - pad));
-    const cy = Math.min(Math.max(a.y, pad), Math.max(pad, h - pad));
-    ring.style.left = cx + 'px';
-    ring.style.top = cy + 'px';
+    const maxRadius = Math.max(0, Math.min(
+      a.x - ITEM_HALF - 6,
+      w - a.x - ITEM_HALF - 6,
+      a.y - ITEM_HALF - 6,
+      h - a.y - ITEM_HALF - 6,
+    ));
+    const radius = Math.min(ringRadiusFor(n), maxRadius);
+    ring.style.left = a.x + 'px';
+    ring.style.top = a.y + 'px';
 
     this._items = items.map((it, i) => {
       const slot = it.slot != null ? it.slot : i;
       const ang = -Math.PI / 2 + (slot / n) * Math.PI * 2;   // first item on top
       const b = document.createElement('button');
-      b.className = 'radial-item' + (it.warn ? ' warn' : '');
-      const icon = it.icon
+      b.className = 'radial-item' + (it.warn ? ' warn' : '') + (it.kind ? ' ' + it.kind : '');
+      const itemIcon = it.icon
         ? `<img src="${it.icon}" alt="">`
-        : `<span class="glyph" style="color:${it.color || '#fff'}">${it.glyph || '?'}</span>`;
-      b.innerHTML = `${icon}
-        ${it.price != null ? `<span class="price">${it.price}g</span>` : (it.sub ? `<span class="price sub">${it.sub}</span>` : '')}`;
+        : (it.iconName ? icon(it.iconName) : `<span class="glyph" style="color:${it.color || '#fff'}">${it.glyph || '?'}</span>`);
+      b.innerHTML = `<span class="control-face">${itemIcon}
+        ${it.price != null ? `<span class="price">${it.price}g</span>` : (it.sub ? `<span class="price sub">${it.sub}</span>` : '')}</span>`;
       b.title = it.label || '';
+      b.setAttribute('aria-label', it.label || 'Tower action');
       b.style.left = Math.round(Math.cos(ang) * radius) + 'px';
       b.style.top = Math.round(Math.sin(ang) * radius) + 'px';
       b.addEventListener('click', (ev) => { ev.stopPropagation(); if (!b.disabled) it.onTap(); });
@@ -104,7 +109,8 @@ export class Radial {
 
     const x = document.createElement('button');
     x.className = 'radial-center';
-    x.textContent = '✕';
+    x.innerHTML = `<span class="control-face">${icon('close')}</span>`;
+    x.setAttribute('aria-label', 'Close build menu');
     x.addEventListener('click', (ev) => { ev.stopPropagation(); this.close(); });
     ring.appendChild(x);
 
@@ -138,7 +144,6 @@ export class Radial {
 // Empty buildable cell: one item per tower type. In campaign levels, towers
 // beyond the unlock schedule show as locked slots ("unlocks at level N").
 export function buildRingItems(state, cell, gameActions) {
-  const seals = safeSeal(state, cell.x, cell.y);
   const mazeMode = !!(state.level && state.level.mazeMode);
   // Campaign levels gate the roster by unlock schedule; Endless/classic offer
   // everything. Maze Mode is filtered down to the wall entirely below.
@@ -148,9 +153,10 @@ export function buildRingItems(state, cell, gameActions) {
   const entries = Object.entries(CONFIG.TOWERS)
     .filter(([id, def]) => !def.hidden && (!mazeMode || id === 'wall'));
   return entries.map(([id, def]) => {
+    const seals = safeSeal(state, cell.x, cell.y, id);
     if (allowed && !allowed.includes(id)) {
       return {
-        glyph: '🔒', color: '#9aa3b2',
+        iconName: 'lock', color: '#9aa3b2',
         label: `${def.name} — unlocks at level ${unlockLevelFor(id)}`,
         sub: `L${unlockLevelFor(id)}`,
         disabled: () => true,
@@ -161,7 +167,7 @@ export function buildRingItems(state, cell, gameActions) {
       icon: getSpriteUrl('tower-' + id),
       glyph: def.glyph,
       color: def.color,
-      label: `${def.name} — ${def.cost}g · ${def.blurb}${seals ? ' ⚠ seals the maze!' : ''}`,
+      label: `${def.name} — ${def.cost}g · ${def.blurb}${seals ? ' — seals the maze!' : ''}`,
       price: def.cost,
       warn: seals,
       disabled: (s) => s.gold < def.cost,
@@ -174,22 +180,24 @@ export function buildRingItems(state, cell, gameActions) {
 }
 
 // Fixed role slots for the tower ring (see Radial.open's `slot`/`totalSlots`):
-// upgrade or fork A always sits at 0, fork B at 1, targeting at 2, sell at 3.
-// A role's button simply doesn't render when absent (e.g. maxed = no slot 0)
-// instead of the whole ring re-spacing around the remaining items.
-export const TOWER_RING_SLOTS = 4;
+// upgrade/fork A is always slot 0, info is always 1, fork B is slot 2,
+// targeting is slot 3, and sell is slot 4. A maxed tower keeps a disabled MAX
+// action in slot 0 so no surrounding control can jump under the player's tap.
+export const TOWER_RING_SLOTS = 5;
 
 // Existing tower: upgrade (or the A/B fork where the next tier declares one),
 // target mode, sell. Walls are pure maze pieces: sell is their only action.
 export function towerRingItems(state, tower, gameActions) {
   const items = [];
-  if (tower.canUpgrade()) {
+  const hasUpgrade = tower.canUpgrade();
+  const forks = hasUpgrade ? tower.forkChoices() : null;
+
+  if (hasUpgrade) {
     const cost = tower.nextUpgradeCost();
-    const forks = tower.forkChoices();
     if (!forks) {
       items.push({
         slot: 0,
-        glyph: '▲', color: '#ffd35c',
+        kind: 'upgrade', iconName: 'upgrade', color: '#ffd35c',
         label: `Upgrade to L${tower.level + 1} — ${cost}g`,
         price: cost,
         disabled: (s) => s.gold < cost,
@@ -199,8 +207,8 @@ export function towerRingItems(state, tower, gameActions) {
       for (const key of Object.keys(forks)) {
         const br = forks[key];
         items.push({
-          slot: key === 'A' ? 0 : 1,
-          glyph: key === 'A' ? '◆' : '◇', color: '#ffd35c',
+          slot: key === 'A' ? 0 : 2,
+          kind: 'upgrade', iconName: 'upgrade', color: '#ffd35c',
           label: `${br.name} — ${br.desc} (${cost}g)`,
           price: cost,
           sub: br.name,
@@ -209,11 +217,25 @@ export function towerRingItems(state, tower, gameActions) {
         });
       }
     }
+  } else if (!tower.def.wall) {
+    items.push({
+      slot: 0,
+      kind: 'upgrade', iconName: 'upgrade', color: '#9aa3b2',
+      label: 'Maximum level', sub: 'MAX', disabled: () => true, onTap: () => {},
+    });
   }
+  items.push({
+    slot: 1,
+    kind: 'info',
+    iconName: 'info', color: '#5cc8ff',
+    label: 'Tower info',
+    sub: 'info',
+    onTap: () => gameActions.inspectTower(tower),
+  });
   if (!tower.def.aura && !tower.def.wall && !tower.def.noAttack) {
     items.push({
-      slot: 2,
-      glyph: '◎', color: '#5cc8ff',
+      slot: 3,
+      kind: 'target', iconName: 'target', color: '#5cc8ff',
       label: 'Targeting: ' + tower.targetMode + ' (tap to cycle)',
       sub: tower.targetMode,
       onTap: () => gameActions.cycleTargetAndRefresh(tower),
@@ -222,8 +244,8 @@ export function towerRingItems(state, tower, gameActions) {
   const refund = sellRefund(tower);
   const locked = sellLocked(state);
   items.push({
-    slot: 3,
-    glyph: locked ? '🔒' : '$', color: locked ? '#9aa3b2' : '#ff6b66',
+    slot: 4,
+    kind: 'sell', iconName: locked ? 'lock' : 'sell', color: locked ? '#9aa3b2' : '#ff6b66',
     label: locked ? 'Selling is locked — the horde is loose' : `Sell — refund ${refund}g${tower.def.wall ? ' (100%)' : ''}`,
     sub: locked ? 'locked' : `+${refund}g`,
     disabled: () => locked,
@@ -232,8 +254,8 @@ export function towerRingItems(state, tower, gameActions) {
   return items;
 }
 
-function safeSeal(state, x, y) {
-  try { return wouldSealAt(state, x, y); } catch { return false; }
+function safeSeal(state, x, y, typeId) {
+  try { return wouldSealAt(state, x, y, typeId); } catch { return false; }
 }
 
 // Static stats line used for ring item tooltips (desktop title attr).

@@ -100,7 +100,9 @@ console.log('Save round-trip with a beacon:');
   const st = createState(makeRng(CONFIG.SEED), CONFIG.SEED);
   st.gold = 1e6;
   addTower(st, 'archer', 10, 9);
-  const b = addTower(st, 'beacon', 11, 9);
+  // Both live towers are 2x2. Keep this save fixture non-overlapping while
+  // preserving the edge-of-aura case exercised by the loaded state.
+  const b = addTower(st, 'beacon', 12, 9);
   tryUpgrade(st, b); tryUpgrade(st, b);   // L3
   saveGame(st);
   const st2 = applySnapshot(loadSnapshot());

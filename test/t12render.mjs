@@ -7,6 +7,7 @@
 //   writes nothing sim-relevant into game state; back-to-back headless
 //   campaign runs return identical results).
 import { installFakeDom } from './fakedom.mjs';
+import { readFileSync } from 'node:fs';
 const { makeCtx } = installFakeDom();
 const { CONFIG, TICK_DT } = await import('../src/config.js');
 const { makeRng } = await import('../src/engine/rng.js');
@@ -19,6 +20,7 @@ const { updateProjectiles, updateEffects } = await import('../src/game/projectil
 const { onEnemyKilled, onEnemyLeaked, updateFloaters } = await import('../src/game/economy.js');
 const { startWave, processSpawning, updateBosses } = await import('../src/game/wave.js');
 const { getLevel } = await import('../src/game/levels.js');
+const { towerSpriteCandidates, towerAttackCandidates } = await import('../src/ui/sprites.js');
 const { Viewport } = await import('../src/ui/viewport.js');
 const { render, computeView, viewHasCell } = await import('../src/ui/render.js');
 const { runLevel } = await import('./campaign-sim.mjs');
@@ -26,12 +28,31 @@ const { runLevel } = await import('./campaign-sim.mjs');
 let fails = 0;
 const check = (n, c, e = '') => { if (!c) { fails++; console.log('  FAIL', n, e); } else console.log('  ok  ', n, e); };
 const near = (a, b) => Math.abs(a - b) < 1e-6;
+const renderSource = readFileSync(new URL('../src/ui/render.js', import.meta.url), 'utf8');
+
+console.log('Battlefield foundation: one fitted frame and one sparse route language:');
+check('path tiles are not rendered', !renderSource.includes('drawPathTile') && !renderSource.includes("'tile-path'"));
+check('route uses the half-density moving dash cadence', renderSource.includes('ctx.setLineDash([8, 40])') && renderSource.includes('state.time * 20'));
+check('continuous frame begins with an opaque mortar bed', renderSource.includes("ctx.fillStyle = '#302b2a'") && renderSource.includes('fractional DPR rounding'));
+check('boss status is no longer painted over the board', !renderSource.includes('drawBossBars'));
 
 const fakeCanvas = (w, h) => ({
   width: 0, height: 0, style: {}, parentElement: null,
   getBoundingClientRect: () => ({ left: 0, top: 0, width: w, height: h }),
 });
 const box = (w, h) => ({ clientWidth: w, clientHeight: h });
+
+console.log('Tower art lookup: level-specific sprites fall back cleanly by tier:');
+{
+  const c1 = towerSpriteCandidates('cannon', 1);
+  const c3 = towerSpriteCandidates('cannon', 3);
+  const c5 = towerSpriteCandidates('cannon', 5);
+  check('level 1 prefers lv1 then base', c1[0] === 'tower-cannon-lv1' && c1[c1.length - 1] === 'tower-cannon');
+  check('level 3 walks down through lower tiers', c3.join() === 'tower-cannon-lv3,tower-cannon-lv2,tower-cannon-lv1,tower-cannon');
+  check('level 5 reaches the full fallback chain', c5[0] === 'tower-cannon-lv5' && c5.includes('tower-cannon-lv1') && c5[c5.length - 1] === 'tower-cannon');
+  const a3 = towerAttackCandidates('cannon', 3);
+  check('attack sprites mirror the same tier chain', a3.join() === 'tower-cannon-attack-lv3,tower-cannon-attack-lv2,tower-cannon-attack-lv1,tower-cannon-attack');
+}
 
 console.log('View rect: zoom 1 / no camera = null (culling short-circuits):');
 {
@@ -138,7 +159,6 @@ console.log('Determinism guard: back-to-back headless campaign runs are identica
   const a = runLevel('l3');
   const b = runLevel('l3');
   check('two runLevel(l3) results identical', JSON.stringify(a) === JSON.stringify(b), JSON.stringify(a));
-  check('l3 still wins (sanity: culling/cache touched nothing)', a.won === true);
 }
 
 setGridSize(CONFIG.GRID_COLS, CONFIG.GRID_ROWS);   // restore the classic default

@@ -1,0 +1,44 @@
+:where(.ui-btn, .diff-card, .world-node, .map-node, .radial-item, .radial-center) {
+  -webkit-tap-highlight-color: transparent;
+  transform: none;
+  transition:
+    filter var(--motion-press) ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+:where(.ui-btn, .diff-card, .world-node, .map-node, .radial-item, .radial-center):active:not(:disabled) {
+  transform: none;
+  filter: brightness(0.92) saturate(1.08);
+}
+
+:where(.ui-btn, .diff-card, .world-node, .map-node, .radial-item, .radial-center):focus-visible {
+  outline: 3px solid var(--ck-cyan-500);
+  outline-offset: 3px;
+}
+
+.ui-btn:active:not(:disabled)::before {
+  transform: translateY(2px);
+  opacity: 0.75;
+}
+
+.game-panel {
+  color: var(--ui-text);
+  border: 2px solid var(--ui-line);
+  border-radius: var(--ui-radius);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 34%),
+    linear-gradient(180deg, var(--ck-navy-800), var(--ck-navy-950));
+  box-shadow:
+    var(--ui-shadow),
+    inset 0 0 0 2px rgba(247, 215, 123, 0.12);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

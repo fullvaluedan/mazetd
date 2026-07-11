@@ -77,7 +77,7 @@ function referenceBuild(state, reserve) {
     if (!type) break;                       // can't afford anything
     // wouldSealAt guard: canBuildAt now ALLOWS sealing (siege mode); the
     // reference player must never wall itself in.
-    if (canBuildAt(state, c.x, c.y) && !wouldSealAt(state, c.x, c.y) && tryBuild(state, type, c.x, c.y)) {
+    if (canBuildAt(state, c.x, c.y, type) && !wouldSealAt(state, c.x, c.y, type) && tryBuild(state, type, c.x, c.y)) {
       state._si++;
       if (type !== 'wall') state._ti++;
     }
@@ -123,7 +123,7 @@ function carelessBuild(state) {
     if (state.towerGrid[c.y][c.x]) continue;
     const type = (state._cti % 2 === 0) ? 'archer' : 'cannonL';
     if (state.gold < CONFIG.TOWERS[type].cost) continue;
-    if (canBuildAt(state, c.x, c.y) && !wouldSealAt(state, c.x, c.y) && tryBuild(state, type, c.x, c.y)) state._cti++;
+    if (canBuildAt(state, c.x, c.y, type) && !wouldSealAt(state, c.x, c.y, type) && tryBuild(state, type, c.x, c.y)) state._cti++;
   }
   // deliberately never upgrades
 }
@@ -181,8 +181,16 @@ function simStep(state, dt) {
 }
 
 export function runReferenceGame(opts = {}) {
-  const { seed = CONFIG.SEED, heroId = 'ranger', strategy = 'reference', maxWave = CONFIG.WIN_WAVE, dt = 1 / 30, verbose = false } = opts;
-  const state = createState(makeRng(seed));
+  const {
+    seed = CONFIG.SEED,
+    heroId = 'ranger',
+    strategy = 'reference',
+    maxWave = CONFIG.WIN_WAVE,
+    dt = 1 / 30,
+    verbose = false,
+    difficultyMode = 'expert',
+  } = opts;
+  const state = createState(makeRng(seed), 0, null, { difficultyMode });
   createHero(state, heroId);
 
   let minLives = state.lives;
@@ -218,6 +226,7 @@ export function runReferenceGame(opts = {}) {
     won, reachedWave: won ? maxWave : state.wave, lives: state.lives, minLives,
     gold: Math.floor(state.gold), towers: state.towers.length, heroLevel: state.hero.level,
     difficulty: CONFIG.DIFFICULTY,
+    difficultyMode: state.difficultyMode,
   };
 }
 

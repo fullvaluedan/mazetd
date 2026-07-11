@@ -1,5 +1,5 @@
 // Phase M3 checks — save round-trip + v1/v2 backward compatibility, plus the
-// U5 version gate: snapshots write v3 and anything newer than the client
+// U5 version gate: snapshots write v4 and anything newer than the client
 // refuses to load (returns null) instead of half-loading.
 import { CONFIG } from '../src/config.js';
 import { makeRng } from '../src/engine/rng.js';
@@ -14,24 +14,26 @@ const store = new Map();
 global.localStorage = { getItem: (k) => store.has(k) ? store.get(k) : null, setItem: (k, v) => store.set(k, String(v)), removeItem: (k) => store.delete(k) };
 const { saveGame, loadSnapshot, applySnapshot, buildSnapshot } = await import('../src/game/save.js');
 
-console.log('v3 round-trip with a damaged wall + beacon:');
+console.log('v4 round-trip with a damaged wall + beacon:');
 {
-  const st = createState(makeRng(CONFIG.SEED), CONFIG.SEED);
+  const st = createState(makeRng(CONFIG.SEED), CONFIG.SEED, null, { difficultyMode: 'normal' });
   st.gold = 1e6;
   const a = addTower(st, 'archer', 10, 9);
-  const b = addTower(st, 'beacon', 11, 9);
+  const b = addTower(st, 'beacon', 8, 9);
   tryUpgrade(st, b);                       // L2 beacon
   a.hp = Math.floor(a.maxHp * 0.4);        // chewed wall
   saveGame(st);
 
   const snap = loadSnapshot();
-  check('snapshot is v3', snap.v === 3);
+  check('snapshot is v4', snap.v === 4);
+  check('difficulty mode survives the snapshot', snap.difficultyMode === 'normal');
   const st2 = applySnapshot(snap);
   const a2 = st2.towers.find((t) => t.type === 'archer');
   const b2 = st2.towers.find((t) => t.type === 'beacon');
   check('damage survives the round-trip', Math.abs(a2.hp - Math.ceil(a.hp)) <= 1, `${a.hp} -> ${a2.hp}`);
   check('maxHp rebuilt from invested', a2.maxHp === CONFIG.TOWER_HP.base + a2.invested * CONFIG.TOWER_HP.perGold);
   check('beacon level + aura survive', b2.level === 2 && a2.buffDmg === CONFIG.TOWERS.beacon.auraByLevel[1].dmg);
+  check('difficulty mode survives applySnapshot', st2.difficultyMode === 'normal');
 }
 
 console.log('v1 snapshots (no hp field) load at full HP:');

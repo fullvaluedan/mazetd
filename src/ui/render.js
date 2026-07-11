@@ -18,9 +18,16 @@
 
 import { CONFIG } from '../config.js';
 import { CELL, COLS, ROWS, SIZE, cellCenter, cellCenterX, cellCenterY, worldW, worldH } from '../engine/grid.js';
-import { canBuildAt, wouldSealAt, getMapRev } from '../game/state.js';
+import { canBuildAt, wouldSealAt, getMapRev, objectiveRect } from '../game/state.js';
 import { marqueeCells } from '../game/shop.js';
-import { getSprite, spriteCount, spritesEnabled } from './sprites.js';
+import {
+  getSprite,
+  getSpriteChain,
+  spriteCount,
+  spritesEnabled,
+  towerAttackCandidates,
+  towerSpriteCandidates,
+} from './sprites.js';
 
 const C = CONFIG.COLORS;
 
@@ -156,7 +163,6 @@ function staticLayer(state) {
 // pan/zoom (and aren't shaken). Coordinates are still world px at the fit
 // scale, so drawing is pixel-identical to the pre-camera letterbox.
 export function renderScreen(ctx, state) {
-  drawBossBars(ctx, state);
   if (state.flash > 0) drawFlash(ctx, state);
 }
 
@@ -290,37 +296,13 @@ function drawAbilityTarget(ctx, state) {
   ctx.restore();
 }
 
-function drawBossBars(ctx, state) {
-  const bosses = state.enemies.filter((e) => e.alive && e.boss);
-  if (bosses.length === 0) return;
-  const bw = 360, bh = 14;
-  let y = 10;
-  ctx.save();
-  ctx.textAlign = 'center';
-  ctx.font = 'bold 11px Segoe UI, sans-serif';
-  for (const b of bosses) {
-    const x = (worldW() - bw) / 2;
-    ctx.fillStyle = 'rgba(12,14,20,0.85)';
-    roundRect(ctx, x - 2, y - 2, bw + 4, bh + 4, 4); ctx.fill();
-    ctx.fillStyle = '#3a1f3f';
-    ctx.fillRect(x, y, bw, bh);
-    ctx.fillStyle = '#c65bd6';
-    ctx.fillRect(x, y, bw * Math.max(0, b.hp / b.maxHp), bh);
-    ctx.fillStyle = '#fff';
-    ctx.fillText(`${b.name}  ${Math.ceil(b.hp).toLocaleString()} / ${b.maxHp.toLocaleString()}`, worldW() / 2, y + bh - 3);
-    y += bh + 6;
-  }
-  ctx.restore();
-  ctx.textAlign = 'left';
-}
-
 // Normally rendered ONCE into the static-layer cache (view = null). The view
 // parameter only matters on the no-canvas fallback path, where these run per
 // frame and cull to the visible rows/cols.
 function drawBackground(ctx, view) {
   const bgImg = getSprite('misc-background');
   if (bgImg) {
-    ctx.drawImage(bgImg, 0, 0, worldW(), worldH());
+    drawCoverImage(ctx, bgImg, 0, 0, worldW(), worldH());
     // golden-hour wash: keeps the meadow warm and bright (the old dark-blue
     // dim turned it olive — the single biggest "muddy board" offender)
     ctx.fillStyle = 'rgba(255, 214, 140, 0.08)';
@@ -350,17 +332,103 @@ function drawBackground(ctx, view) {
 function drawMap(ctx, state, view) {
   const y0 = view ? view.cy0 : 0, y1 = view ? view.cy1 : ROWS - 1;
   const x0 = view ? view.cx0 : 0, x1 = view ? view.cx1 : COLS - 1;
+  const floor = getSprite('tile-floor-dirt');
+  const stone = getSprite('tile-stone-pad');
+  const pads = [...state.map.spawns, ...state.map.goals].map((marker) => objectiveRect(state, marker));
   for (let y = y0; y <= y1; y++) {
     for (let x = x0; x <= x1; x++) {
-      const t = state.map.cells[y][x];
-      if (t === CELL.BORDER) {
-        ctx.fillStyle = C.border;
+      const frame = x === 0 || y === 0 || x === COLS - 1 || y === ROWS - 1;
+      const pad = pads.some((rect) => x >= rect.x && x < rect.x + rect.w && y >= rect.y && y < rect.y + rect.h);
+      const tile = (frame || pad) ? stone : floor;
+      if (tile) ctx.drawImage(tile, x * SIZE, y * SIZE, SIZE, SIZE);
+      else {
+        ctx.fillStyle = (frame || pad) ? '#77756f' : '#b88f51';
         ctx.fillRect(x * SIZE, y * SIZE, SIZE, SIZE);
-      } else if (t === CELL.OBSTACLE) {
+      }
+      const t = state.map.cells[y][x];
+      if (t === CELL.OBSTACLE) {
         drawObstacle(ctx, x, y);
       }
     }
   }
+}
+
+function drawBattleFrame(ctx) {
+  const W = worldW();
+  const H = worldH();
+  const t = SIZE;
+  ctx.save();
+  // One continuous mortar bed guarantees that fractional DPR rounding can
+  // never reveal the battlefield through a frame join.
+  ctx.fillStyle = '#302b2a';
+  ctx.fillRect(0, 0, W, t);
+  ctx.fillRect(0, H - t, W, t);
+  ctx.fillRect(0, 0, t, H);
+  ctx.fillRect(W - t, 0, t, H);
+
+  const stone = (x, y, w, h, light = false) => {
+    ctx.fillStyle = light ? '#8e8b82' : '#77756f';
+    ctx.fillRect(x + 0.75, y + 0.75, w - 1.5, h - 1.5);
+    ctx.fillStyle = 'rgba(255, 244, 216, 0.2)';
+    ctx.fillRect(x + 1.5, y + 1.5, w - 3, 2);
+    ctx.fillStyle = 'rgba(24, 25, 26, 0.28)';
+    ctx.fillRect(x + 1.5, y + h - 3.5, w - 3, 2);
+  };
+  const course = 16;
+  for (let x = t; x < W - t; x += course * 2) {
+    const w = Math.min(course * 2, W - t - x);
+    stone(x, 0, w, t, ((x / course) & 2) === 0);
+    stone(x, H - t, w, t, ((x / course) & 2) !== 0);
+  }
+  for (let y = t; y < H - t; y += course * 2) {
+    const h = Math.min(course * 2, H - t - y);
+    stone(0, y, t, h, ((y / course) & 2) !== 0);
+    stone(W - t, y, t, h, ((y / course) & 2) === 0);
+  }
+  stone(0, 0, t, t, true);
+  stone(W - t, 0, t, t, false);
+  stone(0, H - t, t, t, false);
+  stone(W - t, H - t, t, t, true);
+
+  // A single inner lip visually locks all four masonry runs together.
+  ctx.strokeStyle = 'rgba(18, 20, 21, 0.82)';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(t - 1.5, t - 1.5, W - t * 2 + 3, H - t * 2 + 3);
+  ctx.strokeStyle = 'rgba(255, 232, 177, 0.2)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(t + 1.5, t + 1.5, W - t * 2 - 3, H - t * 2 - 3);
+  ctx.restore();
+}
+
+function drawCoverImage(ctx, img, x, y, w, h) {
+  const iw = img.naturalWidth || img.width;
+  const ih = img.naturalHeight || img.height;
+  if (!iw || !ih) {
+    ctx.drawImage(img, x, y, w, h);
+    return;
+  }
+
+  const targetRatio = w / h;
+  const imageRatio = iw / ih;
+  let sx = 0, sy = 0, sw = iw, sh = ih;
+
+  if (imageRatio > targetRatio) {
+    sw = ih * targetRatio;
+    sx = (iw - sw) / 2;
+  } else if (imageRatio < targetRatio) {
+    sh = iw / targetRatio;
+    sy = (ih - sh) / 2;
+  }
+
+  ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+}
+
+function drawAtlasTile(ctx, sprite, px, py, size, tile = 1) {
+  const tw = sprite.width / 4;
+  const th = sprite.height / 4;
+  const sx = Math.max(0, Math.min(3, tile)) * tw;
+  const sy = Math.max(0, Math.min(3, tile)) * th;
+  ctx.drawImage(sprite, sx, sy, tw, th, px, py, size, size);
 }
 
 // Obstacles are scenery now, not UI panels: alternating sun-bleached rocks
@@ -403,8 +471,8 @@ function drawObstacle(ctx, x, y) {
 function drawPaths(ctx, state) {
   ctx.save();
   ctx.lineWidth = 2.5;
-  ctx.setLineDash([6, 6]);
-  ctx.lineDashOffset = -(state.time * 24) % 12;   // gentle marching dashes
+  ctx.setLineDash([8, 40]);
+  ctx.lineDashOffset = -(state.time * 20) % 48;   // sparse marching route
   ctx.strokeStyle = C.path;
   for (const s of state.map.spawns) {
     const path = state.paths[s.id];
@@ -430,10 +498,16 @@ function drawSpawnGoalMarkers(ctx, state, view) {
   // SPAWNS: a swirling dark portal mouth (sprite when generated)
   for (const s of state.map.spawns) {
     if (!viewHasCell(view, s.cx, s.cy)) continue;
-    const c = cellCenter(s.cx, s.cy);
-    const img = getSprite('misc-spawn');
+    const rect = objectiveRect(state, s);
+    const c = { x: (rect.x + rect.w / 2) * SIZE, y: (rect.y + rect.h / 2) * SIZE };
+    const img = getSprite('objective-portal') || getSprite('misc-spawn');
     if (img) {
-      ctx.drawImage(img, c.x - 19, c.y - 19, 38, 38);
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(rect.x * SIZE, rect.y * SIZE, rect.w * SIZE, rect.h * SIZE);
+      ctx.clip();
+      ctx.drawImage(img, rect.x * SIZE, rect.y * SIZE, rect.w * SIZE, rect.h * SIZE);
+      ctx.restore();
     } else {
       ctx.fillStyle = '#2b1f3a';
       ctx.beginPath(); ctx.ellipse(c.x, c.y, 13, 11, 0, 0, Math.PI * 2); ctx.fill();
@@ -448,38 +522,49 @@ function drawSpawnGoalMarkers(ctx, state, view) {
     }
   }
 
-  // EXITS: the camp you're protecting — a crackling little campfire
+  // EXITS: the camp you're protecting — now a crystal/castle-style marker
   for (const g of state.map.goals) {
     if (!viewHasCell(view, g.cx, g.cy)) continue;
-    const c = cellCenter(g.cx, g.cy);
-    const img = getSprite('misc-camp');
+    const rect = objectiveRect(state, g);
+    const c = { x: (rect.x + rect.w / 2) * SIZE, y: (rect.y + rect.h / 2) * SIZE };
+    const img = getSprite('objective-crystal') || getSprite('misc-icon');
     if (img) {
-      ctx.drawImage(img, c.x - 19, c.y - 19, 38, 38);
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(rect.x * SIZE, rect.y * SIZE, rect.w * SIZE, rect.h * SIZE);
+      ctx.clip();
+      ctx.drawImage(img, rect.x * SIZE, rect.y * SIZE, rect.w * SIZE, rect.h * SIZE);
+      ctx.restore();
     } else {
-      // crossed logs
-      ctx.strokeStyle = '#7a5230';
-      ctx.lineWidth = 4;
-      ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.moveTo(c.x - 9, c.y + 9); ctx.lineTo(c.x + 9, c.y + 4); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(c.x + 9, c.y + 9); ctx.lineTo(c.x - 9, c.y + 4); ctx.stroke();
-      ctx.lineCap = 'butt';
-      // flickering flame (two licks + glow)
-      const f = Math.sin(state.time * 9 + g.cx) * 2;
-      const glow = 0.25 + 0.1 * Math.sin(state.time * 6);
-      ctx.fillStyle = `rgba(255, 176, 60, ${glow})`;
-      ctx.beginPath(); ctx.arc(c.x, c.y, 15, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#ff9e2e';
+      const glow = 0.18 + 0.08 * Math.sin(state.time * 5 + g.cx);
+      // small stone dais
+      ctx.fillStyle = '#5f513b';
+      ctx.beginPath(); ctx.ellipse(c.x, c.y + 10, 13, 5, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#d8c48f';
+      ctx.beginPath(); ctx.ellipse(c.x, c.y + 8, 11, 4, 0, 0, Math.PI * 2); ctx.fill();
+      // crystal spire
+      ctx.fillStyle = `rgba(98, 214, 255, ${0.72 + glow})`;
       ctx.beginPath();
-      ctx.moveTo(c.x - 6, c.y + 6);
-      ctx.quadraticCurveTo(c.x - 7, c.y - 4 + f, c.x, c.y - 11 - f);
-      ctx.quadraticCurveTo(c.x + 7, c.y - 4 - f, c.x + 6, c.y + 6);
-      ctx.closePath(); ctx.fill();
-      ctx.fillStyle = '#ffd35c';
+      ctx.moveTo(c.x, c.y - 15);
+      ctx.lineTo(c.x + 11, c.y + 1);
+      ctx.lineTo(c.x + 3, c.y + 14);
+      ctx.lineTo(c.x - 3, c.y + 14);
+      ctx.lineTo(c.x - 11, c.y + 1);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = 'rgba(245, 250, 255, 0.45)';
       ctx.beginPath();
-      ctx.moveTo(c.x - 3, c.y + 6);
-      ctx.quadraticCurveTo(c.x - 3, c.y - 1 - f, c.x, c.y - 5 + f);
-      ctx.quadraticCurveTo(c.x + 3, c.y - 1 + f, c.x + 3, c.y + 6);
-      ctx.closePath(); ctx.fill();
+      ctx.moveTo(c.x, c.y - 14);
+      ctx.lineTo(c.x + 5, c.y + 1);
+      ctx.lineTo(c.x + 1, c.y + 10);
+      ctx.lineTo(c.x - 1, c.y + 10);
+      ctx.lineTo(c.x - 5, c.y + 1);
+      ctx.closePath();
+      ctx.fill();
+      // gold ring to make it feel like an objective marker, not a tower
+      ctx.strokeStyle = 'rgba(252, 214, 111, 0.92)';
+      ctx.lineWidth = 2.4;
+      ctx.beginPath(); ctx.ellipse(c.x, c.y + 3, 12, 5.5, 0, 0, Math.PI * 2); ctx.stroke();
     }
   }
 
@@ -516,9 +601,14 @@ function drawTowers(ctx, state, view) {
     // Cell test + the 1-cell view margin covers every overhang a tower draws
     // (sprite oversize, falcon orbit ~26px, aura pulse ring, bars, pips).
     if (!viewHasCell(view, t.cx, t.cy)) continue;
+    const fp = t.footprint || (t.def.wall ? { w: 1, h: 1 } : { w: 2, h: 2 });
     const px = t.cx * SIZE, py = t.cy * SIZE;
-    const cx = cellCenterX(t.cx), cy = cellCenterY(t.cy);
-    const sprite = getSprite('tower-' + t.type);
+    const cx = t.px, cy = t.py;
+    const attackFrame = t.muzzle > 0 ? Math.min(3, Math.max(0, Math.floor((1 - t.muzzle / 0.08) * 4))) : 0;
+    const attackSprite = t.muzzle > 0
+      ? getSpriteChain(towerAttackCandidates(t.type, t.level), attackFrame)
+      : null;
+    const sprite = attackSprite || getSpriteChain(towerSpriteCandidates(t.type, t.level));
 
     // cosmetic: build pop-in + recoil kick opposite the shot direction
     const age = state.time - (t.builtAt != null ? t.builtAt : -10);
@@ -536,14 +626,17 @@ function drawTowers(ctx, state, view) {
       ctx.stroke();
     }
 
-    if (sprite) {
-      // sprite art: draw slightly larger than the cell for presence
-      const s = (SIZE + 6) * pop;
-      ctx.drawImage(sprite, cx - s / 2 + rx, cy - s / 2 - 2 + ry, s, s);
+    if (t.def.wall) {
+      drawConnectedWall(ctx, state, t);
+    } else if (sprite) {
+        // Attack towers use one seamless 2x2 foundation rather than repeating
+        // a cell sprite. Art must remain inside this exact footprint.
+        const s = (Math.max(fp.w, fp.h) * SIZE - 4) * pop;
+        ctx.drawImage(sprite, cx - s / 2 + rx, cy - s / 2 - 2 + ry, s, s);
     } else {
       const pad = 3, r = 6;
       // base body
-      roundRect(ctx, px + pad, py + pad, SIZE - pad * 2, SIZE - pad * 2, r);
+      roundRect(ctx, px + pad, py + pad, fp.w * SIZE - pad * 2, fp.h * SIZE - pad * 2, r);
       ctx.fillStyle = t.def.color;
       ctx.fill();
       ctx.strokeStyle = 'rgba(0,0,0,0.35)';
@@ -578,30 +671,32 @@ function drawTowers(ctx, state, view) {
     if (t.underAttack > 0) {
       ctx.strokeStyle = `rgba(226,75,74,${Math.min(1, t.underAttack / 0.2)})`;
       ctx.lineWidth = 2;
-      ctx.strokeRect(px + 1.5, py + 1.5, SIZE - 3, SIZE - 3);
+      ctx.strokeRect(px + 1.5, py + 1.5, fp.w * SIZE - 3, fp.h * SIZE - 3);
     }
     if (t.hp < t.maxHp) {
       const frac = Math.max(0, t.hp / t.maxHp);
       ctx.fillStyle = C.hpBack;
-      ctx.fillRect(px + 4, py + SIZE - 4, SIZE - 8, 3);
+      ctx.fillRect(px + 4, py + fp.h * SIZE - 4, fp.w * SIZE - 8, 3);
       ctx.fillStyle = frac > 0.4 ? C.hpFront : C.danger;
-      ctx.fillRect(px + 4, py + SIZE - 4, (SIZE - 8) * frac, 3);
+      ctx.fillRect(px + 4, py + fp.h * SIZE - 4, (fp.w * SIZE - 8) * frac, 3);
     }
 
-    // level pips along the bottom
-    const pips = t.level;
-    for (let i = 0; i < pips; i++) {
-      ctx.fillStyle = i === 3 ? '#ffe08a' : '#0c0e14';
-      ctx.beginPath();
-      ctx.arc(px + 7 + i * 6, py + SIZE - 6, 1.8, 0, Math.PI * 2);
-      ctx.fill();
+    if (!t.def.wall) {
+      // level pips along the bottom
+      const pips = t.level;
+      for (let i = 0; i < pips; i++) {
+        ctx.fillStyle = i === 3 ? '#ffe08a' : '#0c0e14';
+        ctx.beginPath();
+        ctx.arc(px + 7 + i * 6, py + fp.h * SIZE - 6, 1.8, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
     // branch letter at L4
     if (t.branch) {
       ctx.fillStyle = '#ffe08a';
       ctx.font = 'bold 9px Segoe UI, sans-serif';
       ctx.textAlign = 'right';
-      ctx.fillText(t.branch, px + SIZE - 4, py + 9);
+      ctx.fillText(t.branch, px + fp.w * SIZE - 4, py + 9);
     }
     // Falcon towers: a summoned bird circles the perch and swoops along the
     // attack direction when the tower fires. Pure cosmetics on muzzle timing.
@@ -656,6 +751,57 @@ function drawTowers(ctx, state, view) {
   }
   ctx.textBaseline = 'alphabetic';
   ctx.textAlign = 'left';
+}
+
+export function wallNeighborMask(state, x, y) {
+  const wallAt = (cx, cy) => {
+    const row = state.towerGrid[cy];
+    const tower = row && row[cx];
+    return !!(tower && tower.def && tower.def.wall);
+  };
+  return (wallAt(x, y - 1) ? 1 : 0) |
+    (wallAt(x + 1, y) ? 2 : 0) |
+    (wallAt(x, y + 1) ? 4 : 0) |
+    (wallAt(x - 1, y) ? 8 : 0);
+}
+
+function drawConnectedWall(ctx, state, tower) {
+  const x = tower.cx * SIZE, y = tower.cy * SIZE;
+  const mask = wallNeighborMask(state, tower.cx, tower.cy);
+  const n = !!(mask & 1), e = !!(mask & 2), s = !!(mask & 4), w = !!(mask & 8);
+  ctx.save();
+
+  // Full-bleed clay undercoat means adjacent cells can never expose ground.
+  ctx.fillStyle = '#b9412f';
+  ctx.fillRect(x, y, SIZE, SIZE);
+  ctx.fillStyle = '#cf5b40';
+  ctx.fillRect(x + (w ? 0 : 2), y + (n ? 0 : 2), SIZE - (w ? 0 : 2) - (e ? 0 : 2), SIZE - (n ? 0 : 2) - (s ? 0 : 2));
+
+  // Courses use world coordinates, so their joints continue through every
+  // horizontal and vertical adjacency rather than restarting in each tile.
+  ctx.strokeStyle = 'rgba(91, 38, 29, 0.72)';
+  ctx.lineWidth = 1.4;
+  for (let yy = y + 10; yy < y + SIZE; yy += 11) {
+    ctx.beginPath(); ctx.moveTo(x, yy); ctx.lineTo(x + SIZE, yy); ctx.stroke();
+  }
+  for (let row = 0; row < 3; row++) {
+    const yy = y + row * 11;
+    const offset = ((tower.cy * 3 + row) & 1) ? 8 : 18;
+    for (let xx = x + offset; xx < x + SIZE; xx += 20) {
+      ctx.beginPath(); ctx.moveTo(xx, yy); ctx.lineTo(xx, Math.min(y + SIZE, yy + 10)); ctx.stroke();
+    }
+  }
+  ctx.fillStyle = 'rgba(255, 181, 126, 0.38)';
+  ctx.fillRect(x + (w ? 0 : 3), y + (n ? 1 : 3), SIZE - (w ? 0 : 3) - (e ? 0 : 3), 2);
+
+  // Only exposed sides receive the dark silhouette; connected sides stay flush.
+  ctx.strokeStyle = '#7d2c24';
+  ctx.lineWidth = 2.5;
+  if (!n) { ctx.beginPath(); ctx.moveTo(x + 1, y + 1); ctx.lineTo(x + SIZE - 1, y + 1); ctx.stroke(); }
+  if (!e) { ctx.beginPath(); ctx.moveTo(x + SIZE - 1, y + 1); ctx.lineTo(x + SIZE - 1, y + SIZE - 1); ctx.stroke(); }
+  if (!s) { ctx.beginPath(); ctx.moveTo(x + 1, y + SIZE - 1); ctx.lineTo(x + SIZE - 1, y + SIZE - 1); ctx.stroke(); }
+  if (!w) { ctx.beginPath(); ctx.moveTo(x + 1, y + 1); ctx.lineTo(x + 1, y + SIZE - 1); ctx.stroke(); }
+  ctx.restore();
 }
 
 function drawProjectiles(ctx, state, view) {
@@ -916,12 +1062,13 @@ function drawHover(ctx, state) {
   // If a tower is selected for building, colour by legality and show range.
   // Orange = legal but seals the maze — the wave will attack your walls.
   if (state.buildType) {
-    const legal = canBuildAt(state, x, y);
-    const seals = legal && wouldSealAt(state, x, y);
+    const legal = canBuildAt(state, x, y, state.buildType);
+    const seals = legal && wouldSealAt(state, x, y, state.buildType);
     ctx.fillStyle = !legal ? C.hoverBad : (seals ? C.hoverSeal : C.hoverOk);
-    ctx.fillRect(x * SIZE, y * SIZE, SIZE, SIZE);
     const def = CONFIG.TOWERS[state.buildType];
-    if (def) drawRangeRing(ctx, x, y, def.range);
+    const fp = def?.footprint || (def && !def.wall ? { w: 2, h: 2 } : { w: 1, h: 1 });
+    ctx.fillRect(x * SIZE, y * SIZE, fp.w * SIZE, fp.h * SIZE);
+    if (def) drawRangeRing(ctx, x + (fp.w - 1) / 2, y + (fp.h - 1) / 2, def.range);
   } else if (state.map.type(x, y) === CELL.OPEN && !state.towerGrid[y][x]) {
     ctx.fillStyle = C.hoverOk;
     ctx.fillRect(x * SIZE, y * SIZE, SIZE, SIZE);

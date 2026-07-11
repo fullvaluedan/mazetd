@@ -15,7 +15,7 @@
 
 import { TopBar } from './topbar.js';
 import { WaveBar } from './wavebar.js';
-import { Radial, buildRingItems, towerRingItems, TOWER_RING_SLOTS } from './radial.js';
+import { Radial, buildRingItems, towerRingItems } from './radial.js';
 import { HeroBar } from './herobar.js';
 import { Sheets } from './sheets.js';
 import { InfoCard } from './infocard.js';
@@ -33,12 +33,15 @@ export class HUD {
     this.multiselect = null;
     this.sheets = new Sheets(actions);
     if (scene && scene.uiLayer) {
-      this.topbar = new TopBar(scene.uiLayer, actions);
-      this.wavebar = new WaveBar(scene.uiLayer, scene.viewport, actions);
+      const statusDeck = scene.statusDeck || scene.uiLayer;
+      const commandActions = scene.commandActions || scene.uiLayer;
+      const contextPanel = scene.contextPanel || commandActions;
+      this.topbar = new TopBar(statusDeck, actions);
+      this.wavebar = new WaveBar(scene.uiLayer, scene.viewport, actions, commandActions);
       this.radial = new Radial(scene.uiLayer, scene.viewport);
-      this.herobar = new HeroBar(scene.uiLayer, actions);
-      this.infocard = new InfoCard(scene.uiLayer);
-      this.multiselect = new MultiSelect(scene.uiLayer, actions);
+      this.herobar = new HeroBar(commandActions, actions);
+      this.infocard = new InfoCard(contextPanel);
+      this.multiselect = new MultiSelect(scene.uiLayer, actions, commandActions);
     }
   }
 
@@ -72,8 +75,10 @@ export class HUD {
 
   openTowerRing(state, tower) {
     if (!this.radial) return;
-    this.radial.open({ x: tower.cx, y: tower.cy }, towerRingItems(state, tower, this.actions), 'tower',
-      () => { if (state.selected === tower) state.selected = null; }, { totalSlots: TOWER_RING_SLOTS });
+    const items = towerRingItems(state, tower, this.actions);
+    const totalSlots = Math.max(1, ...items.map((it) => (it.slot != null ? it.slot : 0))) + 1;
+    this.radial.open({ x: tower.cx, y: tower.cy }, items, 'tower',
+      () => { if (state.selected === tower) state.selected = null; }, { totalSlots });
     state.menuCell = null;
     state.selected = tower;    // (re)select after open — open() closes any prior ring
     this.radial.refresh(state);

@@ -7,7 +7,8 @@
 
 import { CONFIG } from '../config.js';
 import { heroUpgradeCost, heroUpgradeMaxed, consumableCost, towerBoostCost, towerBoostMaxed } from '../game/shop.js';
-import { div, btn } from './components.js';
+import { div, btn, lockSurface } from './components.js';
+import { icon, setIconButton } from './icons.js';
 
 export class Sheets {
   constructor(actions) {
@@ -21,6 +22,7 @@ export class Sheets {
 
   close() {
     if (!this.root) return;
+    if (this._unlock) { this._unlock(); this._unlock = null; }
     this.root.remove();
     this.root = null;
     this.kind = null;
@@ -35,8 +37,11 @@ export class Sheets {
     const backdrop = div('sheet-backdrop');
     backdrop.addEventListener('click', (ev) => { if (ev.target === backdrop) this.close(); });
     const panel = div('sheet');
-    panel.appendChild(div('sheet-title', titleText));
-    const x = btn('✕', () => this.close(), 'sheet-close');
+    const titleIcon = kind === 'settings' ? 'settings' : 'shop';
+    panel.appendChild(div('sheet-title', `${icon(titleIcon)}<span>${titleText}</span>`));
+    const x = btn('', () => this.close(), 'sheet-close');
+    setIconButton(x, 'close', `Close ${titleText}`);
+    x.setAttribute('aria-label', `Close ${titleText.replace(/^[^A-Za-z]+/, '')}`);
     panel.appendChild(x);
     const body = div('sheet-body');
     buildBody(body);
@@ -44,17 +49,19 @@ export class Sheets {
     backdrop.appendChild(panel);
     document.body.appendChild(backdrop);
     this.root = backdrop;
+    this._unlock = lockSurface(backdrop, () => this.close());
   }
 
   // ---- settings -------------------------------------------------------------
   openSettings(state, ui) {
-    this._open('settings', '⚙ Settings', (body) => {
-      const row = (label, onTap, active) => {
+    this._open('settings', 'Settings', (body) => {
+      const row = (label, onTap, active, iconName = null) => {
         const b = btn(label, onTap, 'ui-btn wide' + (active ? ' gold' : ''));
+        if (iconName) setIconButton(b, iconName, label, label);
         body.appendChild(b);
         return b;
       };
-      row('▶ Resume', () => this.close());
+      row('Resume', () => this.close(), false, 'play');
       this.el.path = row(`Path overlay: ${state.showPath ? 'ON' : 'OFF'}`, () => {
         this.actions.togglePath();
         this.el.path.textContent = `Path overlay: ${state.showPath ? 'ON' : 'OFF'}`;
@@ -70,9 +77,9 @@ export class Sheets {
           this.el.sfx.textContent = `Sound: ${this.actions.sfxMuted && this.actions.sfxMuted() ? 'OFF' : 'ON'}`;
         });
       }
-      row('💾 Save game', () => this.actions.save());
-      row('📂 Load game', () => { this.actions.load(); this.close(); });
-      row('↺ Restart run', () => this.actions.restart());
+      row('Save game', () => this.actions.save(), false, 'save');
+      row('Load game', () => { this.actions.load(); this.close(); }, false, 'load');
+      row('Restart run', () => this.actions.restart(), false, 'retry');
 
       body.appendChild(div('sheet-help', `
         <b>How to play</b><br>
@@ -88,7 +95,7 @@ export class Sheets {
 
   // ---- store ------------------------------------------------------------------
   openStore(state) {
-    this._open('store', '🛒 Store', (body) => {
+    this._open('store', 'Tower Store', (body) => {
       this.el.storeBtns = { hero: {}, boost: {}, cons: {} };
 
       const section = (title) => {

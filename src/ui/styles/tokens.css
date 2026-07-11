@@ -1,0 +1,37 @@
+:root {
+  --ck-navy-950: #07131d;
+  --ck-navy-900: #0d2130;
+  --ck-navy-800: #17364a;
+  --ck-gold-700: #9b6417;
+  --ck-gold-500: #e3a928;
+  --ck-gold-300: #f7d77b;
+  --ck-cream-100: #fff4d3;
+  --ck-cream-300: #e7d39f;
+  --ck-green-600: #348942;
+  --ck-green-400: #73cf5b;
+  --ck-cyan-500: #3dbbd5;
+  --ck-red-500: #d94f45;
+  --ck-ink: #18212a;
+
+  --ui-panel: rgba(13, 33, 48, 0.96);
+  --ui-panel-solid: var(--ck-navy-900);
+  --ui-panel-2: var(--ck-navy-800);
+  --ui-line: var(--ck-gold-700);
+  --ui-line-hi: var(--ck-gold-300);
+  --ui-text: var(--ck-cream-100);
+  --ui-dim: var(--ck-cream-300);
+  --ui-gold: var(--ck-gold-500);
+  --ui-green: var(--ck-green-400);
+  --ui-red: var(--ck-red-500);
+  --ui-blue: var(--ck-cyan-500);
+  --ui-radius: 12px;
+  --ui-shadow: 0 10px 24px rgba(2, 9, 14, 0.42);
+  --ui-font: 'Trebuchet MS', 'Avenir Next Rounded', sans-serif;
+  --ui-display-font: Impact, 'Arial Black', sans-serif;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --motion-press: 90ms;
+  --motion-enter: 220ms;
+}

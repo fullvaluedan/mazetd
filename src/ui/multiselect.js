@@ -17,9 +17,10 @@ import { canBuildAt } from '../game/state.js';
 import { sellRefund } from '../game/shop.js';
 import { towersUnlockedAt } from '../game/levels.js';
 import { div } from './components.js';
+import { setIconButton } from './icons.js';
 
 export class MultiSelect {
-  constructor(uiLayer, actions) {
+  constructor(uiLayer, actions, commandLayer = uiLayer) {
     this.ui = uiLayer;
     this.actions = actions;
     this.active = false;
@@ -34,7 +35,7 @@ export class MultiSelect {
     b.addEventListener('click', () => {
       if (this.actions.toggleSelectMode) this.actions.toggleSelectMode();
     });
-    uiLayer.appendChild(b);
+    commandLayer.appendChild(b);
     this.toggle = b;
     this.setActive(true);   // drag-select is the default (matches input.js)
   }
@@ -44,7 +45,7 @@ export class MultiSelect {
   setActive(on) {
     this.active = on;
     this.toggle.classList.toggle('on', on);
-    this.toggle.textContent = on ? '⛶ Drag-build' : '✋ Pan map';
+    setIconButton(this.toggle, on ? 'drag' : 'pan', on ? 'Drag-build mode' : 'Pan map mode', on ? 'Drag-build' : 'Pan map');
     if (!on) this.closeCard();
   }
 

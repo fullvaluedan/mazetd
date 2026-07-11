@@ -11,6 +11,7 @@ import { earlyStartCap } from '../game/economy.js';
 import { formatMazeTime } from '../services/leaderboard.js';
 import { ROWS } from '../engine/grid.js';
 import { div, EGLYPH } from './components.js';
+import { icon } from './icons.js';
 
 const CHEV_SIZE = 40;   // chevron footprint in CSS px, for edge spacing/clamping
 
@@ -77,7 +78,7 @@ function measureSafeInsets() {
 }
 
 export class WaveBar {
-  constructor(uiLayer, viewport, actions) {
+  constructor(uiLayer, viewport, actions, commandLayer = uiLayer) {
     this.ui = uiLayer;
     this.viewport = viewport;
     this.actions = actions;
@@ -85,7 +86,7 @@ export class WaveBar {
     this.btn = document.createElement('button');
     this.btn.className = 'ui-btn green wavebtn';
     this.btn.addEventListener('click', () => this.actions.startWave());
-    uiLayer.appendChild(this.btn);
+    commandLayer.appendChild(this.btn);
 
     this.chevrons = [];        // [{el, cx, cy}]
     this._chevronWave = -1;    // wave the chevrons were built for
@@ -103,7 +104,7 @@ export class WaveBar {
     for (const s of state.map.spawns) {
       const el = div('chevron',
         `<span class="glyph" style="color:${ecfg.color || '#fff'}">${EGLYPH[lead] || '●'}</span>
-         <span class="arrow">⌄</span>
+         <span class="arrow" aria-hidden="true"></span>
          ${info.hasFlying ? '<span class="fly">FLY</span>' : ''}`);
       el.addEventListener('click', () => this.actions.startWave());
       this.ui.appendChild(el);
@@ -124,8 +125,10 @@ export class WaveBar {
       const dy = c.cy === 0 ? 18 : (c.cy === ROWS - 1 ? -18 : 0);
       return { x: p.x + dx, y: p.y + dy };
     });
+    const w = this.ui.clientWidth || this.viewport.cssW;
+    const h = this.ui.clientHeight || this.viewport.cssH;
     const placed = pinChevrons(pts, {
-      w: this.viewport.cssW, h: this.viewport.cssH,
+      w, h,
       inset: this._safeInsets(), size: CHEV_SIZE,
     });
     this.chevrons.forEach((c, i) => {
@@ -139,7 +142,7 @@ export class WaveBar {
   // Safe-area insets, re-measured only when the letterbox changes (position()
   // runs on every pan frame; a DOM measure there would be too hot).
   _safeInsets() {
-    const key = this.viewport.cssW + 'x' + this.viewport.cssH;
+    const key = (this.ui.clientWidth || this.viewport.cssW) + 'x' + (this.ui.clientHeight || this.viewport.cssH);
     if (!this._insets || this._insetKey !== key) {
       this._insets = measureSafeInsets();
       this._insetKey = key;
@@ -174,18 +177,21 @@ export class WaveBar {
     this.btn.disabled = !canStart;
     this.btn.classList.toggle('siege', !!state.siege);
     let label;
-    if (state.siege && state.waveActive) label = '⚠ WALLS UNDER ATTACK';
+    if (state.siege && state.waveActive) label = 'WALLS UNDER ATTACK';
     else if (over) label = state.status === 'won' ? 'VICTORY' : 'DEFEAT';
     else if (onCooldown) label = `WAVE ${state.wave} … (${Math.ceil(state.nextWaveCooldown)}s)`;
     else {
       const elapsed = Math.max(0, CONFIG.BUILD_TIMER - state.buildTimer);
       const bonus = Math.max(0, Math.floor(earlyStartCap(nw) - elapsed * CONFIG.EARLY_START_BONUS_PER_SEC));
-      label = bonus > 0 ? `NEXT WAVE ▶ |+${bonus}g` : 'NEXT WAVE ▶';
+      // The value is live: players can see the incentive shrink instead of
+      // guessing whether calling early is worth ending their build time.
+      label = bonus > 0 ? `CALL EARLY|+${bonus}g BONUS` : 'NEXT WAVE';
     }
     if (this._label !== label) {
       this._label = label;
       const [main, bonus] = label.split('|');
-      this.btn.innerHTML = bonus ? `${main}<span class="bonus">${bonus}</span>` : main;
+      this.btn.setAttribute('aria-label', bonus ? `${main}, bonus ${bonus}` : main);
+      this.btn.innerHTML = `<span class="control-face">${icon(state.siege ? 'heart' : 'play')}<span>${main}</span>${bonus ? `<span class="bonus">${bonus}</span>` : ''}</span>`;
     }
   }
 
@@ -201,13 +207,14 @@ export class WaveBar {
     this.btn.classList.toggle('siege', !!state.siege);
     this.btn.classList.toggle('maze-timer', running);
     let label;
-    if (over) label = `⏱ ${formatMazeTime(state.mazeTimer)}`;
-    else if (running) label = `⏱ ${formatMazeTime(state.mazeTimer)}`;
-    else label = '▶ RELEASE THE HORDE';
+    if (over) label = formatMazeTime(state.mazeTimer);
+    else if (running) label = formatMazeTime(state.mazeTimer);
+    else label = 'RELEASE THE HORDE';
     // timer updates every frame while running, so bypass the label cache then
     if (running || this._label !== label) {
       this._label = label;
-      this.btn.innerHTML = label;
+      this.btn.setAttribute('aria-label', running || over ? `Maze time ${label}` : label);
+      this.btn.innerHTML = `<span class="control-face">${icon(running || over ? 'wave' : 'play')}<span>${label}</span></span>`;
     }
   }
 }

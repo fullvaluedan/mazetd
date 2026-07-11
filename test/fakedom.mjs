@@ -8,6 +8,9 @@ function makeEl(tag = 'div') {
     dataset: {},
     _text: '', _html: '',
     disabled: false,
+    attributes: {},
+    setAttribute(name, value) { this.attributes[name] = String(value); },
+    getAttribute(name) { return this.attributes[name] ?? null; },
     classList: {
       _s: new Set(),
       add(...c) { c.forEach((x) => this._s.add(x)); },

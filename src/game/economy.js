@@ -19,6 +19,17 @@ export function spendGold(state, cost) {
 
 export function addGold(state, amt) { state.gold += amt; }
 
+function goldModeMultiplier(state) {
+  return CONFIG.DIFFICULTY_MODES[state && state.difficultyMode] ? CONFIG.DIFFICULTY_MODES[state.difficultyMode].goldMult : 1;
+}
+
+export function gainGold(state, amt) {
+  const mult = goldModeMultiplier(state);
+  const added = amt > 0 ? Math.ceil(amt * mult) : amt;
+  state.gold += added;
+  return added;
+}
+
 // Floating number helper (damage/gold popups).
 export function addFloater(state, x, y, text, color) {
   state.floaters.push({ x, y, text, color, life: 0.9, max: 0.9, vy: -28 });
@@ -43,8 +54,8 @@ export function updateParticles(state, dt) {
 }
 
 export function onEnemyKilled(state, e) {
-  addGold(state, e.bounty);
-  addFloater(state, e.x, e.y - e.radius, '+' + e.bounty, CONFIG.COLORS.gold);
+  const awarded = gainGold(state, e.bounty);
+  addFloater(state, e.x, e.y - e.radius, '+' + awarded, CONFIG.COLORS.gold);
   spawnParticles(state, e.x, e.y, e.color, e.boss ? 18 : 4);
   pushEvent(state, 'death');
   if (e.boss) addShake(state, 8);
@@ -92,23 +103,25 @@ export function payWaveClear(state, waveNum) {
   const lv = state.level && state.level.waves;
   const mult = lv && lv.waveclearMult != null ? lv.waveclearMult : 1;
   // GOLD_PER_ROUND_SCALE (-35%, user 2026-07-08) hits only the wave-clear
-  // bonus and (in wave.js computeStats) kill bounties — interest and income
-  // towers below are deliberately untouched.
+  // bonus and (in wave.js computeStats) kill bounties; the difficulty mode
+  // multiplier below then scales all earned gold for the chosen preset.
   const bonus = Math.floor((CONFIG.WAVECLEAR_BASE + CONFIG.WAVECLEAR_PER_WAVE * waveNum) * mult * CONFIG.GOLD_PER_ROUND_SCALE);
-  addGold(state, bonus);
+  const bonusAwarded = gainGold(state, bonus);
   const interest = Math.min(CONFIG.INTEREST_CAP, Math.floor(state.gold * CONFIG.INTEREST_RATE));
-  addGold(state, interest);
+  const interestAwarded = gainGold(state, interest);
   // Income towers (U6): flat stats.income gold per tower, paid only here.
-  // Deliberately NOT scaled by waveclearMult or GOLD_PER_ROUND_SCALE (those
-  // knobs tame the global clear constants, not tower stats) and added after
-  // interest so the interest math is untouched.
-  let income = 0;
+  // Added after interest so the interest math is still based on the current
+  // post-bonus cash pile.
+  let incomeAwarded = 0;
   for (const t of state.towers) {
     const inc = t.stats && t.stats.income;
-    if (inc > 0) { income += inc; addFloater(state, t.px, t.py, '+' + inc + 'g', CONFIG.COLORS.gold); }
+    if (inc > 0) {
+      const awarded = gainGold(state, inc);
+      incomeAwarded += awarded;
+      addFloater(state, t.px, t.py, '+' + awarded + 'g', CONFIG.COLORS.gold);
+    }
   }
-  if (income > 0) addGold(state, income);
-  return { bonus, interest, income };
+  return { bonus: bonusAwarded, interest: interestAwarded, income: incomeAwarded };
 }
 
 // Early-start bonus cap for calling wave `w` the instant its build timer
@@ -123,8 +136,7 @@ export function earlyStartCap(wave = 1) {
 export function payEarlyStart(state, secondsLeft, wave) {
   const elapsed = Math.max(0, CONFIG.BUILD_TIMER - secondsLeft);
   const bonus = Math.max(0, Math.floor(earlyStartCap(wave) - elapsed * CONFIG.EARLY_START_BONUS_PER_SEC));
-  if (bonus > 0) addGold(state, bonus);
-  return bonus;
+  return bonus > 0 ? gainGold(state, bonus) : 0;
 }
 
 // Advance floating numbers; drop expired ones.

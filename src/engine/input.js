@@ -21,7 +21,7 @@
 // onLeftClick, so the radial can never open in select mode.
 // =============================================================================
 
-import { SIZE, COLS, ROWS } from './grid.js';
+import { SIZE, COLS, ROWS, worldW, worldH } from './grid.js';
 import { CONFIG } from '../config.js';
 
 export function setupInput(canvas, handlers, viewport) {
@@ -82,7 +82,10 @@ export function setupInput(canvas, handlers, viewport) {
   };
 
   // CSS-px delta -> world-px delta at the current zoom (no rect offset needed).
-  const cssToWorld = () => 1 / (viewport.scale * viewport.zoom);
+  const cssToWorld = () => ({
+    x: worldW() / ((viewport.cssW || (viewport.scale * worldW())) * viewport.zoom),
+    y: worldH() / ((viewport.cssH || (viewport.scale * worldH())) * viewport.zoom),
+  });
 
   const pinchFrame = () => {
     const [a, b] = [...pointers.values()];
@@ -130,7 +133,7 @@ export function setupInput(canvas, handlers, viewport) {
       if (handlers.onMarquee) handlers.onMarquee(marquee);
     } else if (mode === 'pan') {
       const k = cssToWorld();  // world follows the finger, so the camera moves opposite
-      viewport.panBy((last.x - p.x) * k, (last.y - p.y) * k);
+      viewport.panBy((last.x - p.x) * k.x, (last.y - p.y) * k.y);
       last = { x: p.x, y: p.y };
     } else if (mode === 'pinch' && pointers.size === 2) {
       const f = pinchFrame();
@@ -140,7 +143,7 @@ export function setupInput(canvas, handlers, viewport) {
         const w = viewport.clientToWorld(pinch.midX, pinch.midY);
         viewport.zoomAt(f.dist / pinch.dist, w.x, w.y);
         const k = cssToWorld();   // after the zoom: midpoint pan is in new-scale px
-        viewport.panBy((pinch.midX - f.midX) * k, (pinch.midY - f.midY) * k);
+        viewport.panBy((pinch.midX - f.midX) * k.x, (pinch.midY - f.midY) * k.y);
       }
       pinch = f;
     }

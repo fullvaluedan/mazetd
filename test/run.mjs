@@ -24,6 +24,14 @@ const SUITES = [
   't12render.mjs',
   't12mechanics.mjs',
   't12resume.mjs',
+  't13assets.mjs',
+  't14asset-files.mjs',
+  't15ui-contract.mjs',
+  't16sprite-layout.mjs',
+  't17campaign-leaderboard.mjs',
+  't18footprints.mjs',
+  't19-production-assets.mjs',
+  't19-map-kit.mjs',
   't10validate.mjs',                 // balance gate: classic board, 6 seeds + all heroes
   'campaign-sim.mjs',                // balance gate: reference wins all 20 + margin bands
   ['campaign-sim.mjs', '--careless'],  // balance gate: naive play first dies in 2..10

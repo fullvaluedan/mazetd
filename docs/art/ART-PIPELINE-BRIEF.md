@@ -74,7 +74,7 @@ Requirements:
 ## Naming convention
 
 ```
-tower_arrow_lv1.png   tower_arrow_sheet.png
+tower-arrow-lv1.png   tower-arrow-attack.png
 enemy_goblin_scout_sheet.png   boss_tree_guardian_sheet.png
 projectile_fireball.png   effect_poison.png
 ```
@@ -84,13 +84,13 @@ projectile_fireball.png   effect_poison.png
 Tile 32x32 px; tower footprint 1x1 tile (acts as wall); sprite outline 2px; light
 top-left; animation 4-8 fps; PNG RGBA; transparent backgrounds.
 
-## The Art Bible (to be written as the multi-page source of truth)
+## The Art Bible (`docs/art/ART-BIBLE.md`)
 
-1. Vision & art pillars (bright/friendly/adventurous, clean silhouettes at small sizes,
+1. Vision & art pillars (bright fantasy, clean silhouettes at small sizes,
    consistent perspective, functional first, readable effects)
 2. Camera & perspective (30-degree top-down, tile grid, footprints, height/scale rules)
 3. Color & lighting (master palette, material colors, shadow intensity, highlights)
-4. Environment (terrain, cliffs, props, buildings)
+4. Environment (terrain, cliffs, props, world-map/backdrop art)
 5. Creatures (shape language, archetypes, animation standards, evolution hierarchy)
 6. Towers (families, upgrade progression, materials, silhouette rules)
 7. Effects (projectiles, explosions, status effects, spells)

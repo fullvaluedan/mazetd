@@ -19,7 +19,7 @@ export function buildCost(typeId) { return CONFIG.TOWERS[typeId].cost; }
 export function tryBuild(state, typeId, x, y) {
   const def = CONFIG.TOWERS[typeId];
   if (!def) return false;
-  if (!canBuildAt(state, x, y)) return false;
+  if (!canBuildAt(state, x, y, typeId)) return false;
   if (!canAfford(state, def.cost)) return false;
   spendGold(state, def.cost);
   return addTower(state, typeId, x, y);   // UI selection/arming handled by caller

@@ -32,6 +32,8 @@ export function btn(label, onClick, cls) {
   return b;
 }
 
+export { icon, setIconButton } from './icons.js';
+
 export function bar(kind) {
   const wrap = div('bar' + (kind ? ' ' + kind : ''));
   wrap.style.margin = '3px 0';
@@ -48,6 +50,31 @@ export function stat(parent, label, valueClass) {
   s.append(l, v);
   parent.appendChild(s);
   return v;
+}
+
+export function lockSurface(root, onEscape = null) {
+  const shell = typeof document !== 'undefined' ? document.getElementById('battle-shell') : null;
+  const invoker = typeof document !== 'undefined' ? document.activeElement : null;
+  if (shell) shell.inert = true;
+  const focusable = () => [...root.querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled), [tabindex]:not([tabindex="-1"])')];
+  const onKey = (event) => {
+    if (event.key === 'Escape' && onEscape) {
+      event.preventDefault(); event.stopPropagation(); onEscape(); return;
+    }
+    if (event.key !== 'Tab') return;
+    const items = focusable();
+    if (!items.length) { event.preventDefault(); return; }
+    const first = items[0], last = items[items.length - 1];
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+  };
+  root.addEventListener('keydown', onKey);
+  setTimeout(() => { const first = focusable()[0]; if (first && first.focus) first.focus(); }, 0);
+  return () => {
+    root.removeEventListener('keydown', onKey);
+    if (shell) shell.inert = false;
+    if (invoker && invoker.focus) invoker.focus();
+  };
 }
 
 // Tiny glyphs for enemy types (wave preview, incoming chevrons, info cards).

@@ -1,30 +1,1142 @@
 {
-  "tower-wall": "assets/towers/wall.png",
-  "tower-cannon": "assets/towers/cannon.png",
-  "tower-magic": "assets/towers/magic.png",
-  "tower-falcon": "assets/towers/falcon.png",
-  "tower-archer": "assets/towers/archer.png",
-  "tower-frost": "assets/towers/frost.png",
-  "tower-arcane": "assets/towers/arcane.png",
-  "tower-venom": "assets/towers/venom.png",
-  "tower-tesla": "assets/towers/tesla.png",
-  "tower-beacon": "assets/towers/beacon.png",
-  "tower-arrow": "assets/towers/archer.png",
-  "tower-poison": "assets/towers/venom.png",
-  "tower-lightning": "assets/towers/tesla.png",
-  "tower-support": "assets/towers/beacon.png",
-  "tower-cannonL": "assets/towers/cannon.png",
-  "tower-frostL": "assets/towers/frost.png",
-  "tower-sniper": "assets/towers/sniper.png",
-  "tower-gold": "assets/towers/gold.png",
-  "enemy-normal": "assets/enemies/normal.png",
-  "enemy-fast": "assets/enemies/fast.png",
-  "enemy-tank": "assets/enemies/tank.png",
-  "enemy-swarm": "assets/enemies/swarm.png",
-  "enemy-flyer": "assets/enemies/flyer.png",
-  "enemy-healer": "assets/enemies/healer.png",
-  "enemy-shield": "assets/enemies/shield.png",
-  "enemy-boss": "assets/enemies/boss.png",
+  "ui-icons": {
+    "src": "assets/ui/icons.svg",
+    "version": 1,
+    "kind": "svg-symbol-sheet",
+    "intrinsic": [
+      24,
+      24
+    ],
+    "scaleMode": "contain"
+  },
+  "tile-floor-dirt": {
+    "src": "assets/tiles/floor-dirt-v1.png",
+    "version": 1,
+    "kind": "tile",
+    "logical": [
+      32,
+      32
+    ],
+    "footprint": [
+      1,
+      1
+    ],
+    "pivot": [
+      0.5,
+      0.5
+    ],
+    "scaleMode": "tile"
+  },
+  "tile-stone-pad": {
+    "src": "assets/tiles/stone-pad-v1.png",
+    "version": 1,
+    "kind": "tile",
+    "logical": [
+      32,
+      32
+    ],
+    "footprint": [
+      1,
+      1
+    ],
+    "pivot": [
+      0.5,
+      0.5
+    ],
+    "scaleMode": "tile"
+  },
+  "objective-portal": {
+    "src": "assets/objectives/portal-v1.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      96,
+      96
+    ],
+    "footprint": [
+      3,
+      3
+    ],
+    "pivot": [
+      0.5,
+      0.5
+    ],
+    "scaleMode": "contain"
+  },
+  "objective-crystal": {
+    "src": "assets/objectives/crystal-v1.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      96,
+      128
+    ],
+    "footprint": [
+      3,
+      4
+    ],
+    "pivot": [
+      0.5,
+      0.5
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-wall-redbrick": {
+    "src": "assets/towers/wall-redbrick-v1.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "footprint": [
+      1,
+      1
+    ],
+    "pivot": [
+      0.5,
+      0.5
+    ],
+    "scaleMode": "tile"
+  },
+  "tower-wall": {
+    "src": "assets/towers/wall.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.5
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-arrow": {
+    "src": "assets/towers/arrow.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-arrow-lv1": {
+    "src": "assets/towers/arrow-lv1.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-arrow-lv2": {
+    "src": "assets/towers/arrow-lv2.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-arrow-lv3": {
+    "src": "assets/towers/arrow-lv3.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-arrow-lv4": {
+    "src": "assets/towers/arrow-lv4.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-arrow-lv5": {
+    "src": "assets/towers/arrow-lv5.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "sheet-tower-arrow-attack": {
+    "src": "assets/sheets/tower-arrow-attack.png",
+    "frames": 4,
+    "grid": [
+      2,
+      2
+    ],
+    "version": 1,
+    "kind": "sheet",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-cannon": {
+    "src": "assets/towers/cannon.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-cannon-lv1": {
+    "src": "assets/towers/cannon-lv1.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-cannon-lv2": {
+    "src": "assets/towers/cannon-lv2.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-cannon-lv3": {
+    "src": "assets/towers/cannon-lv3.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-cannon-lv4": {
+    "src": "assets/towers/cannon-lv4.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-cannon-lv5": {
+    "src": "assets/towers/cannon-lv5.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "sheet-tower-cannon-attack": {
+    "src": "assets/sheets/tower-cannon-attack.png",
+    "frames": 4,
+    "grid": [
+      2,
+      2
+    ],
+    "version": 1,
+    "kind": "sheet",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-frost": {
+    "src": "assets/towers/frost.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-frost-lv1": {
+    "src": "assets/towers/frost-lv1.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-frost-lv2": {
+    "src": "assets/towers/frost-lv2.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-frost-lv3": {
+    "src": "assets/towers/frost-lv3.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-frost-lv4": {
+    "src": "assets/towers/frost-lv4.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-frost-lv5": {
+    "src": "assets/towers/frost-lv5.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "sheet-tower-frost-attack": {
+    "src": "assets/sheets/tower-frost-attack.png",
+    "frames": 4,
+    "grid": [
+      2,
+      2
+    ],
+    "version": 1,
+    "kind": "sheet",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-poison": {
+    "src": "assets/towers/poison.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-poison-lv1": {
+    "src": "assets/towers/poison-lv1.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-poison-lv2": {
+    "src": "assets/towers/poison-lv2.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-poison-lv3": {
+    "src": "assets/towers/poison-lv3.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-poison-lv4": {
+    "src": "assets/towers/poison-lv4.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-poison-lv5": {
+    "src": "assets/towers/poison-lv5.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "sheet-tower-poison-attack": {
+    "src": "assets/sheets/tower-poison-attack.png",
+    "frames": 4,
+    "grid": [
+      2,
+      2
+    ],
+    "version": 1,
+    "kind": "sheet",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-sniper": {
+    "src": "assets/towers/sniper.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-sniper-lv1": {
+    "src": "assets/towers/sniper-lv1.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-sniper-lv2": {
+    "src": "assets/towers/sniper-lv2.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-sniper-lv3": {
+    "src": "assets/towers/sniper-lv3.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-sniper-lv4": {
+    "src": "assets/towers/sniper-lv4.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-sniper-lv5": {
+    "src": "assets/towers/sniper-lv5.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "sheet-tower-sniper-attack": {
+    "src": "assets/sheets/tower-sniper-attack.png",
+    "frames": 4,
+    "grid": [
+      2,
+      2
+    ],
+    "version": 1,
+    "kind": "sheet",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-lightning": {
+    "src": "assets/towers/lightning.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-lightning-lv1": {
+    "src": "assets/towers/lightning-lv1.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-lightning-lv2": {
+    "src": "assets/towers/lightning-lv2.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-lightning-lv3": {
+    "src": "assets/towers/lightning-lv3.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-lightning-lv4": {
+    "src": "assets/towers/lightning-lv4.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-lightning-lv5": {
+    "src": "assets/towers/lightning-lv5.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "sheet-tower-lightning-attack": {
+    "src": "assets/sheets/tower-lightning-attack.png",
+    "frames": 4,
+    "grid": [
+      2,
+      2
+    ],
+    "version": 1,
+    "kind": "sheet",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-support": {
+    "src": "assets/towers/support.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-support-lv1": {
+    "src": "assets/towers/support-lv1.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-support-lv2": {
+    "src": "assets/towers/support-lv2.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-support-lv3": {
+    "src": "assets/towers/support-lv3.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-support-lv4": {
+    "src": "assets/towers/support-lv4.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-support-lv5": {
+    "src": "assets/towers/support-lv5.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-gold": {
+    "src": "assets/towers/gold.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-gold-lv1": {
+    "src": "assets/towers/gold-lv1.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-gold-lv2": {
+    "src": "assets/towers/gold-lv2.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-gold-lv3": {
+    "src": "assets/towers/gold-lv3.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-gold-lv4": {
+    "src": "assets/towers/gold-lv4.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-gold-lv5": {
+    "src": "assets/towers/gold-lv5.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-magic": {
+    "src": "assets/towers/magic.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-falcon": {
+    "src": "assets/towers/falcon.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-cannonL": {
+    "src": "assets/towers/cannonL.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-archer": {
+    "src": "assets/towers/archer.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-frostL": {
+    "src": "assets/towers/frostL.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-arcane": {
+    "src": "assets/towers/arcane.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-venom": {
+    "src": "assets/towers/venom.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-tesla": {
+    "src": "assets/towers/tesla.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-beacon": {
+    "src": "assets/towers/beacon.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.56
+    ],
+    "scaleMode": "contain"
+  },
+  "enemy-normal": {
+    "src": "assets/enemies/normal.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.62
+    ],
+    "scaleMode": "contain"
+  },
+  "enemy-fast": {
+    "src": "assets/enemies/fast.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.62
+    ],
+    "scaleMode": "contain"
+  },
+  "enemy-tank": {
+    "src": "assets/enemies/tank.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.62
+    ],
+    "scaleMode": "contain"
+  },
+  "enemy-swarm": {
+    "src": "assets/enemies/swarm.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.62
+    ],
+    "scaleMode": "contain"
+  },
+  "enemy-flyer": {
+    "src": "assets/enemies/flyer.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.62
+    ],
+    "scaleMode": "contain"
+  },
+  "enemy-healer": {
+    "src": "assets/enemies/healer.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.62
+    ],
+    "scaleMode": "contain"
+  },
+  "enemy-shield": {
+    "src": "assets/enemies/shield.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.62
+    ],
+    "scaleMode": "contain"
+  },
+  "enemy-boss": {
+    "src": "assets/enemies/boss.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.62
+    ],
+    "scaleMode": "contain"
+  },
   "hero-warrior": "assets/heroes/warrior.png",
   "hero-mage": "assets/heroes/mage.png",
   "hero-ranger": "assets/heroes/ranger.png",
@@ -34,7 +1146,18 @@
     "grid": [
       2,
       2
-    ]
+    ],
+    "version": 1,
+    "kind": "sheet",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.62
+    ],
+    "scaleMode": "contain"
   },
   "sheet-enemy-fast": {
     "src": "assets/sheets/enemy-fast.png",
@@ -42,7 +1165,18 @@
     "grid": [
       2,
       2
-    ]
+    ],
+    "version": 1,
+    "kind": "sheet",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.62
+    ],
+    "scaleMode": "contain"
   },
   "sheet-enemy-tank": {
     "src": "assets/sheets/enemy-tank.png",
@@ -50,7 +1184,18 @@
     "grid": [
       2,
       2
-    ]
+    ],
+    "version": 1,
+    "kind": "sheet",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.62
+    ],
+    "scaleMode": "contain"
   },
   "sheet-enemy-swarm": {
     "src": "assets/sheets/enemy-swarm.png",
@@ -58,7 +1203,18 @@
     "grid": [
       2,
       2
-    ]
+    ],
+    "version": 1,
+    "kind": "sheet",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.62
+    ],
+    "scaleMode": "contain"
   },
   "sheet-enemy-healer": {
     "src": "assets/sheets/enemy-healer.png",
@@ -66,7 +1222,18 @@
     "grid": [
       2,
       2
-    ]
+    ],
+    "version": 1,
+    "kind": "sheet",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.62
+    ],
+    "scaleMode": "contain"
   },
   "sheet-enemy-shield": {
     "src": "assets/sheets/enemy-shield.png",
@@ -74,7 +1241,18 @@
     "grid": [
       2,
       2
-    ]
+    ],
+    "version": 1,
+    "kind": "sheet",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.62
+    ],
+    "scaleMode": "contain"
   },
   "sheet-enemy-boss": {
     "src": "assets/sheets/enemy-boss.png",
@@ -82,7 +1260,18 @@
     "grid": [
       2,
       2
-    ]
+    ],
+    "version": 1,
+    "kind": "sheet",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.62
+    ],
+    "scaleMode": "contain"
   },
   "sheet-hero-warrior": {
     "src": "assets/sheets/hero-warrior.png",

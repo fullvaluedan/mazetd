@@ -63,6 +63,13 @@ export const CONFIG = {
   WAVE_CALL_BONUS_BASE: 10,     // early-call bonus cap at wave 1 (user 2026-07-08)
   WAVE_CALL_BONUS_PER_WAVE: 5,  // +5g cap per wave: wave1=10, wave2=15, wave3=20, ...
 
+  // Player-facing balance presets. Expert is the current shipped baseline.
+  DIFFICULTY_MODES: {
+    expert: { goldMult: 1,   towerDamageMult: 1   },
+    normal: { goldMult: 1.4, towerDamageMult: 1.2 },
+    easy:   { goldMult: 2,   towerDamageMult: 1.5 },
+  },
+
   // ---------------------------------------------------------------------------
   // WAVES & ENEMY SCALING (waves 1..100)
   // ---------------------------------------------------------------------------
@@ -578,3 +585,11 @@ export const CONFIG = {
 export const TICK_DT = 1 / CONFIG.TICK_HZ;            // seconds per sim tick
 export const CANVAS_W = CONFIG.GRID_COLS * CONFIG.CELL;
 export const CANVAS_H = CONFIG.GRID_ROWS * CONFIG.CELL;
+
+export function normalizeDifficultyMode(mode) {
+  return CONFIG.DIFFICULTY_MODES[mode] ? mode : 'expert';
+}
+
+export function difficultyModeStats(mode) {
+  return CONFIG.DIFFICULTY_MODES[normalizeDifficultyMode(mode)];
+}

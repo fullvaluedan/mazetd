@@ -12,7 +12,7 @@ import { makeRng } from './engine/rng.js';
 import { setupInput } from './engine/input.js';
 import { createState, canBuildAt } from './game/state.js';
 import { updateEnemies } from './game/enemy.js';
-import { updateTowers } from './game/tower.js';
+import { seedStarterWalls, updateTowers } from './game/tower.js';
 import { updateProjectiles, updateEffects } from './game/projectile.js';
 import { createHero } from './game/hero.js';
 import { onEnemyKilled, onEnemyLeaked, updateFloaters, updateParticles, payWaveClear, payEarlyStart } from './game/economy.js';
@@ -30,22 +30,27 @@ import { HUD } from './ui/hud.js';
 import { loadSprites, toggleSprites } from './ui/sprites.js';
 import { Viewport } from './ui/viewport.js';
 import { createHints } from './ui/hints.js';
-import { hoverCardHtml, enemyCardHtml, enemyAt } from './ui/infocard.js';
+import { hoverCardHtml, enemyCardHtml, enemyAt, towerCardHtml } from './ui/infocard.js';
 import { Screens } from './ui/screens.js';
 import * as sfx from './services/sfx.js';
 import * as ads from './services/ads.js';
 import * as profile from './services/profile.js';
+import { getDifficultyMode, setDifficultyMode } from './services/difficulty.js';
 import { starsFor } from './ui/screens.js';
-import { addGold } from './game/economy.js';
+import { gainGold } from './game/economy.js';
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 const overlay = document.getElementById('overlay');
+const notifications = document.getElementById('notifications');
 const modal = document.getElementById('modal');
 const uiLayer = document.getElementById('ui');
+const statusDeck = document.getElementById('status-deck');
+const commandActions = document.getElementById('command-actions');
+const contextPanel = document.getElementById('context-panel');
 // Letterbox + DPR: viewport owns the canvas backing store and CSS box from
 // here on; all draw code keeps working in fixed 896x576 world coordinates.
-const viewport = new Viewport(canvas, uiLayer, document.getElementById('stage'));
+const viewport = new Viewport(canvas, uiLayer, document.getElementById('board-surface'));
 
 // Campaign level boot (until the level-select screen lands): ?level=l1 .. l20
 // or ?level=endless. Without the param you get the classic 28x18 board.
@@ -55,12 +60,24 @@ const bootLevel = (() => {
     return id ? getLevel(id) : null;
   } catch { return null; }
 })();
+const bootDifficulty = (() => {
+  try {
+    const mode = new URLSearchParams(location.search).get('difficulty');
+    return CONFIG.DIFFICULTY_MODES[mode] ? mode : getDifficultyMode();
+  } catch { return 'expert'; }
+})();
+const uiHarness = (() => {
+  try { return new URLSearchParams(location.search).get('uiHarness') === '1'; }
+  catch { return false; }
+})();
+setDifficultyMode(bootDifficulty);
 if (bootLevel) {
   setGridSize(bootLevel.cols, bootLevel.rows);
   viewport.resize();   // the viewport was built against the default world size
 }
 
-let state = createState(makeRng(CONFIG.SEED), CONFIG.SEED, bootLevel);
+let state = createState(makeRng(CONFIG.SEED), CONFIG.SEED, bootLevel, { difficultyMode: bootDifficulty });
+if (bootLevel) seedStarterWalls(state);
 let prevStatus = state.status;
 let prevSiege = false;
 
@@ -76,7 +93,7 @@ function showBanner(text, cls = '', dur = 2.2) {
   const el = document.createElement('div');
   el.className = 'banner ' + cls;
   el.textContent = text;
-  overlay.appendChild(el);
+  (notifications || overlay).appendChild(el);
   requestAnimationFrame(() => el.classList.add('show'));
   setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 300); }, dur * 1000);
 }
@@ -111,7 +128,7 @@ const actions = {
     const ready = ads.isReady('FREE_GOLD', state);
     return {
       ready,
-      label: ready ? `📺 +${ads.grantAmount('FREE_GOLD', state)}g` : `📺 ${ads.cooldownText('FREE_GOLD', state)}`,
+      label: ready ? `+${ads.grantAmount('FREE_GOLD', state)}g` : ads.cooldownText('FREE_GOLD', state),
     };
   },
   freeGold: async () => {
@@ -122,8 +139,8 @@ const actions = {
     loop.setPaused(wasPaused);
     if (granted) {
       const amt = ads.grantAmount('FREE_GOLD', state);
-      addGold(state, amt);
-      showBanner(`+${amt} gold!`, 'warn', 1.8);
+      const awarded = gainGold(state, amt);
+      showBanner(`+${awarded} gold!`, 'warn', 1.8);
       sfx.play('reward');
     }
   },
@@ -137,7 +154,7 @@ const actions = {
       prevStatus = 'playing';
       state.flash = 0;
       screens.hide();
-      showBanner(`Revived with ${CONFIG.ADS.REVIVE.lives} ♥ — hold the line!`, 'warn', 2.5);
+      showBanner(`Revived with ${CONFIG.ADS.REVIVE.lives} lives — hold the line!`, 'warn', 2.5);
       sfx.play('reward');
     }
   },
@@ -164,7 +181,7 @@ const actions = {
     state.nextWaveCooldown = CONFIG.WAVE_CALL_COOLDOWN;
     const info = waveInfoFor(state, state.wave);
     if (bonus > 0) showBanner(`Early start! +${bonus}g`, 'warn', 1.6);
-    if (info.hasFlying) showBanner('⚠ Flying incoming!', 'warn');
+    if (info.hasFlying) showBanner('Flying enemies incoming!', 'warn');
     if (info.isBoss) showBanner(`Wave ${state.wave}: BOSS`, 'danger');
   },
   selectBuild: (typeId) => {
@@ -175,14 +192,17 @@ const actions = {
   buildAt: (typeId, x, y) => {
     if (tryBuild(state, typeId, x, y)) { sfx.play('build'); hud.closeRadial(); }   // one-shot: build closes the ring
   },
-  upgradeTower: (tower, branch) => {
-    if (tryUpgrade(state, tower, branch)) { sfx.play('upgrade'); hud.openTowerRing(state, tower); }  // rebuilt with new level/prices
-  },
-  sellTower: (tower) => {
-    hud.closeRadial();
-    if (sellLocked(state)) { showBanner("Can't sell once the horde is loose", 'warn', 1.4); return; }
-    trySell(state, tower); sfx.play('sell');
-  },
+    upgradeTower: (tower, branch) => {
+      if (tryUpgrade(state, tower, branch)) { sfx.play('upgrade'); hud.openTowerRing(state, tower); }  // rebuilt with new level/prices
+    },
+    inspectTower: (tower) => {
+      if (hud.infocard) hud.infocard.showTap(towerCardHtml(tower));
+    },
+    sellTower: (tower) => {
+      hud.closeRadial();
+      if (sellLocked(state)) { showBanner("Can't sell once the horde is loose", 'warn', 1.4); return; }
+      trySell(state, tower); sfx.play('sell');
+    },
   cycleTargetAndRefresh: (tower) => { tower.cycleTargetMode(); hud.openTowerRing(state, tower); },
   // ---- marquee multi-select (U21): mode toggle + batch build/sell ----
   // The authoritative mode flag lives in the input layer (it routes gestures);
@@ -196,10 +216,7 @@ const actions = {
   toggleSelectMode: () => actions.setSelectMode(!input.isSelectMode()),
   batchBuild: (typeId, cells) => {
     const r = batchBuild(state, typeId, cells);   // one 'build' sfx event per batch
-    if (r.of > 0) {
-      showBanner(r.built < r.of ? `Built ${r.built}/${r.of} — out of gold` : `Built ${r.built}/${r.of}`,
-        r.built < r.of ? 'warn' : '', 1.8);
-    }
+    if (r.built < r.of) showBanner(`Only ${r.built}/${r.of} built — out of gold`, 'warn', 1.8);
   },
   batchSell: (cells) => {
     if (sellLocked(state)) { showBanner("Can't sell once the horde is loose", 'warn', 1.4); return; }
@@ -315,7 +332,7 @@ function update(dt) {
       showBanner(`Wave ${state.wave} cleared!  +${pay.bonus}g${pay.interest ? ` (+${pay.interest} interest)` : ''}`, '', 2);
       state.buildTimer = CONFIG.BUILD_TIMER;
       if (state.wave >= winWave(state)) state.status = 'won';
-      else if (waveInfoFor(state, state.wave + 1).hasFlying) showBanner('⚠ Flying next wave — get anti-air!', 'warn', 2.5);
+      else if (waveInfoFor(state, state.wave + 1).hasFlying) showBanner('Flying enemies next wave — get anti-air!', 'warn', 2.5);
       // U14: auto-save campaign progress at every wave-clear (the safe
       // between-waves point — no live enemies/projectiles to serialize). A
       // player killed by the OS mid-run resumes at the last wave cleared.
@@ -325,7 +342,7 @@ function update(dt) {
   if (state.lives <= 0) state.status = 'lost';
 
   // siege alert: fires once each time the maze flips from open to sealed
-  if (state.siege && !prevSiege) { showBanner("⚠ Path sealed — they're attacking your walls!", 'danger', 2.5); sfx.play('alarm'); }
+  if (state.siege && !prevSiege) { showBanner("Path sealed — they're attacking your walls!", 'danger', 2.5); sfx.play('alarm'); }
   prevSiege = state.siege;
 
   if (state.status !== prevStatus && (state.status === 'won' || state.status === 'lost')) {
@@ -379,7 +396,7 @@ function draw() {
 }
 
 const loop = new GameLoop(update, draw);
-const hud = new HUD(null, actions, { uiLayer, viewport });
+const hud = new HUD(null, actions, { uiLayer, viewport, statusDeck, commandActions, contextPanel });
 const hints = createHints(overlay, hud);
 const screens = new Screens(modal, {
   pickHero: (id) => {
@@ -427,6 +444,7 @@ loop.start();
 // wave-clear snapshot; that's the accepted wave-boundary granularity.
 if (typeof document !== 'undefined' && document.addEventListener) {
   document.addEventListener('visibilitychange', () => {
+    if (uiHarness) return;
     if (document.visibilityState !== 'hidden') return;
     // Maze Mode is a fresh challenge every launch — never save/resume it.
     if (state.level && !state.level.endless && !state.level.mazeMode && !state.waveActive
@@ -436,25 +454,8 @@ if (typeof document !== 'undefined' && document.addEventListener) {
   });
 }
 
-// The campaign is a VERTICAL game now: landscape phones get the rotate
-// prompt and the sim holds while it's up. Desktop windows just letterbox.
-(() => {
-  if (typeof window === 'undefined' || !window.matchMedia) return;
-  const portrait = window.matchMedia('(orientation: portrait)');
-  const coarse = window.matchMedia('(pointer: coarse)');
-  const el = document.getElementById('rotate');
-  if (!el) return;
-  let pausedByRotate = false;
-  const apply = () => {
-    const show = !portrait.matches && coarse.matches;
-    el.classList.toggle('hidden', !show);
-    if (show && !loop.paused) { loop.setPaused(true); pausedByRotate = true; }
-    else if (!show && pausedByRotate) { loop.setPaused(false); pausedByRotate = false; }
-  };
-  const sub = (mq) => { if (mq.addEventListener) mq.addEventListener('change', apply); else if (mq.addListener) mq.addListener(apply); };
-  sub(portrait); sub(coarse);
-  apply();
-})();
+// The responsive shell supports coarse-pointer landscape directly. The old
+// rotate blocker remains in the DOM only as a backward-compatible hidden node.
 
 // Debug handle (dev tools / preview verification). `state` is a live getter
 // because load() replaces the whole state object.

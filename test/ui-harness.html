@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mazecore UI Proof Harness</title>
+  <style>
+    :root { color-scheme: dark; font-family: Consolas, monospace; }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; background: #090d15; color: #f4e8c9; }
+    body { display: grid; grid-template-rows: auto 1fr; overflow: hidden; }
+    body.capture { grid-template-rows: 1fr; }
+    body.capture .harness-bar { display: none; }
+    .harness-bar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #111a29; border-bottom: 1px solid #a97727; }
+    .harness-bar label { font-weight: 700; }
+    .harness-bar select, .harness-bar button { min-height: 36px; border: 1px solid #bd8a35; border-radius: 6px; background: #1d2b40; color: #fff3ce; padding: 0 10px; }
+    .harness-status { margin-left: auto; color: #8dd7a5; }
+    iframe { width: 100%; height: 100%; border: 0; background: #0f1320; }
+  </style>
+</head>
+<body>
+  <div class="harness-bar">
+    <label for="proof-state">Proof state</label>
+    <select id="proof-state"></select>
+    <button id="reload-state" type="button">Reload state</button>
+    <span id="harness-status" class="harness-status" role="status">Loading</span>
+  </div>
+  <iframe id="game-frame" title="Mazecore proof viewport"></iframe>
+  <script type="module">
+    const states = [
+      'title', 'difficulty', 'map', 'battle-empty', 'radial-empty',
+      'radial-tower', 'info', 'settings', 'victory', 'defeat',
+      'wall-grid',
+      'tower-roster', 'enemy-roster',
+      'store', 'resume', 'maze-end', 'leaderboard', 'stageLeaderboard',
+    ];
+    const select = document.querySelector('#proof-state');
+    const frame = document.querySelector('#game-frame');
+    const status = document.querySelector('#harness-status');
+    const storageBaseline = snapshotStorage();
+    if (new URLSearchParams(location.search).get('capture') === '1') document.body.classList.add('capture');
+
+    for (const state of states) {
+      const option = document.createElement('option');
+      option.value = state;
+      option.textContent = state;
+      select.appendChild(option);
+    }
+
+    function snapshotStorage() {
+      const values = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        values[key] = localStorage.getItem(key);
+      }
+      return values;
+    }
+
+    function restoreStorage(values) {
+      localStorage.clear();
+      for (const [key, value] of Object.entries(values)) localStorage.setItem(key, value);
+    }
+
+    function waitForApp(win) {
+      return new Promise((resolve, reject) => {
+        const started = performance.now();
+        const poll = () => {
+          if (win.__mz) return resolve(win.__mz);
+          if (performance.now() - started > 8000) return reject(new Error('App debug seam did not initialize'));
+          setTimeout(poll, 25);
+        };
+        poll();
+      });
+    }
+
+    async function firstBuildable(win, app) {
+      const { canBuildAt } = await win.importForHarness('./src/game/state.js');
+      const rows = app.state.towerGrid.length;
+      const cols = app.state.towerGrid[0].length;
+      const cx = Math.floor(cols / 2);
+      const cy = Math.floor(rows / 2);
+      for (let radius = 0; radius < Math.max(cols, rows); radius++) {
+        for (let y = 1; y < rows - 1; y++) for (let x = 1; x < cols - 1; x++) {
+          if (Math.max(Math.abs(x - cx), Math.abs(y - cy)) === radius && canBuildAt(app.state, x, y)) return { x, y };
+        }
+      }
+      throw new Error('No buildable proof cell found');
+    }
+
+    async function placeProofTower(win, app) {
+      const cell = await firstBuildable(win, app);
+      app.state.gold = Math.max(app.state.gold, 9999);
+      app.actions.buildAt('arrow', cell.x, cell.y);
+      const tower = app.state.towerGrid[cell.y][cell.x];
+      if (!tower) throw new Error('Proof tower was not created');
+      return tower;
+    }
+
+    async function placeWallGrid(win, app) {
+      const { canBuildAt } = await win.importForHarness('./src/game/state.js');
+      app.state.gold = Math.max(app.state.gold, 99999);
+      const cx = Math.floor(app.state.towerGrid[0].length / 2) - 2;
+      const cy = Math.floor(app.state.towerGrid.length / 2) - 2;
+      const shape = [];
+      for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) shape.push({ x: cx + x, y: cy + y });
+      shape.push({ x: cx + 4, y: cy + 1 }, { x: cx + 5, y: cy + 1 });
+      for (const cell of shape) if (canBuildAt(app.state, cell.x, cell.y)) app.actions.buildAt('wall', cell.x, cell.y);
+      for (const [dx, type] of [['0', 'arrow'], ['1', 'cannon'], ['2', 'frost'], ['3', 'poison']]) {
+        const cell = { x: cx + Number(dx), y: cy - 1 };
+        if (canBuildAt(app.state, cell.x, cell.y)) app.actions.buildAt(type, cell.x, cell.y);
+      }
+    }
+
+    async function placeTowerRoster(win, app) {
+      const { canBuildAt } = await win.importForHarness('./src/game/state.js');
+      app.state.gold = 999999;
+      const types = ['arrow', 'cannon', 'frost', 'poison', 'sniper', 'lightning', 'support', 'gold'];
+      for (let i = 0; i < types.length; i++) {
+        const cell = { x: 2 + i, y: 5 };
+        if (canBuildAt(app.state, cell.x, cell.y)) app.actions.buildAt(types[i], cell.x, cell.y);
+      }
+      for (let level = 1; level <= 5; level++) {
+        const cell = { x: 3 + level, y: 10 };
+        if (!canBuildAt(app.state, cell.x, cell.y)) continue;
+        app.actions.buildAt('cannon', cell.x, cell.y);
+        const tower = app.state.towerGrid[cell.y][cell.x];
+        while (tower && tower.level < level && tower.canUpgrade()) tower.applyUpgrade(tower.forkChoices() ? 'A' : null);
+      }
+    }
+
+    async function placeEnemyRoster(win, app) {
+      const { Enemy } = await win.importForHarness('./src/game/enemy.js');
+      const types = ['normal', 'fast', 'tank', 'swarm', 'flyer', 'healer', 'shield', 'boss'];
+      const spawn = app.state.map.spawns[0];
+      const goal = app.state.map.goals[0];
+      app.state.enemies.length = 0;
+      for (let i = 0; i < types.length; i++) {
+        const enemy = new Enemy(app.state, types[i], spawn.id, goal.id, { hp: 100, speed: 0, bounty: 1 }, { flying: types[i] === 'flyer' });
+        enemy.x = (2.5 + i) * 32;
+        enemy.y = 8.5 * 32;
+        enemy.cx = 2 + i;
+        enemy.cy = 8;
+        enemy.spawnedAt = -10;
+        app.state.enemies.push(enemy);
+      }
+    }
+
+    async function applyState(name, win, app) {
+      app.screens.hide();
+      app.hud.closeRadial();
+      app.hud.sheets.close();
+      if (app.hud.infocard) app.hud.infocard.hide();
+      if (name === 'title') app.screens.showTitle();
+      else if (name === 'difficulty') app.screens.showDifficultySelect(() => {});
+      else if (name === 'map') app.screens.showMap();
+      else if (name === 'radial-empty') {
+        const cell = await firstBuildable(win, app);
+        app.hud.openBuildRing(app.state, cell.x, cell.y);
+      } else if (name === 'radial-tower') {
+        app.hud.openTowerRing(app.state, await placeProofTower(win, app));
+      } else if (name === 'info') {
+        app.actions.inspectTower(await placeProofTower(win, app));
+      } else if (name === 'wall-grid') {
+        await placeWallGrid(win, app);
+      } else if (name === 'tower-roster') {
+        await placeTowerRoster(win, app);
+      } else if (name === 'enemy-roster') {
+        await placeEnemyRoster(win, app);
+      } else if (name === 'settings') app.actions.openSettings();
+      else if (name === 'store') app.actions.openStore();
+      else if (name === 'resume') app.screens.showResumePrompt(app.state.level, 4);
+      else if (name === 'maze-end') app.screens.showMazeEnd({ ...app.state, mazeTimer: 137.4 });
+      else if (name === 'leaderboard') app.screens.showLeaderboard();
+      else if (name === 'stageLeaderboard') app.screens.showStageLeaderboard(app.state.level);
+      else if (name === 'victory' || name === 'defeat') {
+        app.screens.showEnd({
+          ...app.state,
+          status: name === 'victory' ? 'won' : 'lost',
+          maxWave: name === 'victory' ? (app.state.level?.waves?.count || 20) : 7,
+          wave: 7,
+          lives: name === 'victory' ? 8 : 0,
+        });
+      }
+    }
+
+    async function loadState(name) {
+      status.textContent = `Loading ${name}`;
+      select.value = name;
+      const needsLevel = !['title', 'difficulty', 'map'].includes(name);
+      const query = needsLevel ? '?level=l1&difficulty=expert&uiHarness=1' : '?difficulty=expert&uiHarness=1';
+      const loaded = new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('Frame load timed out')), 10000);
+        frame.onload = () => { clearTimeout(timer); resolve(); };
+      });
+      frame.src = `../index.html${query}&uiHarnessState=${encodeURIComponent(name)}#proof-${name}`;
+      await loaded;
+      const win = frame.contentWindow;
+      win.importForHarness = (path) => import(new URL(path, win.location.href));
+      const app = await waitForApp(win);
+      await applyState(name, win, app);
+      restoreStorage(storageBaseline);
+      document.body.dataset.proofState = name;
+      status.textContent = `Ready: ${name}`;
+      return { name, app, frame: frame.contentDocument };
+    }
+
+    select.addEventListener('change', () => loadState(select.value).catch(showError));
+    document.querySelector('#reload-state').addEventListener('click', () => loadState(select.value).catch(showError));
+    function showError(error) { status.textContent = `Error: ${error.message}`; throw error; }
+
+    window.__uiHarness = { states, loadState, get current() { return document.body.dataset.proofState || null; } };
+    loadState(new URLSearchParams(location.search).get('state') || states[0]).catch(showError);
+  </script>
+</body>
+</html>

@@ -69,6 +69,14 @@ export function unlockLevelFor(towerId) {
 //          countMult? }
 function L(num, name, def) {
   const waves = { ...def.waves };
+  const firstSpawn = def.spawns[0];
+  // Every stage opens with a small player-owned brick decision near its first
+  // gate. seedStarterWalls validates these against authored terrain at load.
+  const starterWalls = def.starterWalls || [
+    [Math.max(1, firstSpawn.cx - 1), 3],
+    [firstSpawn.cx, 3],
+    [Math.min(def.cols - 2, firstSpawn.cx + 1), 3],
+  ];
   if (waves.bossEvery) {
     waves.bossWaves = [];
     for (let w = waves.bossEvery; w <= waves.count; w += waves.bossEvery) waves.bossWaves.push(w);
@@ -81,6 +89,7 @@ function L(num, name, def) {
     goals: def.goals,
     checkpoints: def.checkpoints || [],
     obstacles: def.obstacles || [],
+    starterWalls,
     startGold: def.startGold,
     lives: def.lives != null ? def.lives : 10,
     waves,
@@ -115,15 +124,10 @@ export const LEVELS = [
   L(1, 'First Steps', {
     cols: 12, rows: 16,
     spawns: [{ id: 'S1', cx: 2, cy: 0 }],
-    // goal sits under the spawn column (not the far corner): on the grown
-    // 12x16 board the careless persona's fixed 10-tower budget only ever
-    // covers the top few serpentine rows, so a corner-to-corner path let it
-    // walk clean past the un-mazed bottom half (careless was winning w/ 9-10
-    // lives). Forcing the exit back under the entry keeps the whole route
-    // inside the covered band -> careless bleeds to a real 3-life scrape
-    // while the reference maze (which serpentines the entire board
-    // regardless of goal position) is unaffected. Geometry fix, not hpMult.
-    goals: [{ id: 'G1', cx: 2, cy: 15 }],
+    // Opposite-corner crystal makes the first maze objective legible. The
+    // campaign rebalance is validated against this real 2x2-tower geometry.
+    goals: [{ id: 'G1', cx: 9, cy: 15 }],
+    starterWalls: [[4, 3], [5, 3], [6, 3]],
     startGold: 100,
     waves: { count: 10, types: ['normal'], hpMult: 2.8, bountyMult: 0.19, waveclearMult: 0.14 },
     stars: [10, 7],

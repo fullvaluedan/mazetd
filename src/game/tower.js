@@ -13,10 +13,10 @@
 // beam / tesla chain).
 // =============================================================================
 
-import { CONFIG } from '../config.js';
+import { CONFIG, difficultyModeStats } from '../config.js';
 import { SIZE, cellCenter, cellCenterX, cellCenterY, cellDist } from '../engine/grid.js';
 import { fieldAt } from '../engine/pathfinding.js';
-import { onMazeChanged, pushEvent } from './state.js';
+import { canBuildAt, footprintCells, onMazeChanged, pushEvent } from './state.js';
 import { spawnProjectile, applyTowerHit, applyChain, applyLine, pushBeam, pushSplash } from './projectile.js';
 import { addShake, addFloater } from './economy.js';
 
@@ -85,8 +85,9 @@ function applyMods(s, m) {
 }
 
 // Resolve a tower's stats at a given level + branch choice.
-export function getTowerStats(typeId, level, branchId) {
+export function getTowerStats(typeId, level, branchId, difficultyMode = 'expert') {
   const def = CONFIG.TOWERS[typeId];
+  const balance = difficultyModeStats(difficultyMode);
   const s = {
     damage: def.damage, range: def.range, cooldown: def.cooldown,
     damageType: def.damageType,
@@ -143,7 +144,7 @@ export function getTowerStats(typeId, level, branchId) {
   // cannon included — grows range on upgrade). Legacy defs keep their own
   // per-tier rangeMult via the legacy table and are excluded here.
   if (def.tiers && !def.aura && s.range > 0) s.range *= Math.pow(CONFIG.UPGRADE.rangeMultPerTier, reached);
-  s.damage *= CONFIG.DAMAGE_SCALE;   // global balance knob (Phase 8)
+  s.damage *= CONFIG.DAMAGE_SCALE * balance.towerDamageMult;   // global + mode balance knobs
   return s;
 }
 
@@ -173,14 +174,17 @@ export function forkDef(def, branchId) {
 let NEXT_TID = 1;
 
 export class Tower {
-  constructor(typeId, cx, cy) {
+  constructor(state, typeId, cx, cy) {
     this.uid = NEXT_TID++;
+    this.state = state;
     this.type = typeId;
     this.def = CONFIG.TOWERS[typeId];
+    this.difficultyMode = state && state.difficultyMode ? state.difficultyMode : 'expert';
     this.cx = cx;
     this.cy = cy;
-    this.px = cellCenterX(cx);
-    this.py = cellCenterY(cy);
+    this.footprint = this.def.footprint || (this.def.wall ? { w: 1, h: 1 } : { w: 2, h: 2 });
+    this.px = cellCenterX(cx) + (this.footprint.w - 1) * SIZE / 2;
+    this.py = cellCenterY(cy) + (this.footprint.h - 1) * SIZE / 2;
     this.level = 1;
     this.branch = null;            // 'A' | 'B' once chosen at the fork tier
     this.targetMode = 'first';
@@ -196,7 +200,8 @@ export class Tower {
   }
 
   refreshStats() {
-    this.stats = getTowerStats(this.type, this.level, this.branch);
+    this.difficultyMode = this.state && this.state.difficultyMode ? this.state.difficultyMode : this.difficultyMode || 'expert';
+    this.stats = getTowerStats(this.type, this.level, this.branch, this.difficultyMode);
     // stats was just replaced — re-copy the received aura buff onto it
     // (projectiles/splash read the firing tower's stats, not the tower).
     if (!this.def.aura) this.stats.buffDmg = this.buffDmg || 0;
@@ -350,17 +355,27 @@ export function recomputeAuras(state) {
 
 // --- lifecycle (no gold logic here — that's shop.js) ------------------------
 export function addTower(state, typeId, x, y) {
-  const t = new Tower(typeId, x, y);
+  const t = new Tower(state, typeId, x, y);
   t.builtAt = state.time || 0;   // cosmetic: build pop-in (renderer only)
-  state.towerGrid[y][x] = t;
+  for (const cell of footprintCells(typeId, x, y)) state.towerGrid[cell.y][cell.x] = t;
   state.towers.push(t);
   onMazeChanged(state);   // rebuild fields + reroute every enemy
   recomputeAuras(state);
   return t;
 }
 
+// Authored opening bricks are real player-owned wall towers: they cost no
+// opening gold, but sell for the normal 1G wall refund and can be repurposed.
+export function seedStarterWalls(state) {
+  for (const [x, y] of state.level?.starterWalls || []) {
+    if (canBuildAt(state, x, y, 'wall')) addTower(state, 'wall', x, y);
+  }
+}
+
 export function removeTower(state, tower) {
-  state.towerGrid[tower.cy][tower.cx] = null;
+  for (const cell of footprintCells(tower.type, tower.cx, tower.cy)) {
+    if (state.towerGrid[cell.y] && state.towerGrid[cell.y][cell.x] === tower) state.towerGrid[cell.y][cell.x] = null;
+  }
   const i = state.towers.indexOf(tower);
   if (i >= 0) state.towers.splice(i, 1);
   onMazeChanged(state);

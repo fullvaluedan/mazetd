@@ -10,7 +10,7 @@
 import { makeRng } from '../engine/rng.js';
 import { setGridSize } from '../engine/grid.js';
 import { CONFIG } from '../config.js';
-import { createState, onMazeChanged } from './state.js';
+import { canBuildAt, createState, onMazeChanged } from './state.js';
 import { addTower, recomputeAuras } from './tower.js';
 import { createHero } from './hero.js';
 import { getLevel } from './levels.js';
@@ -23,9 +23,9 @@ const HS_KEY = 'mazecore_highscore_v1';
 const CAMPAIGN_SAVE_PREFIX = 'mazecore_campaign_save_v1:';
 
 // Snapshot format version. v1: pre-siege (towers load at full HP); v2: towers
-// carry hp; v3: tier-table upgrades (U5) — level/branch fields unchanged, the
-// bump marks the first client with an explicit version gate (see loadSnapshot).
-const SAVE_VERSION = 3;
+// carry hp; v3: tier-table upgrades (U5) — level/branch fields unchanged; v4:
+// difficulty mode persists alongside the existing level/branch fields.
+const SAVE_VERSION = 4;
 
 function ls() { return (typeof localStorage !== 'undefined') ? localStorage : null; }
 
@@ -34,6 +34,7 @@ export function buildSnapshot(state) {
     v: SAVE_VERSION,
     levelId: state.level ? state.level.id : null,   // 'endless' or null (classic)
     seed: state.seed,
+    difficultyMode: state.difficultyMode || 'expert',
     wave: state.wave,
     maxWave: state.maxWave,
     gold: Math.floor(state.gold),
@@ -66,7 +67,7 @@ export function hasSave() { const s = ls(); return !!(s && s.getItem(SAVE_KEY));
 export function clearSave() { const s = ls(); if (s) s.removeItem(SAVE_KEY); }
 
 // --- campaign mid-run snapshots (U14) ---------------------------------------
-// Same v3 snapshot shape as the Endless save above (buildSnapshot/applySnapshot
+// Same v4 snapshot shape as the Endless save above (buildSnapshot/applySnapshot
 // are already level-aware via levelId), just keyed per campaign level so a
 // resume prompt only ever offers to resume the level the player is entering.
 function campaignKey(levelId) { return CAMPAIGN_SAVE_PREFIX + levelId; }
@@ -121,7 +122,7 @@ export function loadSnapshot() {
 export function applySnapshot(snap) {
   const level = snap.levelId ? getLevel(snap.levelId) : null;
   setGridSize(level ? level.cols : CONFIG.GRID_COLS, level ? level.rows : CONFIG.GRID_ROWS);
-  const state = createState(makeRng(snap.seed), snap.seed, level);
+  const state = createState(makeRng(snap.seed), snap.seed, level, { difficultyMode: snap.difficultyMode || 'expert' });
   state.wave = snap.wave;
   state.maxWave = snap.maxWave;
   state.gold = snap.gold;
@@ -135,7 +136,7 @@ export function applySnapshot(snap) {
   state.status = 'playing';
 
   for (const tw of snap.towers) {
-    if (state.towerGrid[tw.cy] && !state.towerGrid[tw.cy][tw.cx]) {
+    if (state.towerGrid[tw.cy] && canBuildAt(state, tw.cx, tw.cy, tw.type)) {
       const t = addTower(state, tw.type, tw.cx, tw.cy);
       t.level = tw.level; t.branch = tw.branch;
       t.targetMode = tw.targetMode; t.invested = tw.invested;

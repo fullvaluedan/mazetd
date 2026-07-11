@@ -47,7 +47,7 @@ function buildWall(st, x) {
       check('final seal cell: still legal', canBuildAt(st, x, y) === true);
       check('final seal cell: wouldSealAt warns', wouldSealAt(st, x, y) === true);
     }
-    placed.push(addTower(st, 'beacon', x, y));
+    placed.push(addTower(st, 'wall', x, y));
   }
   return placed;
 }
@@ -128,7 +128,7 @@ console.log('Reference build with the seal guard stays open (6 seeds):');
     for (const c of serpentine()) {
       if (!canBuildAt(st, c.x, c.y)) continue;
       if (wouldSealAt(st, c.x, c.y)) { skipped++; continue; }   // the sim's guard
-      addTower(st, 'archer', c.x, c.y);
+      addTower(st, 'wall', c.x, c.y);
     }
     if (st.siege) { allOpen = false; console.log('  sealed on seed', seed); }
     console.log(`  seed ${seed}: towers=${st.towers.length} guard-skipped=${skipped} siege=${st.siege}`);

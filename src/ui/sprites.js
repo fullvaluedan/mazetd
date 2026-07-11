@@ -19,9 +19,7 @@ let enabled = true;          // user toggle (HUD "Art" button)
 export function spritesEnabled() { return enabled; }
 export function toggleSprites() { enabled = !enabled; return enabled; }
 
-// Returns the loaded image for an id (e.g. 'tower-archer'), or null. With a
-// frame index, returns that walk-cycle frame when a sheet survived loading.
-export function getSprite(id, frame) {
+function getLoadedSprite(id, frame) {
   if (!enabled) return null;
   if (frame != null) {
     const f = sheets.get(id);
@@ -30,10 +28,41 @@ export function getSprite(id, frame) {
   return images.get(id) || null;
 }
 
+// Returns the loaded image for an id (e.g. 'tower-archer'), or null. With a
+// frame index, returns that walk-cycle frame when a sheet survived loading.
+export function getSprite(id, frame) {
+  return getLoadedSprite(id, frame);
+}
+
+export function getSpriteChain(ids, frame) {
+  if (!enabled) return null;
+  for (const id of ids) {
+    const sprite = getLoadedSprite(id, frame);
+    if (sprite) return sprite;
+  }
+  return null;
+}
+
 // Whether an id has an animated walk-cycle sheet.
 export function hasSheet(id) { return enabled && sheets.has(id); }
 
 export function spriteCount() { return images.size; }
+
+export function towerSpriteCandidates(type, level = 1) {
+  const top = Math.max(1, Math.min(5, level | 0 || 1));
+  const ids = [];
+  for (let lvl = top; lvl >= 1; lvl--) ids.push(`tower-${type}-lv${lvl}`);
+  ids.push(`tower-${type}`);
+  return ids;
+}
+
+export function towerAttackCandidates(type, level = 1) {
+  const top = Math.max(1, Math.min(5, level | 0 || 1));
+  const ids = [];
+  for (let lvl = top; lvl >= 1; lvl--) ids.push(`tower-${type}-attack-lv${lvl}`);
+  ids.push(`tower-${type}-attack`);
+  return ids;
+}
 
 // URL of a generated asset for DOM <img> use (radial icons, portraits), or
 // null when the art isn't generated/loaded. Respects the Art toggle.
@@ -121,24 +150,47 @@ export async function loadSprites() {
     manifest = await res.json();
   } catch { return 0; }
 
+  const srcCache = new Map();
   const jobs = Object.entries(manifest).map(([id, entry]) => new Promise((resolve) => {
-    const isSheet = entry && typeof entry === 'object';
-    const src = isSheet ? entry.src : entry;
+    const isObject = entry && typeof entry === 'object';
+    const isSheet = isObject && (entry.kind === 'sheet' || Number.isFinite(entry.frames));
+    const src = isObject ? entry.src : entry;
     if (typeof src !== 'string') { resolve(false); return; }
-    const img = new Image();
-    img.onload = () => {
-      if (isSheet) {
-        const frames = sliceSheet(img, entry.frames || 4, entry.grid || [2, 2]);
-        if (frames) sheets.set(id.replace(/^sheet-/, ''), frames);
-        else console.log(`[sprites] dropped misaligned sheet ${id} (procedural fallback)`);
+    // SVG symbol sheets are consumed directly by <use>; loading them through
+    // Image would add no drawable sprite and can vary across browsers.
+    if (isObject && entry.kind === 'svg-symbol-sheet') { urls.set(id, src); resolve(true); return; }
+    const cacheKey = `${isSheet ? 'sheet' : 'img'}:${src}`;
+    let pending = srcCache.get(cacheKey);
+    if (!pending) {
+      pending = new Promise((resolveAsset) => {
+        const img = new Image();
+        img.onload = () => {
+          if (isSheet) {
+            const frames = sliceSheet(img, entry.frames || 4, entry.grid || [2, 2]);
+            if (frames) resolveAsset({ kind: 'sheet', value: frames });
+            else {
+              console.log(`[sprites] dropped misaligned sheet ${id} (procedural fallback)`);
+              resolveAsset(null);
+            }
+          } else {
+            resolveAsset({ kind: 'image', value: shrink(id, img) });
+          }
+        };
+        img.onerror = () => resolveAsset(null);   // listed but not generated yet — fine
+        img.src = src;
+      });
+      srcCache.set(cacheKey, pending);
+    }
+    pending.then((asset) => {
+      if (!asset) { resolve(false); return; }
+      if (asset.kind === 'sheet') {
+        sheets.set(id.replace(/^sheet-/, ''), asset.value);
       } else {
-        images.set(id, shrink(id, img));
+        images.set(id, asset.value);
         urls.set(id, src);
       }
       resolve(true);
-    };
-    img.onerror = () => resolve(false);       // listed but not generated yet — fine
-    img.src = src;
+    });
   }));
   const results = await Promise.all(jobs);
   const n = results.filter(Boolean).length;

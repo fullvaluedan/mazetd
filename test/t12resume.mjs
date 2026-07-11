@@ -29,10 +29,10 @@ const {
   saveCampaign, hasCampaignSave, loadCampaignSnapshot, clearCampaignSave,
 } = await import('../src/game/save.js');
 
-function freshCampaign(levelId = 'l3', seed = 1) {
+function freshCampaign(levelId = 'l3', seed = 1, mode = 'expert') {
   const lv = getLevel(levelId);
   setGridSize(lv.cols, lv.rows);
-  return createState(makeRng(seed), seed, lv);
+  return createState(makeRng(seed), seed, lv, { difficultyMode: mode });
 }
 
 // Clear a wave headlessly (no live enemies, matches the between-waves save
@@ -48,7 +48,7 @@ function clearWave(st, w) {
 
 console.log('kill-and-resume at wave N of a campaign level:');
 {
-  const st = freshCampaign('l3', 1);
+  const st = freshCampaign('l3', 1, 'normal');
   addTower(st, 'wall', 3, 3);
   const cannon = addTower(st, 'cannon', 5, 5);
   tryUpgrade(st, cannon, null);   // L2, so tower level/branch data has something to lose
@@ -76,13 +76,14 @@ console.log('kill-and-resume at wave N of a campaign level:');
   check('tower level restored exactly', !!rCannon && rCannon.level === cannon.level,
     `${rCannon && rCannon.level} vs ${cannon.level}`);
   check('tower branch restored exactly', rCannon.branch === cannon.branch);
+  check('difficulty mode restored exactly', resumed.difficultyMode === 'normal');
 
   clearCampaignSave('l3');
 }
 
 console.log('resume prompt only appears when a snapshot exists for THAT level id:');
 {
-  const st = freshCampaign('l5', 1);
+  const st = freshCampaign('l5', 1, 'easy');
   addTower(st, 'wall', 3, 3);
   for (let w = 1; w <= 3; w++) clearWave(st, w);
   saveCampaign(st);
@@ -164,13 +165,14 @@ console.log('Endless save/load still round-trips (regression):');
   check('Endless run is never captured by saveCampaign (level.endless=true)', saveCampaign(st) === false);
 }
 
-console.log('v3 format preserved; a snapshot from a different level id does not offer resume:');
+console.log('v4 format preserved; a snapshot from a different level id does not offer resume:');
 {
   const st = freshCampaign('l9', 1);
   for (let w = 1; w <= 2; w++) clearWave(st, w);
   saveCampaign(st);
   const snap = loadCampaignSnapshot('l9');
-  check('campaign snapshot is v3', snap.v === 3);
+  check('campaign snapshot is v4', snap.v === 4);
+  check('campaign snapshot keeps difficulty mode', snap.difficultyMode === 'expert');
   // the resume-prompt gate in main.js is exactly hasCampaignSave(bootLevel.id);
   // a different level id must read false even though SOME campaign save exists
   check('a different level id sees no resumable save', hasCampaignSave('l10') === false);

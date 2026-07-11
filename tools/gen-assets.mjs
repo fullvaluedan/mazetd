@@ -10,15 +10,17 @@
 //   node tools/gen-assets.mjs                    # generate everything (skips existing)
 //   node tools/gen-assets.mjs tower-archer enemy # generate matching ids only
 //   node tools/gen-assets.mjs --force            # regenerate even if a file exists
+//   node tools/gen-assets.mjs --concurrency=4    # run up to 4 image requests at once
 //
-// Cost note: this calls a PAID API. The full set is ~17 images — generate a few
-// first (e.g. `node tools/gen-assets.mjs tower-archer`) to dial in the style.
+// Cost note: this calls a PAID API. The full set now includes tower upgrade
+// variants and family attack sheets — generate a few first (e.g.
+// `node tools/gen-assets.mjs tower-cannon`) to dial in the style.
 // =============================================================================
 
 import { writeFile, mkdir, readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { CONFIG } from '../src/config.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -43,13 +45,19 @@ const TOWER_HINT = {
   wall: 'a simple sturdy block of stacked stone bricks with a flat top, a maze wall segment',
   magic: 'a violet crystal-topped mage tower swirling with gentle frost-blue magic wisps',
   falcon: 'a tall wooden falconry perch tower with a rope-wrapped post and an empty bird perch at its crown',
+  arrow: 'a cozy wooden watchtower with a cute mounted crossbow, rope and timber details',
   archer: 'a cozy wooden watchtower with a cute mounted crossbow, rope and timber details',
   cannon: 'a squat round cannon turret with a friendly chunky barrel, riveted plates',
   frost: 'a sparkly tower of pale-blue ice crystals with gentle snowflake glints',
   arcane: 'a violet wizard spire with a floating glowing rune orb and tiny stars',
+  poison: 'a quirky mushroom-like spitter tower dripping bubbly green goo',
   venom: 'a quirky mushroom-like spitter tower dripping bubbly green goo',
+  lightning: 'a copper storm tower with a crackling lightning coil and little sparks',
   tesla: 'a copper storm tower with a crackling lightning coil and little sparks',
+  support: 'a white-and-gold shrine tower radiating a soft circular blessing aura, floating runic halo',
   beacon: 'a white-and-gold shrine tower radiating a soft circular blessing aura, floating runic halo',
+  sniper: 'a tall elegant marksman tower with a long barrel, scoped lens, and crisp precision silhouette',
+  gold: 'a compact treasury or gold mine tower with coin sparkle accents and a strong value-read silhouette',
 };
 const ENEMY_HINT = {
   normal: 'a stocky goblin grunt warrior with simple leather armor and a small axe',
@@ -71,9 +79,82 @@ const STYLE =
   'soft ambient lighting, slight 3/4 top-down view, centered single subject. ' +
   'No text, no letters, no watermark, no UI, no frame or border. Fully transparent background.';
 
+const TILE_STYLE =
+  'Clean modern anime game art in a lighthearted isekai-fantasy style: ' +
+  'bright cheerful saturated colors, simple flat cel shading with soft dark outlines, ' +
+  'soft ambient lighting, 30-degree top-down battlefield tile art, 32x32 footprint, ' +
+  'seamless edges, readable at phone scale, no text, no letters, no watermark, no UI, ' +
+  'fully transparent background.';
+
 // 4-frame walk cycles as one 2x2 sheet (sliced + auto-centered at load by
 // src/ui/sprites.js; a sheet that comes out misaligned is simply dropped).
 const SHEET_TYPES = ['normal', 'fast', 'tank', 'swarm', 'healer', 'shield', 'boss'];
+const STANDARD_TOWER_LEVELS = 5;
+const TOWER_LEVEL_DESCRIPTIONS = {
+  1: 'baseline silhouette, clean and readable',
+  2: 'first upgrade, slightly more ornamented and confident',
+  3: 'second upgrade, clearly stronger with a new visual cue',
+  4: 'advanced upgrade, premium trim and a stronger crown shape',
+  5: 'signature endgame upgrade, dramatic but still the same family',
+};
+const TOWER_FAMILY_LEVEL_NOTES = {
+  cannon: {
+    1: 'Keep this as a compact bronze mortar with a short stubby barrel, round drum base, and simple side shield.',
+    2: 'Make it visibly taller and sturdier with a longer barrel, thicker collar, and broader cheek plates.',
+    3: 'Shift the chassis into a heavier siege frame with recoil braces, side pistons, and a more angular housing.',
+    4: 'Push the silhouette into command-artillery territory with a flared muzzle, armored side fins, and a wider layered base.',
+    5: 'Go dramatic and unmistakable: oversized barrel, reinforced recoil system, ornate wing-like stabilizers, and the largest base in the family.',
+  },
+};
+const TOWER_FAMILY_ATTACK_NOTES = {
+  cannon: 'This family should feel like a true artillery weapon: clear wind-up, muzzle flash, recoil, smoke, and settle. Let the barrel and support frame visibly change between frames so the cycle reads at a glance.',
+};
+
+function towerLevelPrompt(id, t, level) {
+  const base = TOWER_HINT[id] || 'a defensive tower';
+  const tierNote = TOWER_LEVEL_DESCRIPTIONS[level] || 'upgrade state';
+  const familyNote = TOWER_FAMILY_LEVEL_NOTES[id]?.[level];
+  return `Top-down game icon of the "${t.name}" defense tower, level ${level}: ${base}. ` +
+    `This is the same family at a different upgrade level, so keep the footprint 1x1 and the silhouette coherent. ` +
+    `Level note: ${tierNote}. ` +
+    (familyNote ? `Family-specific silhouette note: ${familyNote} The cannon family should read as a real tier jump rather than just extra rivets. ` : '') +
+    `Primary colour ${t.color}. ${STYLE}`;
+}
+
+const TOWER_META = { version: 1, kind: 'sprite', logical: [32, 32], pivot: [0.5, 0.56], scaleMode: 'contain' };
+const ENEMY_META = { version: 1, kind: 'sprite', logical: [32, 32], pivot: [0.5, 0.62], scaleMode: 'contain' };
+const SHEET_META = { version: 1, kind: 'sheet', logical: [32, 32], pivot: [0.5, 0.62], scaleMode: 'contain' };
+const TILE_META = { version: 1, kind: 'tile', logical: [32, 32], footprint: [1, 1], pivot: [0.5, 0.5], scaleMode: 'tile' };
+const PORTAL_META = { version: 1, kind: 'sprite', logical: [96, 96], footprint: [3, 3], pivot: [0.5, 0.5], scaleMode: 'contain' };
+const CRYSTAL_META = { version: 1, kind: 'sprite', logical: [96, 128], footprint: [3, 4], pivot: [0.5, 0.5], scaleMode: 'contain' };
+const WALL_META = { version: 1, kind: 'sprite', logical: [32, 32], footprint: [1, 1], pivot: [0.5, 0.5], scaleMode: 'tile' };
+
+function towerAttackSheetPrompt(id, t) {
+  const base = TOWER_HINT[id] || 'a defensive tower';
+  const familyNote = TOWER_FAMILY_ATTACK_NOTES[id];
+  return 'Sprite sheet, EXACTLY 4 frames arranged in a 2x2 grid on one image: ' +
+    `the SAME tower family — "${t.name}" — drawn in 4 sequential attack poses ` +
+    `(wind-up, fire, recoil, settle). Keep the tower on a 1x1 footprint, preserve the family silhouette, ` +
+    `and show a readable attack motion rather than changing the tower into a different object. ` +
+    (familyNote ? `${familyNote} ` : '') +
+    `Tower base design: ${base}. Primary colour ${t.color}. ` +
+    'Each frame centered in its quadrant, same camera angle and lighting throughout, equal spacing, ' +
+    'no frame borders or grid lines. ' + STYLE;
+}
+
+function tilePrompt(title, brief) {
+  return `Top-down battlefield tile art for a fantasy tower-defense game: ${brief} ` +
+    `This is a single ${title}, painted as a readable 32x32 tile with a strong silhouette, ` +
+    `upper-left lighting, soft lower-right shadow, and transparent background. ${TILE_STYLE}`;
+}
+
+function shouldGenerateTowerLevels(t) {
+  return !!t.tiers && !t.hidden && !t.wall;
+}
+
+function shouldGenerateTowerAttack(t) {
+  return !!t.tiers && !t.hidden && !t.wall && !t.aura && !t.noAttack && t.damage > 0;
+}
 function sheetPrompt(hint) {
   return 'Sprite sheet, EXACTLY 4 frames arranged in a 2x2 grid on one image: ' +
     `the SAME character — ${hint} — drawn in 4 sequential walk-cycle poses ` +
@@ -82,14 +163,53 @@ function sheetPrompt(hint) {
     'no frame borders or grid lines. ' + STYLE;
 }
 
-function buildManifest() {
+export function buildManifest() {
   const items = [];
+  items.push({
+    id: 'ui-icons', out: 'ui/icons.svg', static: true,
+    meta: { version: 1, kind: 'svg-symbol-sheet', intrinsic: [24, 24], scaleMode: 'contain' },
+  });
+  // Grid-owned map kit: source pixels are 64 per cell while logical bounds
+  // remain tied to the engine's 32px cell. These files are normalized outputs,
+  // never flattened map art or staging sources.
+  items.push(
+    { id: 'tile-floor-dirt', out: 'tiles/floor-dirt-v1.png', static: true, meta: TILE_META },
+    { id: 'tile-stone-pad', out: 'tiles/stone-pad-v1.png', static: true, meta: TILE_META },
+    { id: 'objective-portal', out: 'objectives/portal-v1.png', static: true, meta: PORTAL_META },
+    { id: 'objective-crystal', out: 'objectives/crystal-v1.png', static: true, meta: CRYSTAL_META },
+    { id: 'tower-wall-redbrick', out: 'towers/wall-redbrick-v1.png', static: true, meta: WALL_META },
+  );
   for (const [id, t] of Object.entries(CONFIG.TOWERS)) {
     items.push({ id: `tower-${id}`, out: `towers/${id}.png`, size: '1024x1024',
+      meta: id === 'wall' ? { ...TOWER_META, pivot: [0.5, 0.5] } : TOWER_META,
       prompt: `Top-down game icon of a "${t.name}" defense tower: ${TOWER_HINT[id] || 'a defensive turret'}. Primary colour ${t.color}. ${STYLE}` });
+    if (shouldGenerateTowerLevels(t)) {
+      const maxLevel = Math.min(STANDARD_TOWER_LEVELS, (t.tiers?.length || 0) + 1);
+      for (let level = 1; level <= maxLevel; level++) {
+        items.push({
+          id: `tower-${id}-lv${level}`,
+          out: `towers/${id}-lv${level}.png`,
+          size: '1024x1024',
+          meta: TOWER_META,
+          prompt: towerLevelPrompt(id, t, level),
+        });
+      }
+    }
+    if (shouldGenerateTowerAttack(t)) {
+      items.push({
+        id: `sheet-tower-${id}-attack`,
+        out: `sheets/tower-${id}-attack.png`,
+        size: '1024x1024',
+        frames: 4,
+        grid: [2, 2],
+        meta: { ...SHEET_META, pivot: TOWER_META.pivot },
+        prompt: towerAttackSheetPrompt(id, t),
+      });
+    }
   }
   for (const [id, e] of Object.entries(CONFIG.ENEMIES)) {
     items.push({ id: `enemy-${id}`, out: `enemies/${id}.png`, size: '1024x1024',
+      meta: ENEMY_META,
       prompt: `Game sprite of a "${e.name}" enemy for a tower-defense game: ${ENEMY_HINT[id] || 'a creature'}. Primary colour ${e.color}. ${STYLE}` });
   }
   for (const [id, h] of Object.entries(CONFIG.HEROES)) {
@@ -98,6 +218,7 @@ function buildManifest() {
   }
   for (const id of SHEET_TYPES) {
     items.push({ id: `sheet-enemy-${id}`, out: `sheets/enemy-${id}.png`, size: '1024x1024',
+      meta: SHEET_META,
       frames: 4, grid: [2, 2],
       prompt: sheetPrompt(ENEMY_HINT[id] || 'a creature') });
   }
@@ -113,7 +234,7 @@ function buildManifest() {
   items.push({ id: 'misc-spawn', out: 'misc/spawn.png', size: '1024x1024',
     prompt: 'Game map marker seen from above: a small swirling dark-purple portal mouth in the grass, gentle magic wisps curling out, ominous but cute. ' + STYLE });
   items.push({ id: 'misc-camp', out: 'misc/camp.png', size: '1024x1024',
-    prompt: 'Game map marker seen from above: a cozy little campfire with crossed logs, warm orange flames and a tiny cooking pot beside it, inviting and warm. ' + STYLE });
+    prompt: 'Game map marker seen from above: a small crystal-and-stone objective marker, like a tiny castle relic or crystal spire on a stone dais, cool blue glow with a gold ring base, readable at a glance, inviting and warm. ' + STYLE });
   items.push({ id: 'misc-falcon', out: 'misc/falcon.png', size: '1024x1024',
     prompt: 'Game sprite of a small hunting falcon in flight, wings spread mid-glide, seen slightly from above, fierce but cute. ' + STYLE });
   items.push({ id: 'misc-worldmap', out: 'misc/worldmap.png', size: '1024x1536', transparent: false,
@@ -165,8 +286,8 @@ async function writeManifest(items) {
   const map = {};
   for (const it of items) {
     // sprite sheets carry slicing metadata; plain assets stay simple strings
-    map[it.id] = it.frames
-      ? { src: 'assets/' + it.out, frames: it.frames, grid: it.grid }
+    map[it.id] = (it.meta || it.frames)
+      ? { src: 'assets/' + it.out, ...(it.frames ? { frames: it.frames, grid: it.grid } : {}), ...(it.meta || {}) }
       : 'assets/' + it.out;
   }
   await writeFile(path.join(ASSET_DIR, 'manifest.json'), JSON.stringify(map, null, 2));
@@ -182,11 +303,14 @@ async function main() {
     console.log('Usage: node tools/gen-assets.mjs [--list] [--force] [id-filter ...]');
     console.log('  --list / --dry-run   list assets (no API calls), write manifest.json');
     console.log('  --force              regenerate even if the file already exists');
+    console.log('  --concurrency=N      run up to N requests at once (default 4)');
     console.log('  id-filter            substring of asset id, e.g. "tower", "enemy-boss"');
     return;
   }
   const force = args.includes('--force');
   const listOnly = args.includes('--list') || args.includes('--dry-run');
+  const concurrencyArg = args.find((a) => a.startsWith('--concurrency='));
+  const concurrency = Math.max(1, Number((concurrencyArg && concurrencyArg.split('=')[1]) || process.env.ASSET_CONCURRENCY || 4) || 4);
   const filters = args.filter((a) => !a.startsWith('--'));
 
   const manifest = buildManifest();
@@ -202,7 +326,7 @@ async function main() {
 
   if (listOnly) {
     console.log(`Would generate ${selected.length} asset(s)  [model=${model}, quality=${quality}]:`);
-    for (const m of selected) console.log(`  ${m.id.padEnd(18)} -> assets/${m.out}  (${m.size || '1024x1024'})`);
+    for (const m of selected) console.log(`  ${m.static ? 'validate' : 'generate'} ${m.id.padEnd(18)} -> assets/${m.out}  (${m.size || 'static'})`);
     await writeManifest(manifest);
     console.log('\n(dry run — no API calls made, no key required)');
     return;
@@ -217,13 +341,29 @@ async function main() {
 
   console.log(`Generating ${selected.length} asset(s)  [model=${model}, quality=${quality}]:`);
   let ok = 0, skip = 0, fail = 0;
-  for (const item of selected) {
-    try { const r = await generateOne(item, { apiKey, model, quality, force }); r === 'ok' ? ok++ : skip++; }
-    catch (e) { fail++; console.error(`  FAILED         ${item.id}: ${e.message}`); }
+  const queue = selected.filter((item) => !item.static);
+  skip += selected.length - queue.length;
+  async function worker() {
+    while (queue.length) {
+      const item = queue.shift();
+      if (!item) break;
+      try {
+        const r = await generateOne(item, { apiKey, model, quality, force });
+        r === 'ok' ? ok++ : skip++;
+      } catch (e) {
+        fail++;
+        console.error(`  FAILED         ${item.id}: ${e.message}`);
+      }
+    }
   }
+  const workers = [];
+  for (let i = 0; i < Math.min(concurrency, queue.length); i++) workers.push(worker());
+  await Promise.all(workers);
   await writeManifest(manifest);
   console.log(`\nDone: ${ok} generated, ${skip} skipped, ${fail} failed. Files in assets/.`);
   if (fail) process.exitCode = 1;
 }
 
-main().catch((e) => { console.error(e); process.exitCode = 1; });
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((e) => { console.error(e); process.exitCode = 1; });
+}

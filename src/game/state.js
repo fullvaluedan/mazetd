@@ -7,7 +7,7 @@
 // flow and the Wintermaul "you may not fully block the path" legality check.
 // =============================================================================
 
-import { CONFIG } from '../config.js';
+import { CONFIG, difficultyModeStats, normalizeDifficultyMode } from '../config.js';
 import { CELL, COLS, ROWS, inBounds } from '../engine/grid.js';
 import { bfsDistanceField, weightedDistanceField, isReachable, tracePath, fieldAt, UNREACHABLE } from '../engine/pathfinding.js';
 import { createMap } from './map.js';
@@ -15,7 +15,9 @@ import { createMap } from './map.js';
 // level (optional): an authored campaign level def (see levels.js). Without
 // one you get the classic random 28x18 board (Endless-style + headless sim).
 // NOTE: callers must setGridSize(level.cols, level.rows) BEFORE this.
-export function createState(rng, seed = 0, level = null) {
+export function createState(rng, seed = 0, level = null, options = {}) {
+  const difficultyMode = normalizeDifficultyMode(options?.difficultyMode);
+  const balance = difficultyModeStats(difficultyMode);
   const map = createMap(rng, level);
 
   // towerGrid[y][x] = tower entity or null. Separate from map cell types so we
@@ -50,7 +52,8 @@ export function createState(rng, seed = 0, level = null) {
     siege: false,            // true while any route is sealed (walls under threat)
 
     // economy
-    gold: level && level.startGold != null ? level.startGold : CONFIG.START_GOLD,
+    difficultyMode,
+    gold: Math.round((level && level.startGold != null ? level.startGold : CONFIG.START_GOLD) * balance.goldMult),
     lives: level && level.lives != null ? level.lives : CONFIG.START_LIVES,
     wave: 0,                 // last started wave (0 = none yet)
     maxWave: 0,
@@ -108,14 +111,50 @@ export function createState(rng, seed = 0, level = null) {
   return state;
 }
 
+export function footprintFor(typeId) {
+  const def = CONFIG.TOWERS[typeId];
+  return def && def.footprint ? def.footprint : (def && !def.wall ? { w: 2, h: 2 } : { w: 1, h: 1 });
+}
+
+export function footprintCells(typeId, x, y) {
+  const { w, h } = footprintFor(typeId);
+  const cells = [];
+  for (let cy = y; cy < y + h; cy++) for (let cx = x; cx < x + w; cx++) cells.push({ x: cx, y: cy });
+  return cells;
+}
+
+// Objective rectangles are grid data, shared by build validation and rendering.
+// Gates use 3x3 pads; the protected crystal is intentionally taller at 3x4.
+// Their center mouths remain the existing path target/spawn so routing stays
+// independent from presentation art.
+export function objectiveRect(state, marker) {
+  const isGoal = state.map.goals.includes(marker);
+  const w = 3, h = isGoal ? 4 : 3;
+  const x = Math.max(0, Math.min(COLS - w, marker.cx - 1));
+  let y = marker.cy - Math.floor(h / 2);
+  if (marker.cy === 0) y = 0;
+  else if (marker.cy === ROWS - 1) y = ROWS - h;
+  y = Math.max(0, Math.min(ROWS - h, y));
+  return { x, y, w, h, isGoal };
+}
+
+export function isObjectiveCell(state, x, y) {
+  for (const marker of [...state.map.spawns, ...state.map.goals]) {
+    const rect = objectiveRect(state, marker);
+    if (x >= rect.x && x < rect.x + rect.w && y >= rect.y && y < rect.y + rect.h) return true;
+  }
+  return false;
+}
+
 // Walkability for enemies/pathfinding: open ground that isn't a wall, obstacle
-// or tower. Optionally treat one extra cell (blockX,blockY) as blocked — used by
-// the build-legality check without mutating the grid.
-export function makeWalkable(state, blockX = -1, blockY = -1) {
+// or tower. Extra prospective footprint cells are blocked atomically for build
+// legality without mutating the grid.
+export function makeWalkable(state, blockedCells = null) {
   const map = state.map, towerGrid = state.towerGrid;
+  const blocked = blockedCells ? new Set(blockedCells.map((c) => `${c.x},${c.y}`)) : null;
   return (x, y) => {
     if (!inBounds(x, y)) return false;
-    if (x === blockX && y === blockY) return false;
+    if (blocked && blocked.has(`${x},${y}`)) return false;
     const t = map.type(x, y);
     if (t === CELL.BORDER || t === CELL.OBSTACLE) return false;
     if (towerGrid[y][x]) return false;
@@ -204,22 +243,23 @@ export function spawnsAllReachGoals(state, walk) {
 // Is a tower allowed on this cell? Must be empty buildable interior with no
 // ground enemy standing on it. Sealing the path IS allowed (siege mode) — use
 // wouldSealAt() to warn the player before they do it.
-export function canBuildAt(state, x, y) {
-  if (!inBounds(x, y)) return false;
-  if (state.map.type(x, y) !== CELL.OPEN) return false;
-  if (state.towerGrid[y][x]) return false;
-  // Don't build under a ground enemy (keeps its current cell always valid).
-  for (const e of state.enemies) {
-    if (!e.alive || e.flying) continue;
-    if (e.cx === x && e.cy === y) return false;
+export function canBuildAt(state, x, y, typeId = 'wall') {
+  for (const cell of footprintCells(typeId, x, y)) {
+    if (!inBounds(cell.x, cell.y) || isObjectiveCell(state, cell.x, cell.y) || state.map.type(cell.x, cell.y) !== CELL.OPEN || state.towerGrid[cell.y][cell.x]) return false;
+    // Don't build under a ground enemy (keeps its current cell always valid).
+    for (const e of state.enemies) {
+      if (!e.alive || e.flying) continue;
+      if (e.cx === cell.x && e.cy === cell.y) return false;
+    }
   }
   return true;
 }
 
 // Would building here cut some spawn off from its goal? Drives the orange
 // build-preview warning and keeps the sim's reference build seal-free.
-export function wouldSealAt(state, x, y) {
-  return !spawnsAllReachGoals(state, makeWalkable(state, x, y));
+export function wouldSealAt(state, x, y, typeId = 'wall') {
+  if (!canBuildAt(state, x, y, typeId)) return false;
+  return !spawnsAllReachGoals(state, makeWalkable(state, footprintCells(typeId, x, y)));
 }
 
 // While any route STAGE is sealed (its feeders can't reach its target),

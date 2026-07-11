@@ -22,31 +22,47 @@ anywhere public. Get a key at https://platform.openai.com/api-keys.
 node tools/gen-assets.mjs --list
 ```
 
-Lists every asset (6 towers, 8 enemies, 3 heroes, 1 background) and writes
-`assets/manifest.json` (an id → path map for later wiring).
+Lists every asset family and writes `assets/manifest.json` (an id → path map
+for later wiring). Tower families now include upgrade variants and attack-sheet
+ids so the game can prefer level art when it exists.
 
 ## 3. Generate
 
 ```bash
-node tools/gen-assets.mjs tower-archer   # one asset, to dial in the style first
-node tools/gen-assets.mjs tower          # all towers
+node tools/gen-assets.mjs tower-cannon   # one family, to dial in the style first
+node tools/gen-assets.mjs tower          # all tower families + variants
+node tools/gen-assets.mjs tower --concurrency=4
 node tools/gen-assets.mjs                 # everything (skips files that exist)
 node tools/gen-assets.mjs --force         # regenerate everything
 ```
 
-Output lands in `assets/towers/`, `assets/enemies/`, `assets/heroes/`,
-`assets/misc/` (tracked in git as of U7 — store builds clone the repo, so the
-art must ship with it).
+Output lands in `assets/towers/`, `assets/tiles/`, `assets/enemies/`,
+`assets/heroes/`, `assets/sheets/`, `assets/misc/` (tracked in git as of U7 —
+store builds clone the repo, so the art must ship with it).
 
 ## U7 roster sprites (art track TODO)
 
-The campaign roster (U7) needs one 1024px PNG per tower under `assets/towers/`:
-`arrow.png`, `cannon.png`, `frost.png`, `poison.png`, `sniper.png`,
-`lightning.png`, `support.png`, `gold.png`. Until they exist,
-`assets/manifest.json` aliases the new ids to the old art
-(arrow→archer.png, poison→venom.png, lightning→tesla.png, support→beacon.png;
-cannon/frost keep their own files) and `sniper`/`gold` fall back to their
-glyph/color canvas shapes.
+The campaign roster (U7) needs one 1024px PNG per tower under `assets/towers/`
+for the base art plus upgrade variants:
+
+- `arrow.png`, `arrow-lv1.png` .. `arrow-lv5.png`, `tower-arrow-attack.png`
+- `cannon.png`, `cannon-lv1.png` .. `cannon-lv5.png`, `tower-cannon-attack.png`
+- `frost.png`, `frost-lv1.png` .. `frost-lv5.png`, `tower-frost-attack.png`
+- `poison.png`, `poison-lv1.png` .. `poison-lv5.png`, `tower-poison-attack.png`
+- `sniper.png`, `sniper-lv1.png` .. `sniper-lv5.png`, `tower-sniper-attack.png`
+- `lightning.png`, `lightning-lv1.png` .. `lightning-lv5.png`, `tower-lightning-attack.png`
+- `support.png`, `support-lv1.png` .. `support-lv5.png`
+- `gold.png`, `gold-lv1.png` .. `gold-lv5.png`
+
+Until the upgrade files exist, the manifest can alias `lv1` to the older base
+art where available so the game still renders something readable:
+`arrow→archer.png`, `poison→venom.png`, `lightning→tesla.png`,
+`support→beacon.png`, with cannon/frost keeping their own files.
+`sniper` and `gold` still fall back to their glyph/color canvas shapes.
+
+The first battlefield tile pass starts with `assets/tiles/border.png` and
+`assets/tiles/path.png`; the renderer can pick up more specific tile variants
+later without changing the code again.
 
 ⚠️ This calls a **paid** API (~31 images for the full set incl. walk-cycle sheets). Generate a few first.
 
@@ -61,7 +77,6 @@ the game. Override the model/quality in `.env`:
 
 ## Using the assets in the game
 
-The generator only *creates* the files; the game doesn't load them yet (it still
-draws shapes). Wiring an optional sprite layer into `src/ui/render.js` — load
-`assets/manifest.json`, draw the PNG when present, fall back to the shape — is a
-small follow-up. Ask and it can be added.
+The generator only *creates* the files; the game now loads them when present and
+falls back to the original shapes if an id is missing. The sprite layer lives
+in `src/ui/sprites.js` and `src/ui/render.js`.

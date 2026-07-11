@@ -63,10 +63,10 @@ console.log('Sealing a MIDDLE stage is detected:');
   const st = loadLevel('l5');
   // ring CP2 (13,11): blocking its last open neighbour must read as sealing
   const ring = [[12, 11], [13, 10], [13, 12]];
-  for (const [x, y] of ring) addTower(st, 'archer', x, y);
+  for (const [x, y] of ring) addTower(st, 'wall', x, y);
   check('spawn->CP1 still open mid-ring', !st.siege);
   check('final ring cell warns wouldSealAt', wouldSealAt(st, 14, 11) === true);
-  addTower(st, 'archer', 14, 11);          // allowed — siege mode
+  addTower(st, 'wall', 14, 11);            // allowed — siege mode
   check('siege flips on (CP2 cut off)', st.siege === true);
   check('breach field targets CP2', !!st.siegeFields['CP2']);
 }

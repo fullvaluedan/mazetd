@@ -88,9 +88,9 @@ console.log('batchBuild: invalid cells skipped without aborting the batch:');
   addTower(st, 'cannon', 2, 3);                             // pre-occupied mid-rect
   const cells = marqueeCells(cc(0), cc(3), cc(3), cc(3));   // border(0,3) occ(2,3) open(1,3)(3,3)
   const r = batchBuild(st, 'wall', cells);
-  check('border + occupied skipped, later cells still built',
-    r.built === 2 && r.of === 2, JSON.stringify(r));
-  check('walls landed on both open cells', !!st.towerGrid[3][1] && !!st.towerGrid[3][3]);
+  check('border + full 2x2 footprint skipped, earlier open cell still builds',
+    r.built === 1 && r.of === 1, JSON.stringify(r));
+  check('wall lands on the one unoccupied cell', !!st.towerGrid[3][1] && st.towerGrid[3][1].type === 'wall');
   check('the pre-existing tower survived', st.towerGrid[3][2] && st.towerGrid[3][2].type === 'cannon');
   const cp = marqueeCells(cc(1), cc(13), cc(3), cc(13));    // includes checkpoint flag CP1 (2,13)
   const r2 = batchBuild(st, 'wall', cp);

@@ -15,17 +15,19 @@ import { sellRefund, tryBuild, tryUpgrade } from '../src/game/shop.js';
 import { buildSnapshot, applySnapshot } from '../src/game/save.js';
 import { getLevel, towersUnlockedAt, UNLOCK_SCHEDULE } from '../src/game/levels.js';
 import { startWave, computeStats } from '../src/game/wave.js';
-import { payWaveClear, onEnemyKilled, onEnemyLeaked } from '../src/game/economy.js';
+import { earlyStartCap, payEarlyStart, payWaveClear, onEnemyKilled, onEnemyLeaked } from '../src/game/economy.js';
 import { ringRadiusFor, RING_ITEM, RING_GAP } from '../src/ui/radial.js';
+import { Radial } from '../src/ui/radial.js';
+import { installFakeDom } from './fakedom.mjs';
 
 let fails = 0;
 const check = (n, c, e = '') => { if (!c) { fails++; console.log('  FAIL', n, e); } else console.log('  ok  ', n, e); };
 
-function freshL8() {
+function freshL8(mode = 'expert', rich = true) {
   const lv = getLevel('l8');           // big enough board, has flyers
   setGridSize(lv.cols, lv.rows);
-  const st = createState(makeRng(1), 1, lv);
-  st.gold = 1e6;
+  const st = createState(makeRng(1), 1, lv, { difficultyMode: mode });
+  if (rich) st.gold = 1e6;
   return st;
 }
 const parkEnemy = (st, type, cx, cy, stats = null) => {
@@ -42,6 +44,60 @@ console.log('Refunds: walls sell 100%, towers 70%:');
   const cannon = addTower(st, 'cannon', 3, 5);
   check('tower refund = 70%', sellRefund(cannon) === Math.floor(cannon.invested * CONFIG.SELL_REFUND));
   check('the two refund rates differ', CONFIG.WALL_REFUND === 1.0 && CONFIG.SELL_REFUND === 0.70);
+}
+
+console.log('Difficulty modes: expert baseline, normal +40% gold/+20% tower dmg, easy +100% gold/+50% tower dmg:');
+{
+  const expert = freshL8('expert', false);
+  const normal = freshL8('normal', false);
+  const easy = freshL8('easy', false);
+  const startBase = getLevel('l8').startGold != null ? getLevel('l8').startGold : CONFIG.START_GOLD;
+  check('expert keeps baseline start gold', expert.gold === startBase, `${expert.gold}`);
+  check('normal starts with 40% more gold', normal.gold === Math.round(startBase * 1.4), `${normal.gold}`);
+  check('easy starts with 100% more gold', easy.gold === Math.round(startBase * 2), `${easy.gold}`);
+
+  const eStats = getTowerStats('arrow', 1, null, 'expert');
+  const nStats = getTowerStats('arrow', 1, null, 'normal');
+  const hStats = getTowerStats('arrow', 1, null, 'easy');
+  check('normal tower damage is +20%', Math.abs(nStats.damage - eStats.damage * 1.2) < 1e-9, `${eStats.damage} -> ${nStats.damage}`);
+  check('easy tower damage is +50%', Math.abs(hStats.damage - eStats.damage * 1.5) < 1e-9, `${eStats.damage} -> ${hStats.damage}`);
+
+  const bountyEnemy = { bounty: 10, x: 0, y: 0, radius: 0, color: '#fff', boss: false, maxHp: 100 };
+  const pay = (st) => {
+    st.gold = 0;
+    onEnemyKilled(st, bountyEnemy);
+    return st.gold;
+  };
+  const normalKill = pay(normal);
+  const easyKill = pay(easy);
+  check('normal kill bounty is +40%', normalKill === 14, `${normalKill}`);
+  check('easy kill bounty is +100%', easyKill === 20, `${easyKill}`);
+
+  const wavePay = (st) => {
+    st.gold = 0;
+    st.waveActive = false;
+    return payWaveClear(st, 1);
+  };
+  const expertWave = wavePay(expert);
+  const normalWave = wavePay(normal);
+  const easyWave = wavePay(easy);
+  check('normal wave-clear bonus is +40%', normalWave.bonus === Math.ceil(expertWave.bonus * 1.4), `${expertWave.bonus} -> ${normalWave.bonus}`);
+  check('easy wave-clear bonus is +100%', easyWave.bonus === Math.ceil(expertWave.bonus * 2), `${expertWave.bonus} -> ${easyWave.bonus}`);
+}
+
+console.log('Early-wave bonus: immediate reward decays predictably over build time:');
+{
+  const st = freshL8('expert', false);
+  st.gold = 0;
+  const wave = 3;
+  const cap = earlyStartCap(wave);
+  check('later waves advertise their increasing immediate cap', cap === CONFIG.WAVE_CALL_BONUS_BASE + CONFIG.WAVE_CALL_BONUS_PER_WAVE * 2, `${cap}`);
+  check('calling immediately pays the full cap', payEarlyStart(st, CONFIG.BUILD_TIMER, wave) === cap && st.gold === cap, `${st.gold}`);
+  st.gold = 0;
+  check('waiting five seconds loses five gold at the configured rate', payEarlyStart(st, CONFIG.BUILD_TIMER - 5, wave) === Math.max(0, cap - 5), `${st.gold}`);
+  st.gold = 0;
+  const expired = Math.max(0, Math.floor(cap - CONFIG.BUILD_TIMER * CONFIG.EARLY_START_BONUS_PER_SEC));
+  check('the end of the build window uses the same configured decay formula', payEarlyStart(st, 0, wave) === expired && st.gold === expired, `${st.gold}`);
 }
 
 console.log('Targeting: air/ground gating per roster def:');
@@ -259,9 +315,9 @@ console.log('U5 tier machinery: per-tier tables, forks only where declared:');
   tryUpgrade(st, sh, null);
   check('short table caps early (1 tier -> L2 max)', sh.level === 2 && sh.canUpgrade() === false);
 
-  // tier + branch survive the v3 save round-trip
+  // tier + branch survive the v4 save round-trip
   const snap = buildSnapshot(st);
-  check('snapshot is v3', snap.v === 3);
+  check('snapshot is v4', snap.v === 4);
   const st2 = applySnapshot(snap);
   const f2 = st2.towers.find((x) => x.type === 'ttestFork');
   const t2 = st2.towers.find((x) => x.type === 'ttest');
@@ -343,6 +399,24 @@ console.log('U7 ring geometry: 9 items, >=44px hit areas, >=8px apart, 375px-saf
   check('adjacent hit areas >=8px apart', chord - RING_ITEM >= RING_GAP, `gap=${(chord - RING_ITEM).toFixed(1)}`);
   check('one ring fits a 375px viewport (no two-ring fallback needed)',
     2 * (R + RING_ITEM / 2 + 6) <= 375, `${2 * (R + RING_ITEM / 2 + 6)}px`);
+}
+
+console.log('U7 radial anchor: the center X stays on the selected cell:');
+{
+  const { doc } = installFakeDom();
+  const ui = doc.createElement('div');
+  ui.clientWidth = 280;
+  ui.clientHeight = 220;
+  const vp = { worldToUi: () => ({ x: 14, y: 18 }) };
+  const radial = new Radial(ui, vp);
+  radial.open({ x: 2, y: 2 }, [
+    { glyph: 'A', onTap() {} },
+    { glyph: 'B', onTap() {} },
+    { glyph: 'C', onTap() {} },
+  ], 'build', null);
+  check('ring center anchored to selected cell', radial.root.style.left === '14px' && radial.root.style.top === '18px',
+    `left=${radial.root.style.left} top=${radial.root.style.top}`);
+  radial.close();
 }
 
 console.log('U7 legacy compat: a v2 Endless save with magic + falcon loads:');
