@@ -64,6 +64,26 @@ export function towerAttackCandidates(type, level = 1) {
   return ids;
 }
 
+export function towerAuraCandidates(type, level = 1) {
+  const top = Math.max(1, Math.min(5, level | 0 || 1));
+  const ids = [];
+  for (let lvl = top; lvl >= 1; lvl--) ids.push(`tower-${type}-aura-lv${lvl}`);
+  ids.push(`tower-${type}-aura`);
+  return ids;
+}
+
+export function towerIncomeCandidates(type, level = 1) {
+  const top = Math.max(1, Math.min(5, level | 0 || 1));
+  const ids = [];
+  for (let lvl = top; lvl >= 1; lvl--) ids.push(`tower-${type}-income-lv${lvl}`);
+  ids.push(`tower-${type}-income`);
+  return ids;
+}
+
+export function enemyStateCandidates(type, state = 'idle') {
+  return [`enemy-${type}-${state}`, `enemy-${type}`];
+}
+
 // URL of a generated asset for DOM <img> use (radial icons, portraits), or
 // null when the art isn't generated/loaded. Respects the Art toggle.
 export function getSpriteUrl(id) {

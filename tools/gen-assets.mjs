@@ -108,6 +108,9 @@ const TOWER_FAMILY_LEVEL_NOTES = {
 };
 const TOWER_FAMILY_ATTACK_NOTES = {
   cannon: 'This family should feel like a true artillery weapon: clear wind-up, muzzle flash, recoil, smoke, and settle. Let the barrel and support frame visibly change between frames so the cycle reads at a glance.',
+  lightning: 'This family should feel like a crackling storm tower: charge, strike, discharge, and settle. Keep the coil and sparks readable in every frame.',
+  support: 'This family should feel like a blessing aura: pulse, glow, peak, and settle. Keep the shrine readable while the halo breathes around it.',
+  gold: 'This family should feel like an income pulse: shimmer, coin ping, glow, and settle. Keep the mine/treasury readable while the sparkles loop.',
 };
 
 function towerLevelPrompt(id, t, level) {
@@ -122,8 +125,12 @@ function towerLevelPrompt(id, t, level) {
 }
 
 const TOWER_META = { version: 1, kind: 'sprite', logical: [32, 32], pivot: [0.5, 0.56], scaleMode: 'contain' };
+const TOWER_2X2_META = { version: 2, kind: 'sprite', logical: [64, 64], footprint: [2, 2], pivot: [0.5, 0.5], scaleMode: 'contain' };
 const ENEMY_META = { version: 1, kind: 'sprite', logical: [32, 32], pivot: [0.5, 0.62], scaleMode: 'contain' };
 const SHEET_META = { version: 1, kind: 'sheet', logical: [32, 32], pivot: [0.5, 0.62], scaleMode: 'contain' };
+const BRUTE_ENEMY_META = { version: 2, kind: 'sprite', logical: [48, 48], pivot: [0.5, 0.62], scaleMode: 'contain' };
+const BRUTE_SHEET_META = { version: 2, kind: 'sheet', logical: [48, 48], pivot: [0.5, 0.62], scaleMode: 'contain' };
+const TOWER_2X2_SHEET_META = { version: 2, kind: 'sheet', logical: [64, 64], footprint: [2, 2], pivot: [0.5, 0.5], scaleMode: 'contain' };
 const TILE_META = { version: 1, kind: 'tile', logical: [32, 32], footprint: [1, 1], pivot: [0.5, 0.5], scaleMode: 'tile' };
 const PORTAL_META = { version: 1, kind: 'sprite', logical: [96, 96], footprint: [3, 3], pivot: [0.5, 0.5], scaleMode: 'contain' };
 const CRYSTAL_META = { version: 1, kind: 'sprite', logical: [96, 128], footprint: [3, 4], pivot: [0.5, 0.5], scaleMode: 'contain' };
@@ -142,6 +149,19 @@ function towerAttackSheetPrompt(id, t) {
     'no frame borders or grid lines. ' + STYLE;
 }
 
+function towerLoopSheetPrompt(id, t, kind) {
+  const base = TOWER_HINT[id] || 'a defensive tower';
+  const note = TOWER_FAMILY_ATTACK_NOTES[id];
+  const action = kind === 'aura' ? 'aura pulse poses' : 'income pulse poses';
+  return 'Sprite sheet, EXACTLY 4 frames arranged in a 2x2 grid on one image: ' +
+    `the SAME tower family — "${t.name}" — drawn in 4 sequential ${action}. ` +
+    `Keep the tower on a 2x2 footprint, preserve the family silhouette, and show a readable loop rather than turning the tower into a different object. ` +
+    (note ? `${note} ` : '') +
+    `Tower base design: ${base}. Primary colour ${t.color}. ` +
+    'Each frame centered in its quadrant, same camera angle and lighting throughout, equal spacing, ' +
+    'no frame borders or grid lines. ' + STYLE;
+}
+
 function tilePrompt(title, brief) {
   return `Top-down battlefield tile art for a fantasy tower-defense game: ${brief} ` +
     `This is a single ${title}, painted as a readable 32x32 tile with a strong silhouette, ` +
@@ -154,6 +174,9 @@ function shouldGenerateTowerLevels(t) {
 
 function shouldGenerateTowerAttack(t) {
   return !!t.tiers && !t.hidden && !t.wall && !t.aura && !t.noAttack && t.damage > 0;
+}
+function shouldGenerateTowerLoop(t) {
+  return !!t.tiers && !t.hidden && (t.aura || t.noAttack);
 }
 function sheetPrompt(hint) {
   return 'Sprite sheet, EXACTLY 4 frames arranged in a 2x2 grid on one image: ' +
@@ -186,31 +209,77 @@ export function buildManifest() {
     if (shouldGenerateTowerLevels(t)) {
       const maxLevel = Math.min(STANDARD_TOWER_LEVELS, (t.tiers?.length || 0) + 1);
       for (let level = 1; level <= maxLevel; level++) {
+        const approvedArrowTier = id === 'arrow' && level <= 5;
+        const approvedCannonTier = id === 'cannon' && level <= 5;
+        const approvedFrostTier = id === 'frost' && level <= 5;
+        const approvedPoisonTier = id === 'poison' && level <= 5;
+        const approvedSniperTier = id === 'sniper' && level <= 5;
+        const approvedLightningTier = id === 'lightning' && level <= 5;
+        const approvedSupportTier = id === 'support' && level <= 5;
+        const approvedGoldTier = id === 'gold' && level <= 5;
+        const versionedTower = approvedArrowTier || approvedCannonTier || approvedFrostTier || approvedPoisonTier || approvedSniperTier || approvedLightningTier;
         items.push({
           id: `tower-${id}-lv${level}`,
-          out: `towers/${id}-lv${level}.png`,
+          out: approvedArrowTier ? `towers/${id}-lv${level}-v2.png`
+            : approvedCannonTier ? `towers/cannon-lv${level}-v${level === 2 ? 3 : level === 4 ? 3 : 2}.png`
+              : approvedFrostTier ? `towers/frost-lv${level}-v2.png`
+              : approvedPoisonTier ? `towers/poison-lv${level}-v3.png`
+              : approvedSniperTier ? `towers/sniper-lv${level}-v4.png`
+              : approvedLightningTier ? `towers/lightning-lv${level}-v2.png`
+              : approvedSupportTier ? `towers/support-lv${level}-v2.png`
+                : approvedGoldTier ? `towers/gold-lv${level}-v2.png`
+              : `towers/${id}-lv${level}.png`,
           size: '1024x1024',
-          meta: TOWER_META,
+          meta: versionedTower || approvedSupportTier || approvedGoldTier ? TOWER_2X2_META : TOWER_META,
           prompt: towerLevelPrompt(id, t, level),
         });
       }
     }
     if (shouldGenerateTowerAttack(t)) {
+      const approvedArrowSheet = id === 'arrow';
+      const approvedPoisonSheet = id === 'poison';
+      const approvedSniperSheet = id === 'sniper';
       items.push({
         id: `sheet-tower-${id}-attack`,
-        out: `sheets/tower-${id}-attack.png`,
+        out: approvedArrowSheet ? `sheets/tower-${id}-attack-v2.png`
+          : approvedPoisonSheet ? `sheets/tower-poison-attack-v3.png`
+          : approvedSniperSheet ? `sheets/tower-sniper-attack-v3.png`
+          : id === 'lightning' ? `sheets/tower-lightning-attack-v2.png`
+          : id === 'frost' ? `sheets/tower-frost-attack-v2.png`
+          : `sheets/tower-${id}-attack.png`,
         size: '1024x1024',
         frames: 4,
         grid: [2, 2],
-        meta: { ...SHEET_META, pivot: TOWER_META.pivot },
+        meta: approvedArrowSheet || approvedPoisonSheet || approvedSniperSheet || id === 'lightning' || id === 'frost'
+          ? TOWER_2X2_SHEET_META
+          : { ...SHEET_META, pivot: TOWER_META.pivot },
         prompt: towerAttackSheetPrompt(id, t),
+      });
+    }
+    if (shouldGenerateTowerLoop(t)) {
+      items.push({
+        id: `sheet-tower-${id}-${t.aura ? 'aura' : 'income'}`,
+        out: id === 'support' ? `sheets/tower-support-aura-v1.png` : `sheets/tower-gold-income-v1.png`,
+        size: '1024x1024',
+        frames: 4,
+        grid: [2, 2],
+        meta: TOWER_2X2_SHEET_META,
+        prompt: towerLoopSheetPrompt(id, t, t.aura ? 'aura' : 'income'),
       });
     }
   }
   for (const [id, e] of Object.entries(CONFIG.ENEMIES)) {
-    items.push({ id: `enemy-${id}`, out: `enemies/${id}.png`, size: '1024x1024',
-      meta: ENEMY_META,
+    items.push({ id: `enemy-${id}`, out: ['normal', 'fast', 'tank', 'swarm', 'flyer', 'healer', 'shield', 'boss'].includes(id) ? `enemies/${id}-v2.png` : `enemies/${id}.png`, size: '1024x1024',
+      meta: id === 'tank' ? BRUTE_ENEMY_META : id === 'swarm' ? { ...ENEMY_META, logical: [24, 24] } : ENEMY_META,
       prompt: `Game sprite of a "${e.name}" enemy for a tower-defense game: ${ENEMY_HINT[id] || 'a creature'}. Primary colour ${e.color}. ${STYLE}` });
+    if (['normal', 'fast', 'tank', 'swarm', 'flyer', 'healer', 'shield', 'boss'].includes(id)) {
+      for (const state of ['walk', 'defeat']) items.push({
+        id: `sheet-enemy-${id}-${state}`,
+        out: `sheets/enemy-${id}-${state}-v2.png`, size: '1024x1024',
+        meta: id === 'tank' ? BRUTE_SHEET_META : id === 'swarm' ? { ...SHEET_META, logical: [24, 24] } : SHEET_META, frames: 4, grid: [2, 2],
+        prompt: sheetPrompt(`the ${e.name} enemy ${state} cycle`),
+      });
+    }
   }
   for (const [id, h] of Object.entries(CONFIG.HEROES)) {
     items.push({ id: `hero-${id}`, out: `heroes/${id}.png`, size: '1024x1024',

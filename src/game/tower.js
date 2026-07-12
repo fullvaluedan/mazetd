@@ -305,6 +305,10 @@ export class Tower {
     const primary = targets[0];
     this.angle = Math.atan2(primary.y - this.py, primary.x - this.px);
     this.muzzle = 0.08;
+    if (this.type === 'cannon') {
+      addShake(state, 1.8);
+      state.effects.push({ kind: 'smoke', x: this.px, y: this.py, angle: this.angle, life: 0.32, max: 0.32 });
+    }
 
     if (this.stats.hitscan) {
       pushEvent(state, 'shot', this.stats.damageType);   // beams spawn no projectile

@@ -65,7 +65,35 @@ export function inspectPng(file) {
     pixels[alphaAt], pixels[(width - 1) * channels + alphaAt],
     pixels[(height - 1) * stride + alphaAt], pixels[(height - 1) * stride + (width - 1) * channels + alphaAt],
   ];
-  return { width, height, color, alpha: alphaAt != null, bounds: { x0, y0, x1, y1 }, cornerAlpha };
+  const result = { width, height, color, alpha: alphaAt != null, bounds: { x0, y0, x1, y1 }, cornerAlpha };
+  // Keep decoded data internal to programmatic QC consumers without changing CLI output.
+  Object.defineProperties(result, {
+    pixels: { value: pixels },
+    channels: { value: channels },
+    alphaAt: { value: alphaAt },
+  });
+  return result;
+}
+
+export function inspectAtlasFrames(file, grid) {
+  const png = inspectPng(file);
+  const [cols, rows] = grid;
+  if (!png.alpha || png.width % cols || png.height % rows) {
+    throw new Error(`invalid atlas grid ${cols}x${rows}`);
+  }
+  const frameW = png.width / cols;
+  const frameH = png.height / rows;
+  const { pixels, channels, alphaAt } = png;
+  return Array.from({ length: cols * rows }, (_, index) => {
+    const ox = (index % cols) * frameW;
+    const oy = Math.floor(index / cols) * frameH;
+    let x0 = frameW, y0 = frameH, x1 = -1, y1 = -1;
+    for (let y = 0; y < frameH; y++) for (let x = 0; x < frameW; x++) {
+      const alpha = alphaAt == null ? 255 : pixels[((oy + y) * png.width + ox + x) * channels + alphaAt];
+      if (alpha > 12) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
+    }
+    return { x0, y0, x1, y1 };
+  });
 }
 
 const required = {
@@ -74,6 +102,76 @@ const required = {
   'objective-portal': { source: [192, 192], overlay: true },
   'objective-crystal': { source: [192, 256], overlay: true },
   'tower-wall-redbrick': { source: [64, 64], tile: true },
+  'tower-arrow-lv1': { source: [128, 128], tower: true },
+  'tower-arrow-lv2': { source: [128, 128], tower: true },
+  'tower-arrow-lv3': { source: [128, 128], tower: true },
+  'tower-arrow-lv4': { source: [128, 128], tower: true },
+  'tower-arrow-lv5': { source: [128, 128], tower: true },
+  'sheet-tower-arrow-attack': { source: [256, 256], sheet: true },
+  'tower-cannon-lv1': { source: [128, 128], tower: true },
+  'tower-cannon-lv2': { source: [128, 128], tower: true },
+  'tower-cannon-lv3': { source: [128, 128], tower: true },
+  'tower-cannon-lv4': { source: [128, 128], tower: true },
+  'tower-cannon-lv5': { source: [128, 128], tower: true },
+  'tower-frost-lv1': { source: [128, 128], tower: true },
+  'tower-frost-lv2': { source: [128, 128], tower: true },
+  'tower-frost-lv3': { source: [128, 128], tower: true },
+  'tower-frost-lv4': { source: [128, 128], tower: true },
+  'tower-frost-lv5': { source: [128, 128], tower: true },
+  'tower-poison-lv1': { source: [128, 128], tower: true },
+  'tower-poison-lv2': { source: [128, 128], tower: true },
+  'tower-poison-lv3': { source: [128, 128], tower: true },
+  'tower-poison-lv4': { source: [128, 128], tower: true },
+  'tower-poison-lv5': { source: [128, 128], tower: true },
+  'sheet-tower-poison-attack': { source: [256, 256], sheet: true },
+  'tower-sniper-lv1': { source: [128, 128], tower: true },
+  'tower-sniper-lv2': { source: [128, 128], tower: true },
+  'tower-sniper-lv3': { source: [128, 128], tower: true },
+  'tower-sniper-lv4': { source: [128, 128], tower: true },
+  'tower-sniper-lv5': { source: [128, 128], tower: true },
+  'sheet-tower-sniper-attack': { source: [256, 256], sheet: true },
+  'tower-lightning-lv1': { source: [128, 128], tower: true },
+  'tower-lightning-lv2': { source: [128, 128], tower: true },
+  'tower-lightning-lv3': { source: [128, 128], tower: true },
+  'tower-lightning-lv4': { source: [128, 128], tower: true },
+  'tower-lightning-lv5': { source: [128, 128], tower: true },
+  'sheet-tower-lightning-attack': { source: [256, 256], sheet: true },
+  'tower-support-lv1': { source: [128, 128], tower: true },
+  'tower-support-lv2': { source: [128, 128], tower: true },
+  'tower-support-lv3': { source: [128, 128], tower: true },
+  'tower-support-lv4': { source: [128, 128], tower: true },
+  'tower-support-lv5': { source: [128, 128], tower: true },
+  'sheet-tower-support-aura': { source: [256, 256], sheet: true },
+  'tower-gold-lv1': { source: [128, 128], tower: true },
+  'tower-gold-lv2': { source: [128, 128], tower: true },
+  'tower-gold-lv3': { source: [128, 128], tower: true },
+  'tower-gold-lv4': { source: [128, 128], tower: true },
+  'tower-gold-lv5': { source: [128, 128], tower: true },
+  'sheet-tower-gold-income': { source: [256, 256], sheet: true },
+  'enemy-normal': { source: [64, 64] },
+  'sheet-enemy-normal-walk': { source: [128, 128], enemySheet: true },
+  'sheet-enemy-normal-defeat': { source: [128, 128], enemySheet: true },
+  'enemy-fast': { source: [64, 64] },
+  'sheet-enemy-fast-walk': { source: [128, 128], enemySheet: true },
+  'sheet-enemy-fast-defeat': { source: [128, 128], enemySheet: true },
+  'enemy-tank': { source: [96, 96] },
+  'sheet-enemy-tank-walk': { source: [192, 192], enemySheet: true, frame: 96 },
+  'sheet-enemy-tank-defeat': { source: [192, 192], enemySheet: true, frame: 96 },
+  'enemy-swarm': { source: [48, 48] },
+  'sheet-enemy-swarm-walk': { source: [96, 96], enemySheet: true, frame: 48 },
+  'sheet-enemy-swarm-defeat': { source: [96, 96], enemySheet: true, frame: 48 },
+  'enemy-flyer': { source: [64, 64] },
+  'sheet-enemy-flyer-walk': { source: [128, 128], enemySheet: true },
+  'sheet-enemy-flyer-defeat': { source: [128, 128], enemySheet: true },
+  'enemy-healer': { source: [64, 64] },
+  'sheet-enemy-healer-walk': { source: [128, 128], enemySheet: true },
+  'sheet-enemy-healer-defeat': { source: [128, 128], enemySheet: true },
+  'enemy-shield': { source: [64, 64] },
+  'sheet-enemy-shield-walk': { source: [128, 128], enemySheet: true },
+  'sheet-enemy-shield-defeat': { source: [128, 128], enemySheet: true },
+  'enemy-boss': { source: [128, 128] },
+  'sheet-enemy-boss-walk': { source: [256, 256], enemySheet: true, frame: 128 },
+  'sheet-enemy-boss-defeat': { source: [256, 256], enemySheet: true, frame: 128 },
 };
 
 export function verifyProductionAssets(manifest) {
@@ -85,8 +183,17 @@ export function verifyProductionAssets(manifest) {
       const png = inspectPng(path.join(ROOT, entry.src));
       const dimensionOK = png.width === expectation.source[0] && png.height === expectation.source[1];
       const bounds = png.bounds;
-      const alphaOK = expectation.tile
+      const alphaOK = expectation.sheet
+        ? inspectAtlasFrames(path.join(ROOT, entry.src), [2, 2]).every((frame) => frame.x0 === 0 && frame.y0 === 0 && frame.x1 === 127 && frame.y1 === 127)
+        : expectation.enemySheet
+          ? inspectAtlasFrames(path.join(ROOT, entry.src), [2, 2]).every((frame) => {
+            const size = expectation.frame || 64;
+            return frame.x0 > 0 && frame.y0 > 0 && frame.x1 < size - 1 && frame.y1 < size - 1;
+          })
+        : expectation.tile
         ? png.cornerAlpha.every((a) => a > 240)
+        : expectation.tower
+          ? bounds.x0 === 0 && bounds.y0 === 0 && bounds.x1 === png.width - 1 && bounds.y1 === png.height - 1
         : bounds.x0 > 0 && bounds.y0 > 0 && bounds.x1 < png.width - 1 && bounds.y1 < png.height - 1;
       results.push({ id, ok: dimensionOK && alphaOK, png, reason: dimensionOK ? (alphaOK ? '' : 'unsafe alpha bounds') : `expected ${expectation.source.join('x')}` });
     } catch (error) { results.push({ id, ok: false, reason: error.message }); }

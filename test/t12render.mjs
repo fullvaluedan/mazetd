@@ -20,7 +20,7 @@ const { updateProjectiles, updateEffects } = await import('../src/game/projectil
 const { onEnemyKilled, onEnemyLeaked, updateFloaters } = await import('../src/game/economy.js');
 const { startWave, processSpawning, updateBosses } = await import('../src/game/wave.js');
 const { getLevel } = await import('../src/game/levels.js');
-const { towerSpriteCandidates, towerAttackCandidates } = await import('../src/ui/sprites.js');
+const { towerSpriteCandidates, towerAttackCandidates, enemyStateCandidates } = await import('../src/ui/sprites.js');
 const { Viewport } = await import('../src/ui/viewport.js');
 const { render, computeView, viewHasCell } = await import('../src/ui/render.js');
 const { runLevel } = await import('./campaign-sim.mjs');
@@ -52,6 +52,7 @@ console.log('Tower art lookup: level-specific sprites fall back cleanly by tier:
   check('level 5 reaches the full fallback chain', c5[0] === 'tower-cannon-lv5' && c5.includes('tower-cannon-lv1') && c5[c5.length - 1] === 'tower-cannon');
   const a3 = towerAttackCandidates('cannon', 3);
   check('attack sprites mirror the same tier chain', a3.join() === 'tower-cannon-attack-lv3,tower-cannon-attack-lv2,tower-cannon-attack-lv1,tower-cannon-attack');
+  check('enemy state lookup prefers a named state sheet then static fallback', enemyStateCandidates('normal', 'defeat').join() === 'enemy-normal-defeat,enemy-normal');
 }
 
 console.log('View rect: zoom 1 / no camera = null (culling short-circuits):');

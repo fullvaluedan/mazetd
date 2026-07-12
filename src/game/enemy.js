@@ -338,13 +338,21 @@ export class Enemy {
 // Move every enemy one tick; resolve kills (gold) and leaks (lives).
 // onKilled/onLeaked are injected by the caller (economy) to avoid a circular dep.
 export function updateEnemies(state, dt, onKilled, onLeaked) {
+  // Defeat art is render-only. Logical death, rewards, and wave completion use
+  // the live list exactly as before; these snapshots are drawn after removal.
+  if (state.defeatedEnemies) state.defeatedEnemies = state.defeatedEnemies.filter((e) => e.until > state.time);
   // healers first, so allies are topped up before they take/lose hp this tick
   for (const e of state.enemies) if (e.alive) e.healAllies(state, dt);
 
   for (const e of state.enemies) {
     if (!e.alive) continue;
     e.step(dt, state);
-    if (e.hp <= 0) { e.alive = false; onKilled && onKilled(state, e); }
+    if (e.hp <= 0) {
+      if (state.defeatedEnemies) state.defeatedEnemies.push({
+        type: e.type, x: e.x, y: e.y, radius: e.radius, until: state.time + 0.36,
+      });
+      e.alive = false; onKilled && onKilled(state, e);
+    }
     else if (e.reachedGoal) { e.alive = false; onLeaked && onLeaked(state, e); }
   }
   // compact the list

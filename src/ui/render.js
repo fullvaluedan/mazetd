@@ -23,9 +23,12 @@ import { marqueeCells } from '../game/shop.js';
 import {
   getSprite,
   getSpriteChain,
+  enemyStateCandidates,
   spriteCount,
   spritesEnabled,
+  towerAuraCandidates,
   towerAttackCandidates,
+  towerIncomeCandidates,
   towerSpriteCandidates,
 } from './sprites.js';
 
@@ -608,7 +611,13 @@ function drawTowers(ctx, state, view) {
     const attackSprite = t.muzzle > 0
       ? getSpriteChain(towerAttackCandidates(t.type, t.level), attackFrame)
       : null;
-    const sprite = attackSprite || getSpriteChain(towerSpriteCandidates(t.type, t.level));
+    const loopFrame = Math.floor(state.time * 6) & 3;
+    const loopSprite = t.def.aura
+      ? getSpriteChain(towerAuraCandidates(t.type, t.level), loopFrame)
+      : t.def.noAttack
+        ? getSpriteChain(towerIncomeCandidates(t.type, t.level), loopFrame)
+        : null;
+    const sprite = attackSprite || loopSprite || getSpriteChain(towerSpriteCandidates(t.type, t.level));
 
     // cosmetic: build pop-in + recoil kick opposite the shot direction
     const age = state.time - (t.builtAt != null ? t.builtAt : -10);
@@ -631,8 +640,8 @@ function drawTowers(ctx, state, view) {
     } else if (sprite) {
         // Attack towers use one seamless 2x2 foundation rather than repeating
         // a cell sprite. Art must remain inside this exact footprint.
-        const s = (Math.max(fp.w, fp.h) * SIZE - 4) * pop;
-        ctx.drawImage(sprite, cx - s / 2 + rx, cy - s / 2 - 2 + ry, s, s);
+        const s = Math.max(fp.w, fp.h) * SIZE * pop;
+        ctx.drawImage(sprite, cx - s / 2 + rx, cy - s / 2 + ry, s, s);
     } else {
       const pad = 3, r = 6;
       // base body
@@ -867,6 +876,15 @@ function drawEffects(ctx, state, view) {
       ctx.beginPath();
       ctx.arc(e.x, e.y, 3 * a + 1, 0, Math.PI * 2);
       ctx.fill();
+    } else if (e.kind === 'smoke') {
+      if (!inV(view, e.x, e.y, 24)) continue;
+      const p = 1 - a;
+      const dx = Math.cos(e.angle) * (8 + p * 10);
+      const dy = Math.sin(e.angle) * (8 + p * 10) - p * 7;
+      ctx.fillStyle = `rgba(70,62,52,${a * 0.4})`;
+      for (const [ox, oy, r] of [[0, 0, 5], [-3, -2, 4], [3, -4, 4]]) {
+        ctx.beginPath(); ctx.arc(e.x + dx + ox, e.y + dy + oy, r + p * 3, 0, Math.PI * 2); ctx.fill();
+      }
     } else if (e.kind === 'slash') {
       if (!inV(view, e.x, e.y, 26)) continue;
       // hero sword swing: a bright crescent sweeping across the attack line
@@ -919,12 +937,8 @@ function drawEnemies(ctx, state, view) {
     if (!inV(view, e.x, e.y, e.radius + (e.boss ? 80 : 12))) continue;
     let ey = e.y;
     if (e.flying) {
-      // soft shadow on the ground + gentle bob
+      // Air units hover without a ground shadow; their sprite silhouette carries the read.
       ey = e.y + Math.sin(state.time * 3 + e.bob) * 3;
-      ctx.fillStyle = 'rgba(0,0,0,0.30)';
-      ctx.beginPath();
-      ctx.ellipse(e.x, e.y + e.radius + 4, e.radius * 0.8, e.radius * 0.35, 0, 0, Math.PI * 2);
-      ctx.fill();
     }
 
     // healer aura
@@ -968,9 +982,9 @@ function drawEnemies(ctx, state, view) {
     }
 
     const frame = moving ? Math.floor(state.time * stepHz * 4 + e.bob) % 4 : 0;
-    const sprite = getSprite('enemy-' + e.type, frame);
+    const sprite = getSpriteChain(enemyStateCandidates(e.type, moving ? 'walk' : 'idle'), frame);
 
-    // soft contact shadow grounds the walkers (flyers already cast one)
+    // Soft contact shadows ground walkers only.
     if (!e.flying) {
       ctx.fillStyle = 'rgba(60, 42, 20, 0.20)';
       ctx.beginPath();
@@ -1025,6 +1039,19 @@ function drawEnemies(ctx, state, view) {
       ctx.fillStyle = e.boss ? '#e24b4a' : C.hpFront;
       ctx.fillRect(bx, by, bw * Math.max(0, e.hp / e.maxHp), 3);
     }
+  }
+
+  for (const e of state.defeatedEnemies || []) {
+    if (!inV(view, e.x, e.y, e.radius + 12)) continue;
+    const life = Math.max(0, Math.min(1, (e.until - state.time) / 0.36));
+    const frame = Math.min(3, Math.floor((1 - life) * 4));
+    const sprite = getSpriteChain(enemyStateCandidates(e.type, 'defeat'), frame);
+    if (!sprite) continue;
+    const s = e.radius * 2.6;
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, life * 1.5);
+    ctx.drawImage(sprite, e.x - s / 2, e.y - s / 2, s, s);
+    ctx.restore();
   }
 }
 

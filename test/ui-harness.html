@@ -31,7 +31,7 @@
       'title', 'difficulty', 'map', 'battle-empty', 'radial-empty',
       'radial-tower', 'info', 'settings', 'victory', 'defeat',
       'wall-grid',
-      'tower-roster', 'enemy-roster',
+      'tower-roster', 'tower-adjacency', 'enemy-roster',
       'store', 'resume', 'maze-end', 'leaderboard', 'stageLeaderboard',
     ];
     const select = document.querySelector('#proof-state');
@@ -128,6 +128,14 @@
       }
     }
 
+    async function placeTowerAdjacency(win, app) {
+      const { canBuildAt } = await win.importForHarness('./src/game/state.js');
+      app.state.gold = 999999;
+      for (const [x, y] of [[2, 5], [4, 5], [2, 7], [4, 7]]) {
+        if (canBuildAt(app.state, x, y, 'arrow')) app.actions.buildAt('arrow', x, y);
+      }
+    }
+
     async function placeEnemyRoster(win, app) {
       const { Enemy } = await win.importForHarness('./src/game/enemy.js');
       const types = ['normal', 'fast', 'tank', 'swarm', 'flyer', 'healer', 'shield', 'boss'];
@@ -164,6 +172,8 @@
         await placeWallGrid(win, app);
       } else if (name === 'tower-roster') {
         await placeTowerRoster(win, app);
+      } else if (name === 'tower-adjacency') {
+        await placeTowerAdjacency(win, app);
       } else if (name === 'enemy-roster') {
         await placeEnemyRoster(win, app);
       } else if (name === 'settings') app.actions.openSettings();

@@ -39,6 +39,7 @@ export function createState(rng, seed = 0, level = null, options = {}) {
     // entities
     towers: [],
     enemies: [],
+    defeatedEnemies: [],    // render-only defeat snapshots; never participate in simulation
     projectiles: [],
     effects: [],             // transient visual effects (rings, sparks, text)
     hero: null,

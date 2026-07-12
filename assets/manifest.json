@@ -128,91 +128,115 @@
     "scaleMode": "contain"
   },
   "tower-arrow-lv1": {
-    "src": "assets/towers/arrow-lv1.png",
-    "version": 1,
+    "src": "assets/towers/arrow-lv1-v2.png",
+    "version": 2,
     "kind": "sprite",
     "logical": [
-      32,
-      32
+      64,
+      64
+    ],
+    "footprint": [
+      2,
+      2
     ],
     "pivot": [
       0.5,
-      0.56
+      0.5
     ],
     "scaleMode": "contain"
   },
   "tower-arrow-lv2": {
-    "src": "assets/towers/arrow-lv2.png",
-    "version": 1,
+    "src": "assets/towers/arrow-lv2-v2.png",
+    "version": 2,
     "kind": "sprite",
     "logical": [
-      32,
-      32
+      64,
+      64
+    ],
+    "footprint": [
+      2,
+      2
     ],
     "pivot": [
       0.5,
-      0.56
+      0.5
     ],
     "scaleMode": "contain"
   },
   "tower-arrow-lv3": {
-    "src": "assets/towers/arrow-lv3.png",
-    "version": 1,
+    "src": "assets/towers/arrow-lv3-v2.png",
+    "version": 2,
     "kind": "sprite",
     "logical": [
-      32,
-      32
+      64,
+      64
+    ],
+    "footprint": [
+      2,
+      2
     ],
     "pivot": [
       0.5,
-      0.56
+      0.5
     ],
     "scaleMode": "contain"
   },
   "tower-arrow-lv4": {
-    "src": "assets/towers/arrow-lv4.png",
-    "version": 1,
+    "src": "assets/towers/arrow-lv4-v2.png",
+    "version": 2,
     "kind": "sprite",
     "logical": [
-      32,
-      32
+      64,
+      64
+    ],
+    "footprint": [
+      2,
+      2
     ],
     "pivot": [
       0.5,
-      0.56
+      0.5
     ],
     "scaleMode": "contain"
   },
   "tower-arrow-lv5": {
-    "src": "assets/towers/arrow-lv5.png",
-    "version": 1,
+    "src": "assets/towers/arrow-lv5-v2.png",
+    "version": 2,
     "kind": "sprite",
     "logical": [
-      32,
-      32
+      64,
+      64
+    ],
+    "footprint": [
+      2,
+      2
     ],
     "pivot": [
       0.5,
-      0.56
+      0.5
     ],
     "scaleMode": "contain"
   },
   "sheet-tower-arrow-attack": {
-    "src": "assets/sheets/tower-arrow-attack.png",
+    "src": "assets/sheets/tower-arrow-attack-v2.png",
     "frames": 4,
     "grid": [
       2,
       2
     ],
-    "version": 1,
+    "version": 2,
     "kind": "sheet",
     "logical": [
-      32,
-      32
+      64,
+      64
+    ],
+    "footprint": [
+      2,
+      2
     ],
     "pivot": [
       0.5,
-      0.56
+      0.5
     ],
     "scaleMode": "contain"
   },
@@ -231,72 +255,92 @@
     "scaleMode": "contain"
   },
   "tower-cannon-lv1": {
-    "src": "assets/towers/cannon-lv1.png",
-    "version": 1,
+    "src": "assets/towers/cannon-lv1-v2.png",
+    "version": 2,
     "kind": "sprite",
     "logical": [
-      32,
-      32
+      64,
+      64
+    ],
+    "footprint": [
+      2,
+      2
     ],
     "pivot": [
       0.5,
-      0.56
+      0.5
     ],
     "scaleMode": "contain"
   },
   "tower-cannon-lv2": {
-    "src": "assets/towers/cannon-lv2.png",
-    "version": 1,
+    "src": "assets/towers/cannon-lv2-v3.png",
+    "version": 3,
     "kind": "sprite",
     "logical": [
-      32,
-      32
+      64,
+      64
+    ],
+    "footprint": [
+      2,
+      2
     ],
     "pivot": [
       0.5,
-      0.56
+      0.5
     ],
     "scaleMode": "contain"
   },
   "tower-cannon-lv3": {
-    "src": "assets/towers/cannon-lv3.png",
-    "version": 1,
+    "src": "assets/towers/cannon-lv3-v2.png",
+    "version": 2,
     "kind": "sprite",
     "logical": [
-      32,
-      32
+      64,
+      64
+    ],
+    "footprint": [
+      2,
+      2
     ],
     "pivot": [
       0.5,
-      0.56
+      0.5
     ],
     "scaleMode": "contain"
   },
   "tower-cannon-lv4": {
-    "src": "assets/towers/cannon-lv4.png",
-    "version": 1,
+    "src": "assets/towers/cannon-lv4-v3.png",
+    "version": 3,
     "kind": "sprite",
     "logical": [
-      32,
-      32
+      64,
+      64
+    ],
+    "footprint": [
+      2,
+      2
     ],
     "pivot": [
       0.5,
-      0.56
+      0.5
     ],
     "scaleMode": "contain"
   },
   "tower-cannon-lv5": {
-    "src": "assets/towers/cannon-lv5.png",
-    "version": 1,
+    "src": "assets/towers/cannon-lv5-v2.png",
+    "version": 2,
     "kind": "sprite",
     "logical": [
-      32,
-      32
+      64,
+      64
+    ],
+    "footprint": [
+      2,
+      2
     ],
     "pivot": [
       0.5,
-      0.56
+      0.5
     ],
     "scaleMode": "contain"
   },
@@ -334,91 +378,99 @@
     "scaleMode": "contain"
   },
   "tower-frost-lv1": {
-    "src": "assets/towers/frost-lv1.png",
-    "version": 1,
+    "src": "assets/towers/frost-lv1-v2.png",
+    "version": 2,
     "kind": "sprite",
     "logical": [
-      32,
-      32
+      64,
+      64
+    ],
+    "footprint": [
+      2,
+      2
     ],
     "pivot": [
       0.5,
-      0.56
+      0.5
     ],
     "scaleMode": "contain"
   },
   "tower-frost-lv2": {
-    "src": "assets/towers/frost-lv2.png",
-    "version": 1,
+    "src": "assets/towers/frost-lv2-v2.png",
+    "version": 2,
     "kind": "sprite",
     "logical": [
-      32,
-      32
+      64,
+      64
     ],
+    "footprint": [2, 2],
     "pivot": [
       0.5,
-      0.56
+      0.5
     ],
     "scaleMode": "contain"
   },
   "tower-frost-lv3": {
-    "src": "assets/towers/frost-lv3.png",
-    "version": 1,
+    "src": "assets/towers/frost-lv3-v2.png",
+    "version": 2,
     "kind": "sprite",
     "logical": [
-      32,
-      32
+      64,
+      64
     ],
+    "footprint": [2, 2],
     "pivot": [
       0.5,
-      0.56
+      0.5
     ],
     "scaleMode": "contain"
   },
   "tower-frost-lv4": {
-    "src": "assets/towers/frost-lv4.png",
-    "version": 1,
+    "src": "assets/towers/frost-lv4-v2.png",
+    "version": 2,
     "kind": "sprite",
     "logical": [
-      32,
-      32
+      64,
+      64
     ],
+    "footprint": [2, 2],
     "pivot": [
       0.5,
-      0.56
+      0.5
     ],
     "scaleMode": "contain"
   },
   "tower-frost-lv5": {
-    "src": "assets/towers/frost-lv5.png",
-    "version": 1,
+    "src": "assets/towers/frost-lv5-v2.png",
+    "version": 2,
     "kind": "sprite",
     "logical": [
-      32,
-      32
+      64,
+      64
     ],
+    "footprint": [2, 2],
     "pivot": [
       0.5,
-      0.56
+      0.5
     ],
     "scaleMode": "contain"
   },
   "sheet-tower-frost-attack": {
-    "src": "assets/sheets/tower-frost-attack.png",
+    "src": "assets/sheets/tower-frost-attack-v2.png",
     "frames": 4,
     "grid": [
       2,
       2
     ],
-    "version": 1,
+    "version": 2,
     "kind": "sheet",
     "logical": [
-      32,
-      32
+      64,
+      64
     ],
     "pivot": [
       0.5,
-      0.56
+      0.5
     ],
     "scaleMode": "contain"
   },
@@ -437,91 +489,97 @@
     "scaleMode": "contain"
   },
   "tower-poison-lv1": {
-    "src": "assets/towers/poison-lv1.png",
-    "version": 1,
+    "src": "assets/towers/poison-lv1-v3.png",
+    "version": 3,
     "kind": "sprite",
     "logical": [
-      32,
-      32
+      64,
+      64
     ],
+    "footprint": [2, 2],
     "pivot": [
       0.5,
-      0.56
+      0.5
     ],
     "scaleMode": "contain"
   },
   "tower-poison-lv2": {
-    "src": "assets/towers/poison-lv2.png",
-    "version": 1,
+    "src": "assets/towers/poison-lv2-v3.png",
+    "version": 3,
     "kind": "sprite",
     "logical": [
-      32,
-      32
+      64,
+      64
     ],
+    "footprint": [2, 2],
     "pivot": [
       0.5,
-      0.56
+      0.5
     ],
     "scaleMode": "contain"
   },
   "tower-poison-lv3": {
-    "src": "assets/towers/poison-lv3.png",
-    "version": 1,
+    "src": "assets/towers/poison-lv3-v3.png",
+    "version": 3,
     "kind": "sprite",
     "logical": [
-      32,
-      32
+      64,
+      64
     ],
+    "footprint": [2, 2],
     "pivot": [
       0.5,
-      0.56
+      0.5
     ],
     "scaleMode": "contain"
   },
   "tower-poison-lv4": {
-    "src": "assets/towers/poison-lv4.png",
-    "version": 1,
+    "src": "assets/towers/poison-lv4-v3.png",
+    "version": 3,
     "kind": "sprite",
     "logical": [
-      32,
-      32
+      64,
+      64
     ],
+    "footprint": [2, 2],
     "pivot": [
       0.5,
-      0.56
+      0.5
     ],
     "scaleMode": "contain"
   },
   "tower-poison-lv5": {
-    "src": "assets/towers/poison-lv5.png",
-    "version": 1,
+    "src": "assets/towers/poison-lv5-v3.png",
+    "version": 3,
     "kind": "sprite",
     "logical": [
-      32,
-      32
+      64,
+      64
     ],
+    "footprint": [2, 2],
     "pivot": [
       0.5,
-      0.56
+      0.5
     ],
     "scaleMode": "contain"
   },
   "sheet-tower-poison-attack": {
-    "src": "assets/sheets/tower-poison-attack.png",
+    "src": "assets/sheets/tower-poison-attack-v3.png",
     "frames": 4,
     "grid": [
       2,
       2
     ],
-    "version": 1,
+    "version": 3,
     "kind": "sheet",
     "logical": [
-      32,
-      32
+      64,
+      64
     ],
+    "footprint": [2, 2],
     "pivot": [
       0.5,
-      0.56
+      0.5
     ],
     "scaleMode": "contain"
   },
@@ -540,91 +598,97 @@
     "scaleMode": "contain"
   },
   "tower-sniper-lv1": {
-    "src": "assets/towers/sniper-lv1.png",
-    "version": 1,
+    "src": "assets/towers/sniper-lv1-v4.png",
+    "version": 4,
     "kind": "sprite",
     "logical": [
-      32,
-      32
+      64,
+      64
     ],
+    "footprint": [2, 2],
     "pivot": [
       0.5,
-      0.56
+      0.5
     ],
     "scaleMode": "contain"
   },
   "tower-sniper-lv2": {
-    "src": "assets/towers/sniper-lv2.png",
-    "version": 1,
+    "src": "assets/towers/sniper-lv2-v4.png",
+    "version": 4,
     "kind": "sprite",
     "logical": [
-      32,
-      32
+      64,
+      64
     ],
+    "footprint": [2, 2],
     "pivot": [
       0.5,
-      0.56
+      0.5
     ],
     "scaleMode": "contain"
   },
   "tower-sniper-lv3": {
-    "src": "assets/towers/sniper-lv3.png",
-    "version": 1,
+    "src": "assets/towers/sniper-lv3-v4.png",
+    "version": 4,
     "kind": "sprite",
     "logical": [
-      32,
-      32
+      64,
+      64
     ],
+    "footprint": [2, 2],
     "pivot": [
       0.5,
-      0.56
+      0.5
     ],
     "scaleMode": "contain"
   },
   "tower-sniper-lv4": {
-    "src": "assets/towers/sniper-lv4.png",
-    "version": 1,
+    "src": "assets/towers/sniper-lv4-v4.png",
+    "version": 4,
     "kind": "sprite",
     "logical": [
-      32,
-      32
+      64,
+      64
     ],
+    "footprint": [2, 2],
     "pivot": [
       0.5,
-      0.56
+      0.5
     ],
     "scaleMode": "contain"
   },
   "tower-sniper-lv5": {
-    "src": "assets/towers/sniper-lv5.png",
-    "version": 1,
+    "src": "assets/towers/sniper-lv5-v4.png",
+    "version": 4,
     "kind": "sprite",
     "logical": [
-      32,
-      32
+      64,
+      64
     ],
+    "footprint": [2, 2],
     "pivot": [
       0.5,
-      0.56
+      0.5
     ],
     "scaleMode": "contain"
   },
   "sheet-tower-sniper-attack": {
-    "src": "assets/sheets/tower-sniper-attack.png",
+    "src": "assets/sheets/tower-sniper-attack-v3.png",
     "frames": 4,
     "grid": [
       2,
       2
     ],
-    "version": 1,
+    "version": 3,
     "kind": "sheet",
     "logical": [
-      32,
-      32
+      64,
+      64
     ],
+    "footprint": [2, 2],
     "pivot": [
       0.5,
-      0.56
+      0.5
     ],
     "scaleMode": "contain"
   },
@@ -643,91 +707,100 @@
     "scaleMode": "contain"
   },
   "tower-lightning-lv1": {
-    "src": "assets/towers/lightning-lv1.png",
-    "version": 1,
+    "src": "assets/towers/lightning-lv1-v2.png",
+    "version": 2,
     "kind": "sprite",
     "logical": [
-      32,
-      32
+      64,
+      64
     ],
+    "footprint": [2, 2],
     "pivot": [
       0.5,
-      0.56
+      0.5
     ],
     "scaleMode": "contain"
   },
   "tower-lightning-lv2": {
-    "src": "assets/towers/lightning-lv2.png",
-    "version": 1,
+    "src": "assets/towers/lightning-lv2-v2.png",
+    "version": 2,
     "kind": "sprite",
     "logical": [
-      32,
-      32
+      64,
+      64
     ],
+    "footprint": [2, 2],
     "pivot": [
       0.5,
-      0.56
+      0.5
     ],
     "scaleMode": "contain"
   },
   "tower-lightning-lv3": {
-    "src": "assets/towers/lightning-lv3.png",
-    "version": 1,
+    "src": "assets/towers/lightning-lv3-v2.png",
+    "version": 2,
     "kind": "sprite",
     "logical": [
-      32,
-      32
+      64,
+      64
     ],
+    "footprint": [2, 2],
     "pivot": [
       0.5,
-      0.56
+      0.5
     ],
     "scaleMode": "contain"
   },
   "tower-lightning-lv4": {
-    "src": "assets/towers/lightning-lv4.png",
-    "version": 1,
+    "src": "assets/towers/lightning-lv4-v2.png",
+    "version": 2,
     "kind": "sprite",
     "logical": [
-      32,
-      32
+      64,
+      64
     ],
+    "footprint": [2, 2],
     "pivot": [
       0.5,
-      0.56
+      0.5
     ],
     "scaleMode": "contain"
   },
   "tower-lightning-lv5": {
-    "src": "assets/towers/lightning-lv5.png",
-    "version": 1,
+    "src": "assets/towers/lightning-lv5-v2.png",
+    "version": 2,
     "kind": "sprite",
     "logical": [
-      32,
-      32
+      64,
+      64
     ],
+    "footprint": [2, 2],
     "pivot": [
       0.5,
-      0.56
+      0.5
     ],
     "scaleMode": "contain"
   },
   "sheet-tower-lightning-attack": {
-    "src": "assets/sheets/tower-lightning-attack.png",
+    "src": "assets/sheets/tower-lightning-attack-v2.png",
     "frames": 4,
     "grid": [
       2,
       2
     ],
-    "version": 1,
+    "version": 2,
     "kind": "sheet",
     "logical": [
-      32,
-      32
+      64,
+      64
+    ],
+    "footprint": [
+      2,
+      2
     ],
     "pivot": [
       0.5,
-      0.56
+      0.5
     ],
     "scaleMode": "contain"
   },
@@ -746,72 +819,115 @@
     "scaleMode": "contain"
   },
   "tower-support-lv1": {
-    "src": "assets/towers/support-lv1.png",
-    "version": 1,
+    "src": "assets/towers/support-lv1-v2.png",
+    "version": 2,
     "kind": "sprite",
     "logical": [
-      32,
-      32
+      64,
+      64
+    ],
+    "footprint": [
+      2,
+      2
     ],
     "pivot": [
       0.5,
-      0.56
+      0.5
     ],
     "scaleMode": "contain"
   },
   "tower-support-lv2": {
-    "src": "assets/towers/support-lv2.png",
-    "version": 1,
+    "src": "assets/towers/support-lv2-v2.png",
+    "version": 2,
     "kind": "sprite",
     "logical": [
-      32,
-      32
+      64,
+      64
+    ],
+    "footprint": [
+      2,
+      2
     ],
     "pivot": [
       0.5,
-      0.56
+      0.5
     ],
     "scaleMode": "contain"
   },
   "tower-support-lv3": {
-    "src": "assets/towers/support-lv3.png",
-    "version": 1,
+    "src": "assets/towers/support-lv3-v2.png",
+    "version": 2,
     "kind": "sprite",
     "logical": [
-      32,
-      32
+      64,
+      64
+    ],
+    "footprint": [
+      2,
+      2
     ],
     "pivot": [
       0.5,
-      0.56
+      0.5
     ],
     "scaleMode": "contain"
   },
   "tower-support-lv4": {
-    "src": "assets/towers/support-lv4.png",
-    "version": 1,
+    "src": "assets/towers/support-lv4-v2.png",
+    "version": 2,
     "kind": "sprite",
     "logical": [
-      32,
-      32
+      64,
+      64
+    ],
+    "footprint": [
+      2,
+      2
     ],
     "pivot": [
       0.5,
-      0.56
+      0.5
     ],
     "scaleMode": "contain"
   },
   "tower-support-lv5": {
-    "src": "assets/towers/support-lv5.png",
-    "version": 1,
+    "src": "assets/towers/support-lv5-v2.png",
+    "version": 2,
     "kind": "sprite",
     "logical": [
-      32,
-      32
+      64,
+      64
+    ],
+    "footprint": [
+      2,
+      2
     ],
     "pivot": [
       0.5,
-      0.56
+      0.5
+    ],
+    "scaleMode": "contain"
+  },
+  "sheet-tower-support-aura": {
+    "src": "assets/sheets/tower-support-aura-v1.png",
+    "frames": 4,
+    "grid": [
+      2,
+      2
+    ],
+    "version": 1,
+    "kind": "sheet",
+    "logical": [
+      64,
+      64
+    ],
+    "footprint": [
+      2,
+      2
+    ],
+    "pivot": [
+      0.5,
+      0.5
     ],
     "scaleMode": "contain"
   },
@@ -830,63 +946,120 @@
     "scaleMode": "contain"
   },
   "tower-gold-lv1": {
-    "src": "assets/towers/gold-lv1.png",
-    "version": 1,
+    "src": "assets/towers/gold-lv1-v2.png",
+    "version": 2,
     "kind": "sprite",
     "logical": [
-      32,
-      32
+      64,
+      64
+    ],
+    "footprint": [
+      2,
+      2
     ],
     "pivot": [
       0.5,
-      0.56
+      0.5
     ],
     "scaleMode": "contain"
   },
   "tower-gold-lv2": {
-    "src": "assets/towers/gold-lv2.png",
-    "version": 1,
+    "src": "assets/towers/gold-lv2-v2.png",
+    "version": 2,
     "kind": "sprite",
     "logical": [
-      32,
-      32
+      64,
+      64
+    ],
+    "footprint": [
+      2,
+      2
     ],
     "pivot": [
       0.5,
-      0.56
+      0.5
     ],
     "scaleMode": "contain"
   },
   "tower-gold-lv3": {
-    "src": "assets/towers/gold-lv3.png",
-    "version": 1,
+    "src": "assets/towers/gold-lv3-v2.png",
+    "version": 2,
     "kind": "sprite",
     "logical": [
-      32,
-      32
+      64,
+      64
+    ],
+    "footprint": [
+      2,
+      2
     ],
     "pivot": [
       0.5,
-      0.56
+      0.5
     ],
     "scaleMode": "contain"
   },
   "tower-gold-lv4": {
-    "src": "assets/towers/gold-lv4.png",
-    "version": 1,
+    "src": "assets/towers/gold-lv4-v2.png",
+    "version": 2,
     "kind": "sprite",
     "logical": [
-      32,
-      32
+      64,
+      64
+    ],
+    "footprint": [
+      2,
+      2
     ],
     "pivot": [
       0.5,
-      0.56
+      0.5
     ],
     "scaleMode": "contain"
   },
   "tower-gold-lv5": {
-    "src": "assets/towers/gold-lv5.png",
+    "src": "assets/towers/gold-lv5-v2.png",
+    "version": 2,
+    "kind": "sprite",
+    "logical": [
+      64,
+      64
+    ],
+    "footprint": [
+      2,
+      2
+    ],
+    "pivot": [
+      0.5,
+      0.5
+    ],
+    "scaleMode": "contain"
+  },
+  "sheet-tower-gold-income": {
+    "src": "assets/sheets/tower-gold-income-v1.png",
+    "frames": 4,
+    "grid": [
+      2,
+      2
+    ],
+    "version": 1,
+    "kind": "sheet",
+    "logical": [
+      64,
+      64
+    ],
+    "footprint": [
+      2,
+      2
+    ],
+    "pivot": [
+      0.5,
+      0.5
+    ],
+    "scaleMode": "contain"
+  },
+  "tower-gold": {
+    "src": "assets/towers/gold.png",
     "version": 1,
     "kind": "sprite",
     "logical": [
@@ -1026,8 +1199,8 @@
     "scaleMode": "contain"
   },
   "enemy-normal": {
-    "src": "assets/enemies/normal.png",
-    "version": 1,
+    "src": "assets/enemies/normal-v2.png",
+    "version": 2,
     "kind": "sprite",
     "logical": [
       32,
@@ -1040,8 +1213,8 @@
     "scaleMode": "contain"
   },
   "enemy-fast": {
-    "src": "assets/enemies/fast.png",
-    "version": 1,
+    "src": "assets/enemies/fast-v2.png",
+    "version": 2,
     "kind": "sprite",
     "logical": [
       32,
@@ -1054,12 +1227,12 @@
     "scaleMode": "contain"
   },
   "enemy-tank": {
-    "src": "assets/enemies/tank.png",
-    "version": 1,
+    "src": "assets/enemies/tank-v2.png",
+    "version": 2,
     "kind": "sprite",
     "logical": [
-      32,
-      32
+      48,
+      48
     ],
     "pivot": [
       0.5,
@@ -1068,12 +1241,12 @@
     "scaleMode": "contain"
   },
   "enemy-swarm": {
-    "src": "assets/enemies/swarm.png",
-    "version": 1,
+    "src": "assets/enemies/swarm-v2.png",
+    "version": 2,
     "kind": "sprite",
     "logical": [
-      32,
-      32
+      24,
+      24
     ],
     "pivot": [
       0.5,
@@ -1082,8 +1255,8 @@
     "scaleMode": "contain"
   },
   "enemy-flyer": {
-    "src": "assets/enemies/flyer.png",
-    "version": 1,
+    "src": "assets/enemies/flyer-v2.png",
+    "version": 2,
     "kind": "sprite",
     "logical": [
       32,
@@ -1096,8 +1269,8 @@
     "scaleMode": "contain"
   },
   "enemy-healer": {
-    "src": "assets/enemies/healer.png",
-    "version": 1,
+    "src": "assets/enemies/healer-v2.png",
+    "version": 2,
     "kind": "sprite",
     "logical": [
       32,
@@ -1110,8 +1283,8 @@
     "scaleMode": "contain"
   },
   "enemy-shield": {
-    "src": "assets/enemies/shield.png",
-    "version": 1,
+    "src": "assets/enemies/shield-v2.png",
+    "version": 2,
     "kind": "sprite",
     "logical": [
       32,
@@ -1124,8 +1297,8 @@
     "scaleMode": "contain"
   },
   "enemy-boss": {
-    "src": "assets/enemies/boss.png",
-    "version": 1,
+    "src": "assets/enemies/boss-v2.png",
+    "version": 2,
     "kind": "sprite",
     "logical": [
       32,
@@ -1159,6 +1332,26 @@
     ],
     "scaleMode": "contain"
   },
+  "sheet-enemy-normal-walk": {
+    "src": "assets/sheets/enemy-normal-walk-v2.png",
+    "frames": 4,
+    "grid": [2, 2],
+    "version": 2,
+    "kind": "sheet",
+    "logical": [32, 32],
+    "pivot": [0.5, 0.62],
+    "scaleMode": "contain"
+  },
+  "sheet-enemy-normal-defeat": {
+    "src": "assets/sheets/enemy-normal-defeat-v2.png",
+    "frames": 4,
+    "grid": [2, 2],
+    "version": 2,
+    "kind": "sheet",
+    "logical": [32, 32],
+    "pivot": [0.5, 0.62],
+    "scaleMode": "contain"
+  },
   "sheet-enemy-fast": {
     "src": "assets/sheets/enemy-fast.png",
     "frames": 4,
@@ -1176,6 +1369,26 @@
       0.5,
       0.62
     ],
+    "scaleMode": "contain"
+  },
+  "sheet-enemy-fast-walk": {
+    "src": "assets/sheets/enemy-fast-walk-v2.png",
+    "frames": 4,
+    "grid": [2, 2],
+    "version": 2,
+    "kind": "sheet",
+    "logical": [32, 32],
+    "pivot": [0.5, 0.62],
+    "scaleMode": "contain"
+  },
+  "sheet-enemy-fast-defeat": {
+    "src": "assets/sheets/enemy-fast-defeat-v2.png",
+    "frames": 4,
+    "grid": [2, 2],
+    "version": 2,
+    "kind": "sheet",
+    "logical": [32, 32],
+    "pivot": [0.5, 0.62],
     "scaleMode": "contain"
   },
   "sheet-enemy-tank": {
@@ -1197,6 +1410,26 @@
     ],
     "scaleMode": "contain"
   },
+  "sheet-enemy-tank-walk": {
+    "src": "assets/sheets/enemy-tank-walk-v2.png",
+    "frames": 4,
+    "grid": [2, 2],
+    "version": 2,
+    "kind": "sheet",
+    "logical": [48, 48],
+    "pivot": [0.5, 0.62],
+    "scaleMode": "contain"
+  },
+  "sheet-enemy-tank-defeat": {
+    "src": "assets/sheets/enemy-tank-defeat-v2.png",
+    "frames": 4,
+    "grid": [2, 2],
+    "version": 2,
+    "kind": "sheet",
+    "logical": [48, 48],
+    "pivot": [0.5, 0.62],
+    "scaleMode": "contain"
+  },
   "sheet-enemy-swarm": {
     "src": "assets/sheets/enemy-swarm.png",
     "frames": 4,
@@ -1216,6 +1449,12 @@
     ],
     "scaleMode": "contain"
   },
+  "sheet-enemy-swarm-walk": { "src": "assets/sheets/enemy-swarm-walk-v2.png", "frames": 4, "grid": [2, 2], "version": 2, "kind": "sheet", "logical": [24, 24], "pivot": [0.5, 0.62], "scaleMode": "contain" },
+  "sheet-enemy-swarm-defeat": { "src": "assets/sheets/enemy-swarm-defeat-v2.png", "frames": 4, "grid": [2, 2], "version": 2, "kind": "sheet", "logical": [24, 24], "pivot": [0.5, 0.62], "scaleMode": "contain" },
+  "sheet-enemy-flyer-walk": { "src": "assets/sheets/enemy-flyer-walk-v2.png", "frames": 4, "grid": [2, 2], "version": 2, "kind": "sheet", "logical": [32, 32], "pivot": [0.5, 0.62], "scaleMode": "contain" },
+  "sheet-enemy-flyer-defeat": { "src": "assets/sheets/enemy-flyer-defeat-v2.png", "frames": 4, "grid": [2, 2], "version": 2, "kind": "sheet", "logical": [32, 32], "pivot": [0.5, 0.62], "scaleMode": "contain" },
+  "sheet-enemy-healer-walk": { "src": "assets/sheets/enemy-healer-walk-v2.png", "frames": 4, "grid": [2, 2], "version": 2, "kind": "sheet", "logical": [32, 32], "pivot": [0.5, 0.62], "scaleMode": "contain" },
+  "sheet-enemy-healer-defeat": { "src": "assets/sheets/enemy-healer-defeat-v2.png", "frames": 4, "grid": [2, 2], "version": 2, "kind": "sheet", "logical": [32, 32], "pivot": [0.5, 0.62], "scaleMode": "contain" },
   "sheet-enemy-healer": {
     "src": "assets/sheets/enemy-healer.png",
     "frames": 4,
@@ -1254,6 +1493,8 @@
     ],
     "scaleMode": "contain"
   },
+  "sheet-enemy-shield-walk": { "src": "assets/sheets/enemy-shield-walk-v2.png", "frames": 4, "grid": [2, 2], "version": 2, "kind": "sheet", "logical": [32, 32], "pivot": [0.5, 0.62], "scaleMode": "contain" },
+  "sheet-enemy-shield-defeat": { "src": "assets/sheets/enemy-shield-defeat-v2.png", "frames": 4, "grid": [2, 2], "version": 2, "kind": "sheet", "logical": [32, 32], "pivot": [0.5, 0.62], "scaleMode": "contain" },
   "sheet-enemy-boss": {
     "src": "assets/sheets/enemy-boss.png",
     "frames": 4,
@@ -1273,6 +1514,8 @@
     ],
     "scaleMode": "contain"
   },
+  "sheet-enemy-boss-walk": { "src": "assets/sheets/enemy-boss-walk-v2.png", "frames": 4, "grid": [2, 2], "version": 2, "kind": "sheet", "logical": [64, 64], "pivot": [0.5, 0.62], "scaleMode": "contain" },
+  "sheet-enemy-boss-defeat": { "src": "assets/sheets/enemy-boss-defeat-v2.png", "frames": 4, "grid": [2, 2], "version": 2, "kind": "sheet", "logical": [64, 64], "pivot": [0.5, 0.62], "scaleMode": "contain" },
   "sheet-hero-warrior": {
     "src": "assets/sheets/hero-warrior.png",
     "frames": 4,

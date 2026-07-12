@@ -32,6 +32,18 @@ const SUITES = [
   't18footprints.mjs',
   't19-production-assets.mjs',
   't19-map-kit.mjs',
+  't19-arrow-staging.mjs',
+  't19-lightning-staging.mjs',
+  't19-frost-staging.mjs',
+  't19-grunt-staging.mjs',
+  't19-runner-staging.mjs',
+  't19-brute-staging.mjs',
+  't19-spawnling-staging.mjs',
+  't19-wisp-staging.mjs',
+  't19-support-staging.mjs',
+  't19-gold-staging.mjs',
+  't19-poison-staging.mjs',
+  't19-sniper-staging.mjs',
   't10validate.mjs',                 // balance gate: classic board, 6 seeds + all heroes
   'campaign-sim.mjs',                // balance gate: reference wins all 20 + margin bands
   ['campaign-sim.mjs', '--careless'],  // balance gate: naive play first dies in 2..10
