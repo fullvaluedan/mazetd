@@ -52,7 +52,7 @@ console.log('Tower art lookup: level-specific sprites fall back cleanly by tier:
   check('level 5 reaches the full fallback chain', c5[0] === 'tower-cannon-lv5' && c5.includes('tower-cannon-lv1') && c5[c5.length - 1] === 'tower-cannon');
   const a3 = towerAttackCandidates('cannon', 3);
   check('attack sprites mirror the same tier chain', a3.join() === 'tower-cannon-attack-lv3,tower-cannon-attack-lv2,tower-cannon-attack-lv1,tower-cannon-attack');
-  check('wall art prefers the approved red-brick tile', towerSpriteCandidates('wall').join() === 'tower-wall-redbrick,tower-wall');
+  check('wall art prefers the new wall-2 sprite, then red-brick, then base', towerSpriteCandidates('wall').join() === 'tower-wall-2,tower-wall-redbrick,tower-wall');
   check('enemy state lookup prefers a named state sheet then static fallback', enemyStateCandidates('normal', 'defeat').join() === 'enemy-normal-defeat,enemy-normal');
 }
 

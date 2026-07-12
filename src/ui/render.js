@@ -716,7 +716,12 @@ function drawTowers(ctx, state, view) {
     }
 
     if (t.def.wall) {
-      drawConnectedWall(ctx, state, t);
+      // Walls are grid blocks, not creatures: the sprite covers the exact 1x1
+      // cell rect, no inset and no enemy-style oversize. Damage/siege feedback
+      // (underAttack red outline + hp bar) is drawn generically below this
+      // branch for every tower, so it already applies here unchanged.
+      if (sprite) ctx.drawImage(sprite, px, py, SIZE, SIZE);
+      else drawConnectedWall(ctx, state, t);
     } else if (sprite) {
         // Attack towers use one seamless 2x2 foundation rather than repeating
         // a cell sprite. Art must remain inside this exact footprint.
