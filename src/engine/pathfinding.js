@@ -27,14 +27,25 @@ export const UNREACHABLE = Infinity;
 // Build a COLS*ROWS Float64Array of distances (in steps) from (goalX,goalY).
 // Cells you can't reach stay at UNREACHABLE.
 export function bfsDistanceField(walkable, goalX, goalY) {
+  return bfsDistanceFieldMany(walkable, [{ x: goalX, y: goalY }]);
+}
+
+// Multi-source BFS gives a footprint target a true "reach any edge" contract.
+// Every supplied cell has distance zero, so downhill paths choose the nearest
+// reachable cell instead of forcing a single approach direction.
+export function bfsDistanceFieldMany(walkable, goals) {
   const dist = new Float64Array(COLS * ROWS).fill(UNREACHABLE);
-  if (!inBounds(goalX, goalY)) return dist;
   const idx = (x, y) => y * COLS + x;
-  dist[idx(goalX, goalY)] = 0;
   // Simple ring-buffer queue of packed indices.
   const queue = new Int32Array(COLS * ROWS);
   let head = 0, tail = 0;
-  queue[tail++] = idx(goalX, goalY);
+  for (const goal of goals) {
+    if (!inBounds(goal.x, goal.y) || !walkable(goal.x, goal.y)) continue;
+    const at = idx(goal.x, goal.y);
+    if (dist[at] !== UNREACHABLE) continue;
+    dist[at] = 0;
+    queue[tail++] = at;
+  }
   while (head < tail) {
     const cur = queue[head++];
     const cx = cur % COLS, cy = (cur / COLS) | 0;

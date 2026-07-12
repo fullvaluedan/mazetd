@@ -1,5 +1,30 @@
 # Production Asset QC Report
 
+## Level 1 Open Field, 2026-07-12
+
+The approved open-field direction is modular and portrait: a repeated 64px
+gold field tile beneath a 12x16 Level 1 grid, matching 2x2 portal and crystal
+pads at the upper-left entry and lower-right exit, and sparse
+data-owned top-down rocks/trees that do not alter collision or pathing.
+
+| Artifact | Active path | Pixel bounds | Result |
+| --- | --- | --- | --- |
+| Open-field tile | `assets/tiles/floor-openfield-v2.png` | 64x64 | opaque repeatable 1x1 field tile |
+| Stone pad tile | `assets/tiles/stone-openfield-v3.png` | 64x64 | warm repeatable tile beneath each objective |
+| Portal object | `assets/objectives/portal-openfield-v3.png` | 128x128 | transparent square layer over a 2x2 pad |
+| Crystal object | `assets/objectives/crystal-openfield-v3.png` | 128x128 | transparent square layer over a 2x2 pad |
+| Map proof | `assets/staging/map-kit/open-field/level-01-open-field-map-proof-v1.png` | 768x1024 | exact 12x16, 64px source-cell composition |
+
+- `node test/t19-open-field-level.mjs` verifies dimensions, portrait geometry,
+  props, and reserved objective rectangles.
+- Portal and crystal use renderer-owned pulse overlays; neither changes the
+  static footprint, pathing, nor combat timing.
+- The user explicitly selected the reference style; both objective silhouettes
+  are now square and never stretched to fit a non-square footprint.
+- Portal energy rotates inside its fixed square footprint. Crystal glow is a
+  renderer-owned pulse; a leak triggers a short cosmetic shard burst while the
+  normal lives loss continues unchanged.
+
 ## Level 1 Map Kit, 2026-07-11
 
 | Asset | Active path | Pixel bounds | Footprint | Pixel QC | Runtime scene |

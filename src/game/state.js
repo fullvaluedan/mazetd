@@ -9,7 +9,7 @@
 
 import { CONFIG, difficultyModeStats, normalizeDifficultyMode } from '../config.js';
 import { CELL, COLS, ROWS, inBounds } from '../engine/grid.js';
-import { bfsDistanceField, weightedDistanceField, isReachable, tracePath, fieldAt, UNREACHABLE } from '../engine/pathfinding.js';
+import { bfsDistanceField, bfsDistanceFieldMany, weightedDistanceField, isReachable, tracePath, fieldAt, UNREACHABLE } from '../engine/pathfinding.js';
 import { createMap } from './map.js';
 
 // level (optional): an authored campaign level def (see levels.js). Without
@@ -74,6 +74,7 @@ export function createState(rng, seed = 0, level = null, options = {}) {
                              // stack on the field while this is 0 — user 2026-07-07)
     mazeTimer: 0,            // Maze Mode: seconds the horde has been contained (the score)
     flash: 0,                // red screen-flash intensity (leaks)
+    crystalBreakUntil: 0,    // render-only leak reaction; never affects routing
 
     // ui / interaction
     showPath: true,
@@ -125,16 +126,17 @@ export function footprintCells(typeId, x, y) {
 }
 
 // Objective rectangles are grid data, shared by build validation and rendering.
-// Gates use 3x3 pads; the protected crystal is intentionally taller at 3x4.
-// Their center mouths remain the existing path target/spawn so routing stays
-// independent from presentation art.
+// Objectives use matching 2x2 pads. Their center mouths remain the existing
+// path target/spawn so routing stays independent from presentation art.
 export function objectiveRect(state, marker) {
   const isGoal = state.map.goals.includes(marker);
-  const w = 3, h = isGoal ? 4 : 3;
+  const w = 2, h = 2;
   const x = Math.max(0, Math.min(COLS - w, marker.cx - 1));
   let y = marker.cy - Math.floor(h / 2);
   if (marker.cy === 0) y = 0;
-  else if (marker.cy === ROWS - 1) y = ROWS - h;
+  // Goals sit one cell inside the frame so every objective cell can be reached
+  // from any direction; border cells remain frame-only and never become exits.
+  else if (marker.cy === ROWS - 1) y = ROWS - h - 1;
   y = Math.max(0, Math.min(ROWS - h, y));
   return { x, y, w, h, isGoal };
 }
@@ -182,10 +184,27 @@ export function targetCell(state, key) {
   return t ? { x: t.cx, y: t.cy } : null;
 }
 
+export function targetCells(state, key) {
+  const target = routeTargets(state).find((entry) => entry.id === key);
+  if (!target) return [];
+  if (!state.map.goals.includes(target)) return [{ x: target.cx, y: target.cy }];
+  const rect = objectiveRect(state, target);
+  const cells = [];
+  for (let y = rect.y; y < rect.y + rect.h; y++) for (let x = rect.x; x < rect.x + rect.w; x++) cells.push({ x, y });
+  return cells;
+}
+
+function targetField(state, target, walk) {
+  const cells = targetCells(state, target.id);
+  return cells.length === 1
+    ? bfsDistanceField(walk, cells[0].x, cells[0].y)
+    : bfsDistanceFieldMany(walk, cells);
+}
+
 export function recomputeFields(state) {
   const walk = makeWalkable(state);
   for (const t of routeTargets(state)) {
-    state.fields[t.id] = bfsDistanceField(walk, t.cx, t.cy);
+    state.fields[t.id] = targetField(state, t, walk);
   }
 }
 
@@ -225,7 +244,7 @@ export function spawnsAllReachGoals(state, walk) {
   const cps = state.map.checkpoints || [];
   const firsts = cps.length ? [cps[0]] : state.map.goals;
   for (const f of firsts) {
-    const field = bfsDistanceField(walk, f.cx, f.cy);
+      const field = targetField(state, f, walk);
     for (const s of state.map.spawns) {
       if (!isReachable(field, s.cx, s.cy)) return false;
     }
@@ -234,7 +253,7 @@ export function spawnsAllReachGoals(state, walk) {
     const prev = cps[i];
     const nexts = (i + 1 < cps.length) ? [cps[i + 1]] : state.map.goals;
     for (const n of nexts) {
-      const field = bfsDistanceField(walk, n.cx, n.cy);
+      const field = targetField(state, n, walk);
       if (!isReachable(field, prev.cx, prev.cy)) return false;
     }
   }

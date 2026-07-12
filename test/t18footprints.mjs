@@ -43,9 +43,9 @@ console.log('Wall economy and starter brick:');
 
 console.log('Objective pads reserve their exact visual footprints:');
 {
-  check('portal pad is non-buildable across its three-cell mouth', !canBuildAt(state, 1, 0, 'wall') && !canBuildAt(state, 2, 1, 'wall') && !canBuildAt(state, 3, 2, 'wall'));
+  check('portal pad is non-buildable across its 2x2 mouth', !canBuildAt(state, 1, 0, 'wall') && !canBuildAt(state, 2, 1, 'wall'));
   check('level one crystal objective sits in the opposite corner', state.map.goals[0].cx === 9 && state.map.goals[0].cy === 15);
-  check('crystal pad is non-buildable across all four rows', !canBuildAt(state, 8, 12, 'wall') && !canBuildAt(state, 9, 13, 'wall') && !canBuildAt(state, 10, 14, 'wall') && !canBuildAt(state, 8, 15, 'wall'));
+  check('crystal pad is non-buildable across its 2x2 footprint', !canBuildAt(state, 8, 13, 'wall') && !canBuildAt(state, 9, 14, 'wall'));
 }
 
 console.log(fails ? `FOOTPRINT_FAIL (${fails})` : 'FOOTPRINT_OK');

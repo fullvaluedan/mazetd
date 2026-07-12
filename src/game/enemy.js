@@ -21,7 +21,7 @@ import { SIZE, COLS, ROWS, NEIGHBORS4, inBounds, cellCenter, worldToCell } from 
 import { fieldAt, UNREACHABLE } from '../engine/pathfinding.js';
 import { matchup } from './damage.js';
 import { destroyTower } from './tower.js';
-import { pushEvent, routeFor, targetCell } from './state.js';
+import { pushEvent, routeFor, targetCell, targetCells } from './state.js';
 
 let NEXT_ID = 1;
 
@@ -105,7 +105,10 @@ export class Enemy {
   // Flyers travel straight to the CURRENT stage target (checkpoints still
   // apply to the skies — that's what keeps flags meaningful vs air waves).
   aimAtStage(state) {
-    const c = targetCell(state, this.route[this.stage]) || this.goalCell && { x: this.goalCell.x, y: this.goalCell.y };
+    const choices = targetCells(state, this.route[this.stage]);
+    const c = choices.length
+      ? choices.reduce((best, cell) => Math.hypot(cell.x * SIZE - this.x, cell.y * SIZE - this.y) < Math.hypot(best.x * SIZE - this.x, best.y * SIZE - this.y) ? cell : best)
+      : targetCell(state, this.route[this.stage]) || this.goalCell;
     this.targetCenter = cellCenter(c.x, c.y);
   }
 

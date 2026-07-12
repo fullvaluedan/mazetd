@@ -6,8 +6,10 @@
 - Branch: `handoff/grid-art-pipeline-20260711`
 - Latest pushed commit: `74a6dec feat(assets): complete production art pipeline`
 - Remote: `origin/handoff/grid-art-pipeline-20260711`
-- The only remaining local item is untracked `serve.err`; preserve it and do
-  not stage, remove, or modify it.
+- Local open-field work is intentionally uncommitted: approved floor/portal
+  promotion, Level 1 prop data, objective pulses, and the map proof. Preserve
+  it together with the pre-existing untracked `serve.err`; do not stage,
+  remove, or modify `serve.err`.
 - Never touch `D:\Claude\pusoy-now` or its untracked files.
 
 ## Non-Negotiable Rules
@@ -16,7 +18,7 @@
    atomic assets. Never flatten a board into a runtime bitmap.
 2. All battlefield art is strict orthographic top-down and square to the grid.
    No diagonal, isometric, 3/4 foundations, props, effects, or shadows.
-3. Footprints: wall 1x1; non-wall tower 2x2; portal 3x3; crystal 3x4.
+3. Footprints: wall 1x1; non-wall tower 2x2; portal 2x2; crystal 2x2.
 4. Non-wall tower assets occupy the exact 128x128 source rectangle and render
    flush with adjacent 2x2 towers.
 5. Never promote new art without explicit approval, alpha/dimension QC,
@@ -33,6 +35,16 @@
 
 - Modular Level 1 map kit, portal, crystal, wall, and 2x2 tower system are
   active.
+- Level 1 now uses the approved `floor-openfield-v2` 1x1 field tile, warm
+  `stone-openfield-v3` tiles, and individual `portal-openfield-v3` /
+  `crystal-openfield-v3` 2x2 objective layers. Its six top-down rocks/trees
+  are level data, decorative only, and cannot affect pathing.
+- Portal and crystal have renderer-owned orthographic pulse cycles. Their
+  motion is cosmetic and remains independent from gameplay timing.
+- Portal energy has a renderer-owned spin loop. The crystal glows while intact
+  and emits a cosmetic shard burst when a leak reaches it. Crystal routing is
+  a multi-source 2x2 destination: enemies can enter any crystal cell from any
+  reachable direction, while all four cells stay unbuildable.
 - Arrow, Cannon, Frost, Poison, Sniper, Lightning, Support, and Gold Mine
   static families are active.
 - Approved runtime loops: Arrow, Frost, Poison, Sniper, Lightning, Support
@@ -61,6 +73,15 @@ Already complete:
 - `node test/t12mechanics.mjs` -> `MECHANICS_OK`
 - `node test/t14asset-files.mjs` -> `ASSET_FILES_OK`
 - `git diff --check` passed before commit.
+- Open-field follow-up: `node test/t19-open-field-level.mjs`,
+  `node tools/asset-qc.mjs --all`, `node test/t19-production-assets.mjs`,
+  `node test/t19-map-kit.mjs`, `node test/t12render.mjs`,
+  `node test/t12mechanics.mjs`, and `git diff --check` pass. The current
+  proof is `assets/staging/map-kit/open-field/level-01-open-field-map-proof-v1.png`
+  at exactly 768x1024 (12x16 64px cells).
+- The selected portal/crystal style is now normalized as independent square
+  `2x2` object layers over renderer-owned four-tile pads. Preserve the larger
+  staging source and prior objective versions as approval evidence.
 - Full `npm test` passed 38/39 suites; only plain `campaign-sim.mjs` failed.
   `campaign-sim.mjs --careless` and `--noupgrade` passed.
 

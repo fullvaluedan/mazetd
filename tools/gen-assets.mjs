@@ -136,8 +136,8 @@ const BOSS_ENEMY_META = { version: 2, kind: 'sprite', logical: [64, 64], pivot: 
 const BOSS_SHEET_META = { version: 2, kind: 'sheet', logical: [64, 64], pivot: [0.5, 0.62], scaleMode: 'contain' };
 const TOWER_2X2_SHEET_META = { version: 2, kind: 'sheet', logical: [64, 64], footprint: [2, 2], pivot: [0.5, 0.5], scaleMode: 'contain' };
 const TILE_META = { version: 1, kind: 'tile', logical: [32, 32], footprint: [1, 1], pivot: [0.5, 0.5], scaleMode: 'tile' };
-const PORTAL_META = { version: 1, kind: 'sprite', logical: [96, 96], footprint: [3, 3], pivot: [0.5, 0.5], scaleMode: 'contain' };
-const CRYSTAL_META = { version: 1, kind: 'sprite', logical: [96, 128], footprint: [3, 4], pivot: [0.5, 0.5], scaleMode: 'contain' };
+const PORTAL_META = { version: 3, kind: 'sprite', logical: [64, 64], footprint: [2, 2], pivot: [0.5, 0.5], scaleMode: 'contain' };
+const CRYSTAL_META = { version: 3, kind: 'sprite', logical: [64, 64], footprint: [2, 2], pivot: [0.5, 0.5], scaleMode: 'contain' };
 const WALL_META = { version: 1, kind: 'sprite', logical: [32, 32], footprint: [1, 1], pivot: [0.5, 0.5], scaleMode: 'tile' };
 
 function towerAttackSheetPrompt(id, t) {
@@ -200,10 +200,10 @@ export function buildManifest() {
   // remain tied to the engine's 32px cell. These files are normalized outputs,
   // never flattened map art or staging sources.
   items.push(
-    { id: 'tile-floor-dirt', out: 'tiles/floor-dirt-v1.png', static: true, meta: TILE_META },
-    { id: 'tile-stone-pad', out: 'tiles/stone-pad-v1.png', static: true, meta: TILE_META },
-    { id: 'objective-portal', out: 'objectives/portal-v1.png', static: true, meta: PORTAL_META },
-    { id: 'objective-crystal', out: 'objectives/crystal-v1.png', static: true, meta: CRYSTAL_META },
+    { id: 'tile-floor-dirt', out: 'tiles/floor-openfield-v2.png', static: true, meta: { ...TILE_META, version: 2 } },
+    { id: 'tile-stone-pad', out: 'tiles/stone-openfield-v3.png', static: true, meta: { ...TILE_META, version: 3 } },
+    { id: 'objective-portal', out: 'objectives/portal-openfield-v3.png', static: true, meta: PORTAL_META },
+    { id: 'objective-crystal', out: 'objectives/crystal-openfield-v3.png', static: true, meta: CRYSTAL_META },
     { id: 'tower-wall-redbrick', out: 'towers/wall-redbrick-v1.png', static: true, meta: WALL_META },
   );
   for (const [id, t] of Object.entries(CONFIG.TOWERS)) {

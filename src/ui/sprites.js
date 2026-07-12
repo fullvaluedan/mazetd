@@ -49,6 +49,7 @@ export function hasSheet(id) { return enabled && sheets.has(id); }
 export function spriteCount() { return images.size; }
 
 export function towerSpriteCandidates(type, level = 1) {
+  if (type === 'wall') return ['tower-wall-redbrick', 'tower-wall'];
   const top = Math.max(1, Math.min(5, level | 0 || 1));
   const ids = [];
   for (let lvl = top; lvl >= 1; lvl--) ids.push(`tower-${type}-lv${lvl}`);

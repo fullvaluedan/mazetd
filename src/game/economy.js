@@ -86,6 +86,8 @@ export function onEnemyLeaked(state, e) {
     return;
   }
   state.lives -= e.damageToLives;
+  // Render-only objective reaction. This does not alter leak accounting.
+  state.crystalBreakUntil = Math.max(state.crystalBreakUntil || 0, state.time + 0.72);
   addFloater(state, e.x, e.y, '-' + e.damageToLives + '♥', CONFIG.COLORS.danger);
   pushEvent(state, 'leak');
   state.flash = Math.min(1, (state.flash || 0) + 0.5);   // red screen flash

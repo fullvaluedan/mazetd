@@ -89,6 +89,9 @@ function L(num, name, def) {
     goals: def.goals,
     checkpoints: def.checkpoints || [],
     obstacles: def.obstacles || [],
+    // Decorative scenery is intentionally separate from collision terrain.
+    // It lets an authored field feel lived-in without changing campaign paths.
+    props: def.props || [],
     starterWalls,
     startGold: def.startGold,
     lives: def.lives != null ? def.lives : 10,
@@ -128,6 +131,13 @@ export const LEVELS = [
     // campaign rebalance is validated against this real 2x2-tower geometry.
     goals: [{ id: 'G1', cx: 9, cy: 15 }],
     starterWalls: [[4, 3], [5, 3], [6, 3]],
+    // Keep the center clear for the first maze while framing the open field
+    // with strictly top-down, non-blocking rocks and trees.
+    props: [
+      { type: 'tree', cx: 1, cy: 5 }, { type: 'rock', cx: 10, cy: 4 },
+      { type: 'rock', cx: 1, cy: 10 }, { type: 'tree', cx: 10, cy: 10 },
+      { type: 'tree', cx: 2, cy: 13 }, { type: 'rock', cx: 5, cy: 13 },
+    ],
     startGold: 100,
     waves: { count: 10, types: ['normal'], hpMult: 2.8, bountyMult: 0.19, waveclearMult: 0.14 },
     stars: [10, 7],

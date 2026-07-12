@@ -29,8 +29,8 @@ const expectEnemy = (id, kind, logical) => {
 console.log('Production map asset manifest contract:');
 expectAsset('tile-floor-dirt', 'tile', [32, 32], [1, 1]);
 expectAsset('tile-stone-pad', 'tile', [32, 32], [1, 1]);
-expectAsset('objective-portal', 'sprite', [96, 96], [3, 3]);
-expectAsset('objective-crystal', 'sprite', [96, 128], [3, 4]);
+expectAsset('objective-portal', 'sprite', [64, 64], [2, 2]);
+expectAsset('objective-crystal', 'sprite', [64, 64], [2, 2]);
 expectAsset('tower-wall-redbrick', 'sprite', [32, 32], [1, 1]);
 expectAsset('tower-arrow-lv1', 'sprite', [64, 64], [2, 2]);
 expectAsset('tower-arrow-lv2', 'sprite', [64, 64], [2, 2]);

@@ -32,6 +32,8 @@ const SUITES = [
   't18footprints.mjs',
   't19-production-assets.mjs',
   't19-map-kit.mjs',
+  't19-open-field-level.mjs',
+  't19-objective-routing.mjs',
   't19-arrow-staging.mjs',
   't19-lightning-staging.mjs',
   't19-frost-staging.mjs',

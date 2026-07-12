@@ -10,8 +10,8 @@
     "scaleMode": "contain"
   },
   "tile-floor-dirt": {
-    "src": "assets/tiles/floor-dirt-v1.png",
-    "version": 1,
+    "src": "assets/tiles/floor-openfield-v2.png",
+    "version": 2,
     "kind": "tile",
     "logical": [
       32,
@@ -28,8 +28,8 @@
     "scaleMode": "tile"
   },
   "tile-stone-pad": {
-    "src": "assets/tiles/stone-pad-v1.png",
-    "version": 1,
+    "src": "assets/tiles/stone-openfield-v3.png",
+    "version": 3,
     "kind": "tile",
     "logical": [
       32,
@@ -46,16 +46,16 @@
     "scaleMode": "tile"
   },
   "objective-portal": {
-    "src": "assets/objectives/portal-v1.png",
-    "version": 1,
+    "src": "assets/objectives/portal-openfield-v3.png",
+    "version": 3,
     "kind": "sprite",
     "logical": [
-      96,
-      96
+      64,
+      64
     ],
     "footprint": [
-      3,
-      3
+      2,
+      2
     ],
     "pivot": [
       0.5,
@@ -64,16 +64,16 @@
     "scaleMode": "contain"
   },
   "objective-crystal": {
-    "src": "assets/objectives/crystal-v1.png",
-    "version": 1,
+    "src": "assets/objectives/crystal-openfield-v3.png",
+    "version": 3,
     "kind": "sprite",
     "logical": [
-      96,
-      128
+      64,
+      64
     ],
     "footprint": [
-      3,
-      4
+      2,
+      2
     ],
     "pivot": [
       0.5,

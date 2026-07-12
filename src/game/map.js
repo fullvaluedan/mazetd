@@ -112,6 +112,7 @@ function createAuthoredMap(level) {
     spawns: level.spawns.map((s) => ({ ...s })),
     goals: level.goals.map((g) => ({ ...g })),
     checkpoints: (level.checkpoints || []).map((c) => ({ ...c })),
+    props: (level.props || []).map((prop) => ({ ...prop })),
     type(x, y) { return inBounds(x, y) ? this.cells[y][x] : CELL.BORDER; },
   };
 }
@@ -144,6 +145,7 @@ export function createMap(rng, level = null) {
     spawns: CONFIG.SPAWNS.map((s) => ({ ...s })),
     goals: CONFIG.GOALS.map((g) => ({ ...g })),
     checkpoints: [],
+    props: [],
     type(x, y) { return inBounds(x, y) ? this.cells[y][x] : CELL.BORDER; },
   };
 }

@@ -99,8 +99,8 @@ export function inspectAtlasFrames(file, grid) {
 const required = {
   'tile-floor-dirt': { source: [64, 64], tile: true },
   'tile-stone-pad': { source: [64, 64], tile: true },
-  'objective-portal': { source: [192, 192], overlay: true },
-  'objective-crystal': { source: [192, 256], overlay: true },
+  'objective-portal': { source: [128, 128], overlay: true },
+  'objective-crystal': { source: [128, 128], overlay: true },
   'tower-wall-redbrick': { source: [64, 64], tile: true },
   'tower-arrow-lv1': { source: [128, 128], tower: true },
   'tower-arrow-lv2': { source: [128, 128], tower: true },
@@ -192,6 +192,8 @@ export function verifyProductionAssets(manifest) {
           })
         : expectation.tile
         ? png.cornerAlpha.every((a) => a > 240)
+        : entry.padOwned
+          ? png.cornerAlpha.every((alpha) => alpha > 240)
         : expectation.tower
           ? bounds.x0 === 0 && bounds.y0 === 0 && bounds.x1 === png.width - 1 && bounds.y1 === png.height - 1
         : bounds.x0 > 0 && bounds.y0 > 0 && bounds.x1 < png.width - 1 && bounds.y1 < png.height - 1;

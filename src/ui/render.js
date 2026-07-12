@@ -354,6 +354,10 @@ function drawMap(ctx, state, view) {
       }
     }
   }
+  for (const prop of state.map.props || []) {
+    if (prop.cx < x0 || prop.cx > x1 || prop.cy < y0 || prop.cy > y1) continue;
+    drawFieldProp(ctx, prop);
+  }
 }
 
 function drawBattleFrame(ctx) {
@@ -471,6 +475,31 @@ function drawObstacle(ctx, x, y) {
   }
 }
 
+// Field props are overhead silhouettes with no projected shadow: decorative
+// objects must obey the same square-grid camera as every gameplay asset.
+function drawFieldProp(ctx, prop) {
+  const cx = cellCenterX(prop.cx), cy = cellCenterY(prop.cy);
+  if (prop.type === 'tree') {
+    ctx.fillStyle = '#385b2f';
+    for (const [ox, oy, r] of [[-7, 2, 8], [7, 2, 8], [0, -6, 10]]) {
+      ctx.beginPath(); ctx.arc(cx + ox, cy + oy, r, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.fillStyle = '#709147';
+    ctx.beginPath(); ctx.arc(cx - 3, cy - 7, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#6d4b2d';
+    ctx.fillRect(cx - 2, cy + 5, 4, 8);
+    return;
+  }
+  ctx.fillStyle = '#6e6250';
+  ctx.beginPath();
+  ctx.moveTo(cx - 11, cy + 7); ctx.lineTo(cx - 8, cy - 7);
+  ctx.lineTo(cx + 3, cy - 11); ctx.lineTo(cx + 12, cy - 2);
+  ctx.lineTo(cx + 8, cy + 10); ctx.lineTo(cx - 6, cy + 11);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#a59471';
+  ctx.beginPath(); ctx.ellipse(cx - 2, cy - 5, 6, 3, -0.35, 0, Math.PI * 2); ctx.fill();
+}
+
 function drawPaths(ctx, state) {
   ctx.save();
   ctx.lineWidth = 2.5;
@@ -523,6 +552,30 @@ function drawSpawnGoalMarkers(ctx, state, view) {
         ctx.stroke();
       }
     }
+    // Renderer-owned pulse keeps approved static art alive without changing
+    // its geometry or introducing a non-orthographic effect.
+    const pulse = 0.48 + 0.3 * Math.sin(state.time * 3.2 + s.cx);
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    ctx.strokeStyle = `rgba(194, 97, 255, ${pulse})`;
+    ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.arc(c.x, c.y, 15 + 2 * Math.sin(state.time * 2), 0, Math.PI * 2); ctx.stroke();
+    for (let i = 0; i < 3; i++) {
+      const a = state.time * 1.7 + i * (Math.PI * 2 / 3);
+      ctx.fillStyle = `rgba(232, 180, 255, ${pulse})`;
+      ctx.fillRect(c.x + Math.cos(a) * 20 - 1, c.y + Math.sin(a) * 20 - 1, 2, 2);
+    }
+    ctx.restore();
+    // Rotate only the portal energy, never the square objective foundation.
+    ctx.save();
+    ctx.translate(c.x, c.y);
+    ctx.rotate(state.time * 1.8);
+    ctx.strokeStyle = `rgba(150, 66, 255, ${0.35 + pulse * 0.4})`;
+    ctx.lineWidth = 1.8;
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath(); ctx.arc(0, 0, 9 + i * 4, i * 2.1, i * 2.1 + 1.05); ctx.stroke();
+    }
+    ctx.restore();
   }
 
   // EXITS: the camp you're protecting — now a crystal/castle-style marker
@@ -568,6 +621,33 @@ function drawSpawnGoalMarkers(ctx, state, view) {
       ctx.strokeStyle = 'rgba(252, 214, 111, 0.92)';
       ctx.lineWidth = 2.4;
       ctx.beginPath(); ctx.ellipse(c.x, c.y + 3, 12, 5.5, 0, 0, Math.PI * 2); ctx.stroke();
+    }
+    const crystalPulse = 0.24 + 0.18 * Math.sin(state.time * 2.7 + g.cx);
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    ctx.strokeStyle = `rgba(106, 244, 255, ${crystalPulse})`;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(c.x, c.y + 4, 18 + 2 * Math.sin(state.time * 2.1), 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = `rgba(225, 255, 255, ${crystalPulse})`;
+    ctx.fillRect(c.x - 1.5, c.y - 15, 3, 30);
+    ctx.fillRect(c.x - 15, c.y - 1.5, 30, 3);
+    ctx.restore();
+    const breaking = Math.max(0, Math.min(1, (state.crystalBreakUntil || 0) - state.time));
+    if (breaking > 0) {
+      const burst = 1 - breaking;
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
+      ctx.fillStyle = `rgba(210, 255, 255, ${breaking})`;
+      for (let i = 0; i < 7; i++) {
+        const a = i * Math.PI * 2 / 7 + burst * 2.4;
+        const d = 10 + burst * 30;
+        ctx.save();
+        ctx.translate(c.x + Math.cos(a) * d, c.y + Math.sin(a) * d);
+        ctx.rotate(a + burst);
+        ctx.fillRect(-2, -5, 4, 10);
+        ctx.restore();
+      }
+      ctx.restore();
     }
   }
 
