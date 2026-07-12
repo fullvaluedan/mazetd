@@ -197,9 +197,15 @@ export const CONFIG = {
       branches: {},
     },
     // -- the 8-tower WC3 roster (U7) -------------------------------------------
+    // 2x2 rebalance (2026-07-12, user-directed): every non-wall roster tower
+    // occupies a 2x2 footprint, so base costs are x4 and primary output
+    // (damage / DoT / income) is x6 vs the 1x1-era table; splash got a big
+    // radius bump on top. Auras scale x1.5 (the per-gold parity factor) since
+    // they multiply the rest of the board. Walls and the hidden legacy defs
+    // keep their exact pre-2x2 numbers.
     arrow: {
-      name: 'Arrow', glyph: 'A', color: '#7fd66b', cost: 3,
-      damage: 0.5, range: 2.6, cooldown: 0.7, damageType: 'pierce',
+      name: 'Arrow', glyph: 'A', color: '#7fd66b', cost: 12,
+      damage: 3, range: 2.6, cooldown: 0.7, damageType: 'pierce',
       targetsAir: true, projectileSpeed: 12,
       blurb: 'Cheap, fast. Hits land AND air.',
       branches: {},
@@ -214,24 +220,24 @@ export const CONFIG = {
       ],
     },
     cannon: {
-      name: 'Cannon', glyph: 'C', color: '#d98a4b', cost: 5,
-      damage: 0.6, range: 2.2, cooldown: 1.7, damageType: 'siege',
-      targetsAir: false, projectileSpeed: 7, splashRadius: 1.0,
-      blurb: 'Small splash. Land only.',
+      name: 'Cannon', glyph: 'C', color: '#d98a4b', cost: 20,
+      damage: 3.6, range: 2.2, cooldown: 1.7, damageType: 'siege',
+      targetsAir: false, projectileSpeed: 7, splashRadius: 1.5,
+      blurb: 'Big splash. Land only.',
       branches: {},
       tiers: [
-        { costMult: 2.5, mods: { damageMult: 2, splashRadius: 1.15 } },
-        { costMult: 5,   mods: { damageMult: 2, splashRadius: 1.3 } },
-        { costMult: 10,  mods: { damageMult: 2, splashRadius: 1.45 } },
+        { costMult: 2.5, mods: { damageMult: 2, splashRadius: 1.7 } },
+        { costMult: 5,   mods: { damageMult: 2, splashRadius: 1.9 } },
+        { costMult: 10,  mods: { damageMult: 2, splashRadius: 2.1 } },
         { costMult: 20,  forks: {
-          A: { id: 'doomsday', name: 'Doomsday', desc: 'huge blasts (+150% dmg, 2.0 splash)', mods: { damageMult: 2.5, splashRadius: 2.0 } },
+          A: { id: 'doomsday', name: 'Doomsday', desc: 'huge blasts (+150% dmg, 2.6 splash)', mods: { damageMult: 2.5, splashRadius: 2.6 } },
           B: { id: 'cluster',  name: 'Cluster',  desc: '3 mini-bombs re-splash every shell',   mods: { damageMult: 1.5, cluster: 3 } },
         } },
       ],
     },
     frost: {
-      name: 'Frost', glyph: 'Fr', color: '#5bb8d6', cost: 6,
-      damage: 0.3, range: 2.4, cooldown: 1.0, damageType: 'magic',
+      name: 'Frost', glyph: 'Fr', color: '#5bb8d6', cost: 24,
+      damage: 1.8, range: 2.4, cooldown: 1.0, damageType: 'magic',
       targetsAir: true, hitscan: true, slowPct: 0.15, slowDur: 1.5,
       blurb: 'Slows enemies. Hits air.',
       branches: {},
@@ -245,9 +251,9 @@ export const CONFIG = {
       ],
     },
     poison: {
-      name: 'Poison', glyph: 'P', color: '#6fc34b', cost: 8,
-      damage: 0.4, range: 2.5, cooldown: 1.2, damageType: 'poison',
-      targetsAir: false, projectileSpeed: 9, dotDps: 0.8, dotDur: 3,
+      name: 'Poison', glyph: 'P', color: '#6fc34b', cost: 32,
+      damage: 2.4, range: 2.5, cooldown: 1.2, damageType: 'poison',
+      targetsAir: false, projectileSpeed: 9, dotDps: 4.8, dotDur: 3,
       blurb: 'Poison DoT. Land only.',
       branches: {},
       tiers: [
@@ -261,8 +267,8 @@ export const CONFIG = {
       ],
     },
     sniper: {
-      name: 'Sniper', glyph: 'S', color: '#c9d4e0', cost: 12,
-      damage: 2.5, range: 5.0, cooldown: 3.0, damageType: 'pierce',
+      name: 'Sniper', glyph: 'S', color: '#c9d4e0', cost: 48,
+      damage: 15, range: 5.0, cooldown: 3.0, damageType: 'pierce',
       targetsAir: true, hitscan: true,
       blurb: 'Huge single hits, long range. Slow.',
       branches: {},
@@ -277,8 +283,8 @@ export const CONFIG = {
       ],
     },
     lightning: {
-      name: 'Lightning', glyph: 'L', color: '#e0c84f', cost: 15,
-      damage: 2.2, range: 3.6, cooldown: 1.5, damageType: 'magic',
+      name: 'Lightning', glyph: 'L', color: '#e0c84f', cost: 60,
+      damage: 13.2, range: 3.6, cooldown: 1.5, damageType: 'magic',
       targetsAir: true, hitscan: true, chainTargets: 3, chainFalloff: 0.6, chainRange: 1.6,
       blurb: 'Chain lightning. Hits air.',
       branches: {},
@@ -291,17 +297,17 @@ export const CONFIG = {
       ],
     },
     support: {
-      name: 'Support', glyph: 'B', color: '#e08ac8', cost: 11,
+      name: 'Support', glyph: 'B', color: '#e08ac8', cost: 44,
       aura: true,                    // non-attacking: buffs towers in radius instead
       damage: 0, range: 2.0, cooldown: 0, damageType: 'none',
       targetsAir: false, projectileSpeed: 0,
       // L1..L5 aura strength/radius (tier mods don't scale auras; this table does).
       auraByLevel: [
-        { dmg: 0.10, speed: 0.05, range: 2.0 },
-        { dmg: 0.15, speed: 0.08, range: 2.4 },
-        { dmg: 0.20, speed: 0.10, range: 2.8 },
-        { dmg: 0.25, speed: 0.12, range: 3.2 },
-        { dmg: 0.30, speed: 0.15, range: 3.6 },
+        { dmg: 0.15, speed: 0.08, range: 2.0 },
+        { dmg: 0.22, speed: 0.12, range: 2.4 },
+        { dmg: 0.30, speed: 0.15, range: 2.8 },
+        { dmg: 0.38, speed: 0.18, range: 3.2 },
+        { dmg: 0.45, speed: 0.22, range: 3.6 },
       ],
       blurb: 'Buffs nearby towers. Does not attack.',
       branches: {},
@@ -313,25 +319,25 @@ export const CONFIG = {
         // B fork pays flat income per wave instead — same "support that pays
         // for itself" flavor on an existing stats key.
         { costMult: 20,  forks: {
-          A: { id: 'banner',   name: 'War Banner', desc: '+45% damage aura', mods: { auraDmg: 0.45 } },
-          B: { id: 'treasury', name: 'Treasury',   desc: 'aura + pays 25g every wave', mods: { income: 25 } },
+          A: { id: 'banner',   name: 'War Banner', desc: '+65% damage aura', mods: { auraDmg: 0.65 } },
+          B: { id: 'treasury', name: 'Treasury',   desc: 'aura + pays 150g every wave', mods: { income: 150 } },
         } },
       ],
     },
     gold: {
-      name: 'Gold Mine', glyph: '$', color: '#f2c14b', cost: 9,
+      name: 'Gold Mine', glyph: '$', color: '#f2c14b', cost: 36,
       noAttack: true,                // a real tower with no attack: income only
       damage: 0, range: 0, cooldown: 0, damageType: 'none',
       targetsAir: false, projectileSpeed: 0,
-      income: 3,                     // gold per wave clear; tiers escalate it
+      income: 18,                    // gold per wave clear; tiers escalate it
       blurb: 'Pays gold every wave. Never attacks.',
       branches: {},
       tiers: [
-        { costMult: 2.5, mods: { income: 8 } },
-        { costMult: 5,   mods: { income: 18 } },
-        { costMult: 10,  mods: { income: 40 } },
+        { costMult: 2.5, mods: { income: 48 } },
+        { costMult: 5,   mods: { income: 108 } },
+        { costMult: 10,  mods: { income: 240 } },
         // T5 single signature: the mint.
-        { costMult: 20,  mods: { income: 100 } },
+        { costMult: 20,  mods: { income: 600 } },
       ],
     },
     // -- legacy pool (hidden; old-save compat + classic sim regression) --------

@@ -351,10 +351,10 @@ console.log('U7 roster: every damage tower builds and gets a kill headlessly:');
   const st = freshL8();
   const sup = tryBuild(st, 'support', 5, 5);
   const arrow = addTower(st, 'arrow', 6, 5);
-  check('support builds and buffs the adjacent tower', !!sup && arrow.buffDmg === 0.10 && arrow.stats.buffDmg === 0.10);
+  check('support builds and buffs the adjacent tower', !!sup && arrow.buffDmg === 0.15 && arrow.stats.buffDmg === 0.15);
   check('support T5A/B fork declared (dmg aura vs income)', (() => {
     const f = CONFIG.TOWERS.support.tiers[3].forks;
-    return f && f.A.mods.auraDmg === 0.45 && f.B.mods.income === 25;
+    return f && f.A.mods.auraDmg === 0.65 && f.B.mods.income === 150;
   })());
 }
 
@@ -371,7 +371,7 @@ console.log('U7 gold tower: never targets, pays income per wave:');
   st.waveActive = false;
   const pay = payWaveClear(st, 1);
   check('gold pays its income at wave clear', pay.income === CONFIG.TOWERS.gold.income, `income=${pay.income}`);
-  check('gold T5 signature: large income', getTowerStats('gold', 5, null).income === 100);
+  check('gold T5 signature: large income', getTowerStats('gold', 5, null).income === 600);
 }
 
 console.log('U7 unlock schedule: roster spreads across levels 1-13:');
