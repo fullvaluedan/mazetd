@@ -24,6 +24,93 @@
   filter: brightness(.92);
 }
 
+/* ---- Clash button system: chunky bevel + ledge --------------------------
+   Border-radius 12px (--ui-radius), 3px border, inset top-highlight/bottom-
+   shade bevel, a solid ledge drop under the border. Pressing translates the
+   whole button down 2px and the ledge collapses from 3px to 1px. */
+.ui-btn {
+  border-width: 3px;
+  border-style: solid;
+  border-radius: var(--ui-radius);
+  text-shadow: var(--ck-stroke);
+  transition: transform var(--motion-press) ease, box-shadow var(--motion-press) ease, filter var(--motion-press) ease;
+}
+/* default (no color class) = secondary blue */
+.ui-btn {
+  background: linear-gradient(180deg, var(--ck-field-1) 0%, var(--ck-field-2) 100%);
+  border-color: var(--ck-navy-900);
+  color: var(--ck-cream-100);
+  box-shadow:
+    inset 0 2px 0 var(--ck-bevel-hi),
+    inset 0 -3px 0 var(--ck-bevel-lo),
+    0 var(--ck-ledge) 0 var(--ck-navy-900);
+}
+.ui-btn.gold {
+  background: linear-gradient(180deg, var(--ck-gold-300) 0%, var(--ck-gold-500) 100%);
+  border-color: var(--ck-gold-700);
+  color: var(--ck-ink);
+  text-shadow: none;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, .55),
+    inset 0 -3px 0 rgba(0, 0, 0, .16),
+    0 var(--ck-ledge) 0 var(--ck-gold-700);
+}
+.ui-btn.green {
+  background: linear-gradient(180deg, var(--ck-green-400) 0%, var(--ck-green-600) 100%);
+  border-color: var(--ck-green-700);
+  color: var(--ck-cream-100);
+  box-shadow:
+    inset 0 2px 0 var(--ck-bevel-hi),
+    inset 0 -3px 0 var(--ck-bevel-lo),
+    0 var(--ck-ledge) 0 var(--ck-green-700);
+}
+.ui-btn.red {
+  background: linear-gradient(180deg, var(--ck-red-500) 0%, var(--ck-red-600) 100%);
+  border-color: var(--ck-red-700);
+  color: var(--ck-cream-100);
+  box-shadow:
+    inset 0 2px 0 var(--ck-bevel-hi),
+    inset 0 -3px 0 var(--ck-bevel-lo),
+    0 var(--ck-ledge) 0 var(--ck-red-700);
+}
+.ui-btn:active:not(:disabled) { transform: translateY(2px); }
+.ui-btn:active:not(:disabled) { box-shadow: inset 0 2px 0 var(--ck-bevel-hi), inset 0 -2px 0 var(--ck-bevel-lo), 0 var(--ck-ledge-pressed) 0 var(--ck-navy-900); }
+.ui-btn.gold:active:not(:disabled) { box-shadow: inset 0 2px 0 rgba(255, 255, 255, .55), inset 0 -2px 0 rgba(0, 0, 0, .16), 0 var(--ck-ledge-pressed) 0 var(--ck-gold-700); }
+.ui-btn.green:active:not(:disabled) { box-shadow: inset 0 2px 0 var(--ck-bevel-hi), inset 0 -2px 0 var(--ck-bevel-lo), 0 var(--ck-ledge-pressed) 0 var(--ck-green-700); }
+.ui-btn.red:active:not(:disabled) { box-shadow: inset 0 2px 0 var(--ck-bevel-hi), inset 0 -2px 0 var(--ck-bevel-lo), 0 var(--ck-ledge-pressed) 0 var(--ck-red-700); }
+
+/* Shared disabled/unaffordable state: desaturated, flat (no bevel ledge), no
+   press, default cursor. Placed after the variant rules above so it wins on
+   source order within this layer regardless of which color class is set.
+   JS wiring note: no `.is-disabled` class exists in this codebase yet; every
+   caller (wavebar.js, sheets.js, screens.js, multiselect.js, radial.js) sets
+   the native `el.disabled` property instead. This rule is ready for a future
+   `.is-disabled` class on a non-natively-disabled element (e.g. a
+   multiselect row) without inventing new JS behavior in this unit. */
+.ui-btn[disabled],
+.ui-btn.is-disabled,
+.radial-item.is-disabled {
+  filter: saturate(0.35) brightness(0.85);
+  box-shadow: none;
+  cursor: default;
+  pointer-events: none;
+}
+.ui-btn[disabled]:active,
+.ui-btn.is-disabled:active,
+.radial-item.is-disabled:active {
+  transform: none;
+}
+
+/* topbar chips as Clash-style pill counters: dark navy well, thin gold
+   border, bold white value with a stroke shadow. */
+.topbar .ui-chip {
+  border-radius: 999px;
+  border-width: 2px;
+  background: linear-gradient(180deg, var(--ck-navy-800) 0%, var(--ck-navy-950) 100%);
+  border-color: color-mix(in srgb, var(--ck-gold-500) 65%, var(--ck-gold-700));
+  box-shadow: inset 0 0 0 2px rgba(3, 11, 20, .5), inset 0 2px 0 rgba(255, 255, 255, .06);
+}
+.topbar .ui-chip .v { color: var(--ck-cream-100); font-weight: 800; text-shadow: var(--ck-stroke); }
 .topbar .ui-chip .ico { display: grid; place-items: center; color: var(--ck-gold-300); }
 .topbar .ui-chip .ico .game-icon { width: 22px; height: 22px; }
 .topbar .ui-chip.lives-chip .ico { color: #ff6d63; }
@@ -83,6 +170,13 @@
 .radial-center {
   transform: translate(-50%, -50%);
   transition: border-color 120ms ease, box-shadow 120ms ease, filter 90ms ease;
+  border-radius: 10px;
+  border-width: 3px;
+  border-color: var(--ck-navy-900);
+  background: linear-gradient(180deg, var(--ck-cream-100) 0%, #ecd9a8 100%);
+  box-shadow:
+    0 4px 10px rgba(3, 11, 20, .3),
+    inset 0 1px 0 rgba(255, 255, 255, .7);
 }
 .radial-center { width: 44px; height: 44px; }
 .radial-item:hover:not(:disabled),
@@ -98,18 +192,37 @@
 .radial-item.info .game-icon { color: var(--ck-cyan-500); }
 .radial-item.upgrade .game-icon { color: var(--ck-gold-700); }
 .radial-item.sell .game-icon { color: var(--ck-red-500); }
+/* warn/info still stand out against the parchment mini-card face */
+.radial-item.warn { border-color: var(--ck-gold-500); box-shadow: 0 0 12px rgba(232, 162, 12, .45), 0 4px 10px rgba(3, 11, 20, .3); }
+.radial-item.info { border-color: var(--ck-cyan-500); }
 
+/* parchment card face with a gold ribbon-header strip (gradient, no image) */
 .infocard { pointer-events: auto; }
 .infocard .card-shell {
-  color: var(--ck-cream-100);
-  background: linear-gradient(180deg, rgba(24, 58, 75, .98), rgba(7, 24, 35, .99));
-  border-color: color-mix(in srgb, var(--card-accent) 58%, var(--ck-gold-700));
+  color: var(--ck-ink);
+  border-radius: 14px;
+  background: linear-gradient(180deg, var(--ck-cream-100) 0%, #ecd9a8 100%);
+  border-color: var(--ck-navy-900);
 }
+.infocard .card-shell::before { border-color: rgba(19, 43, 87, .25); }
+.infocard .card-shell::after {
+  height: 30px;
+  border-radius: 12px 12px 0 0;
+  background: linear-gradient(180deg, var(--ck-gold-300), var(--ck-gold-500));
+  opacity: 1;
+}
+.infocard .card-head { position: relative; z-index: 1; }
+.infocard .card-title,
+.infocard .card-line { color: var(--ck-ink); }
+.infocard .card-sub,
+.infocard .card-line.muted,
+.infocard .muted { color: color-mix(in srgb, var(--ck-ink) 65%, transparent); }
 .infocard .card-ico { color: var(--card-accent); }
 
 .mselect-toggle .control-face { min-height: 32px; }
 .mselect-toggle .game-icon { width: 21px; height: 21px; }
 
+.wavebtn { text-transform: uppercase; }
 .wavebtn .control-face { flex-wrap: wrap; line-height: 1.05; }
 .wavebtn .game-icon { width: 22px; height: 22px; }
 .wavebtn .bonus { flex-basis: 100%; margin-top: -3px; color: var(--ck-gold-300); font-size: .78em; letter-spacing: .45px; }

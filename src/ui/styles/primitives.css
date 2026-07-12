@@ -22,6 +22,15 @@
   opacity: 0.75;
 }
 
+/* Clash display type: heavy weight, slight tracking, dark stroke shadow on
+   light-on-dark labels. Component-specific overrides (uppercase primary
+   labels, ink-on-gold text with no stroke) live in battle.css/screens.css
+   where the later layer needs to win for a specific selector. */
+:where(.ui-btn, .ui-chip .v, .diff-name, .wn-label, .title-logo, .card-title) {
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
 .game-panel {
   color: var(--ui-text);
   border: 2px solid var(--ui-line);
