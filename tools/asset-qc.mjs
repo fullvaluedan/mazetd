@@ -102,6 +102,7 @@ const required = {
   'objective-portal': { source: [128, 128], overlay: true },
   'objective-crystal': { source: [128, 128], overlay: true },
   'tower-wall-redbrick': { source: [64, 64], tile: true },
+  'tower-wall-2': { source: [64, 64] },
   'tower-arrow-lv1': { source: [128, 128], tower: true },
   'tower-arrow-lv2': { source: [128, 128], tower: true },
   'tower-arrow-lv3': { source: [128, 128], tower: true },

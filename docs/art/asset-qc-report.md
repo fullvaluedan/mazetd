@@ -374,6 +374,34 @@ strict overhead with no baked ground shadow.
 - `node tools/asset-qc.mjs --all` and `node test/t19-production-assets.mjs`
   validate the promoted static, walk, and defeat files.
 
+## Wall-2 Block, 2026-07-12
+
+The user-supplied wall-2 source is a 512x512 staging original with transparent
+corners. It is normalized down to a 64x64 runtime block using box-averaged
+premultiplied-alpha downscaling, then padded so its alpha never touches the
+edge of the frame.
+
+| Artifact | Path | Pixel bounds | Result |
+| --- | --- | --- | --- |
+| Staging source | `assets/towers/wall-2.png` | 512x512 | RGBA, kept untouched as staging evidence |
+| Runtime block | `assets/towers/wall-2-v1.png` | 64x64 | RGBA, inset-alpha contract, bounds x0/y0 > 0 and x1/y1 < 63 |
+
+- Manifest id `tower-wall-2` uses `WALL2_META` in `tools/gen-assets.mjs`
+  (sprite, 1x1 footprint, `contain` scale mode), distinct from the seamless
+  `tower-wall-redbrick` tile.
+- `tools/asset-qc.mjs` checks `tower-wall-2` under the default inset-alpha
+  category, not the opaque-corner tile category used by redbrick.
+- The wall renders as a padded per-cell sprite block, with the procedural
+  brick wall remaining the fallback when no sprite is loaded. Renderer wiring
+  for this new sprite lands in U2.
+
+## Wall-2 Evidence
+
+- `node test/t19-wall2-staging.mjs`: `WALL2_STAGING_QC_OK`.
+- `node tools/asset-qc.mjs --all`: `ASSET_QC_OK`, including `tower-wall-2`.
+- `node test/t19-production-assets.mjs` and `node test/t14asset-files.mjs`:
+  both pass with the new manifest entry.
+
 ## Warden Enemy Family, 2026-07-12
 
 Warden is the shield family: an armored knight inside a blue barrier orb,

@@ -139,6 +139,8 @@ const TILE_META = { version: 1, kind: 'tile', logical: [32, 32], footprint: [1, 
 const PORTAL_META = { version: 3, kind: 'sprite', logical: [64, 64], footprint: [2, 2], pivot: [0.5, 0.5], scaleMode: 'contain' };
 const CRYSTAL_META = { version: 3, kind: 'sprite', logical: [64, 64], footprint: [2, 2], pivot: [0.5, 0.5], scaleMode: 'contain' };
 const WALL_META = { version: 1, kind: 'sprite', logical: [32, 32], footprint: [1, 1], pivot: [0.5, 0.5], scaleMode: 'tile' };
+// The wall-2 block is a padded per-cell sprite (inset alpha), not a seamless tile.
+const WALL2_META = { version: 1, kind: 'sprite', logical: [32, 32], footprint: [1, 1], pivot: [0.5, 0.5], scaleMode: 'contain' };
 
 function towerAttackSheetPrompt(id, t) {
   const base = TOWER_HINT[id] || 'a defensive tower';
@@ -205,6 +207,7 @@ export function buildManifest() {
     { id: 'objective-portal', out: 'objectives/portal-openfield-v3.png', static: true, meta: PORTAL_META },
     { id: 'objective-crystal', out: 'objectives/crystal-openfield-v3.png', static: true, meta: CRYSTAL_META },
     { id: 'tower-wall-redbrick', out: 'towers/wall-redbrick-v1.png', static: true, meta: WALL_META },
+    { id: 'tower-wall-2', out: 'towers/wall-2-v1.png', static: true, meta: WALL2_META },
   );
   for (const [id, t] of Object.entries(CONFIG.TOWERS)) {
     items.push({ id: `tower-${id}`, out: `towers/${id}.png`, size: '1024x1024',

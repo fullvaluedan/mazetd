@@ -1,0 +1,12 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { inspectPng } from '../tools/asset-qc.mjs';
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+let fails = 0;
+const check = (n, ok) => { console.log(ok ? '  ok  ' : '  FAIL', n); if (!ok) fails++; };
+const source = inspectPng(path.join(root, 'assets/towers/wall-2.png'));
+check('staging source is 512x512 RGBA', source.width === 512 && source.height === 512 && source.alpha);
+const runtime = inspectPng(path.join(root, 'assets/towers/wall-2-v1.png'));
+check('runtime candidate is 64x64 RGBA with safe padding', runtime.width === 64 && runtime.height === 64 && runtime.alpha && runtime.bounds.x0 > 0 && runtime.bounds.y0 > 0 && runtime.bounds.x1 < 63 && runtime.bounds.y1 < 63);
+console.log(fails ? `WALL2_STAGING_QC_FAIL (${fails})` : 'WALL2_STAGING_QC_OK');
+if (fails) process.exitCode = 1;

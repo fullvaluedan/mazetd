@@ -99,6 +99,24 @@
     ],
     "scaleMode": "tile"
   },
+  "tower-wall-2": {
+    "src": "assets/towers/wall-2-v1.png",
+    "version": 1,
+    "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "footprint": [
+      1,
+      1
+    ],
+    "pivot": [
+      0.5,
+      0.5
+    ],
+    "scaleMode": "contain"
+  },
   "tower-wall": {
     "src": "assets/towers/wall.png",
     "version": 1,
