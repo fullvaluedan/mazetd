@@ -27,6 +27,20 @@
   pointer-events: none;
 }
 @keyframes ui-sheet-fade { from { opacity: 0; } to { opacity: 1; } }
+/* Generated chrome art (U4): the panel image bakes its own gold frame, so
+   when art is live the CSS frame strip steps aside and the ribbon image
+   carries the header instead. Placeholder skin is untouched otherwise. */
+:root.has-chrome-art .sheet {
+  border-color: transparent;
+  background: var(--ck-img-panel, none) center / 100% 100% no-repeat,
+    linear-gradient(180deg, var(--ck-cream-100) 0%, #ecd9a8 100%);
+}
+:root.has-chrome-art .sheet::before { display: none; }
+:root.has-chrome-art .sheet-title {
+  padding: 8px 18px;
+  border-radius: 10px;
+  background: var(--ck-img-ribbon, none) center / 100% 100% no-repeat;
+}
 .sheet-title { position: relative; z-index: 1; display: flex; align-items: center; gap: 10px; color: var(--ck-ink); font-family: var(--ui-display-font); font-weight: 400; letter-spacing: 1px; text-transform: uppercase; }
 .sheet-title .game-icon { width: 28px; height: 28px; }
 .sheet-close { z-index: 1; width: 44px; height: 44px; display: grid; place-items: center; color: var(--ck-red-700); }
@@ -58,6 +72,16 @@
   box-shadow: 0 24px 64px rgba(3, 11, 20, .38), inset 0 0 0 2px rgba(19, 43, 87, .1);
 }
 .end-screen > * { position: relative; z-index: 1; }
+/* Generated banner backdrops sit BEHIND the parchment result panel, so the
+   dark ink text keeps its readable parchment face in both outcomes. */
+.end-screen.victory {
+  background: var(--ck-img-victory, none) center / cover no-repeat,
+    radial-gradient(ellipse at 50% 10%, var(--ck-field-1) 0%, var(--ck-field-2) 55%, var(--ck-navy-950) 100%);
+}
+.end-screen.defeat {
+  background: var(--ck-img-defeat, none) center / cover no-repeat,
+    radial-gradient(ellipse at 50% 10%, var(--ck-field-1) 0%, var(--ck-field-2) 55%, var(--ck-navy-950) 100%);
+}
 .end-title { display: flex; align-items: center; gap: 10px; font-family: var(--ui-display-font); font-weight: 400; text-transform: uppercase; }
 .end-title .game-icon { width: 42px; height: 42px; }
 /* the inline style on victory sets var(--ui-green); Clash calls for gold */

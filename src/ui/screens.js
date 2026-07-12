@@ -274,7 +274,7 @@ export class Screens {
     const hs = this.hooks.highScore();
     const campaignWin = won && state.level && !state.level.endless && !state.level.mazeMode;
     const points = campaignWin ? calculateStageScore(state.gold, state.lives) : null;
-    const s = div('end-screen', `
+    const s = div(won ? 'end-screen victory' : 'end-screen defeat', `
       <div class="end-title" style="color:${won ? 'var(--ui-green)' : 'var(--ui-red)'}">${won ? 'VICTORY!' : 'DEFEAT'}</div>
       <div class="end-stars">${stars}</div>
       <div class="end-sub">${won

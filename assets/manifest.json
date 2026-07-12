@@ -1851,5 +1851,41 @@
   "misc-camp": "assets/misc/camp.png",
   "misc-falcon": "assets/misc/falcon.png",
   "misc-worldmap": "assets/misc/worldmap.png",
-  "misc-title": "assets/misc/title.png"
+  "misc-title": "assets/misc/title.png",
+  "ui-btn-gold": {
+    "src": "assets/ui/btn-gold-v1.png",
+    "version": 1,
+    "kind": "ui",
+    "scaleMode": "stretch"
+  },
+  "ui-panel-parchment": {
+    "src": "assets/ui/panel-parchment-v1.png",
+    "version": 1,
+    "kind": "ui",
+    "scaleMode": "stretch"
+  },
+  "ui-btn-blue": {
+    "src": "assets/ui/btn-blue-v1.png",
+    "version": 1,
+    "kind": "ui",
+    "scaleMode": "stretch"
+  },
+  "ui-ribbon-header": {
+    "src": "assets/ui/ribbon-header-v1.png",
+    "version": 1,
+    "kind": "ui",
+    "scaleMode": "stretch"
+  },
+  "ui-banner-victory": {
+    "src": "assets/ui/banner-victory-v1.png",
+    "version": 1,
+    "kind": "ui",
+    "scaleMode": "stretch"
+  },
+  "ui-banner-defeat": {
+    "src": "assets/ui/banner-defeat-v1.png",
+    "version": 1,
+    "kind": "ui",
+    "scaleMode": "stretch"
+  }
 }

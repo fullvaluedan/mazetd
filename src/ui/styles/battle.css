@@ -46,7 +46,9 @@
     0 var(--ck-ledge) 0 var(--ck-navy-900);
 }
 .ui-btn.gold {
-  background: linear-gradient(180deg, var(--ck-gold-300) 0%, var(--ck-gold-500) 100%);
+  /* generated gold face layers over the gradient when chrome art is loaded */
+  background: var(--ck-img-btn-gold, none) center / 100% 100% no-repeat,
+    linear-gradient(180deg, var(--ck-gold-300) 0%, var(--ck-gold-500) 100%);
   border-color: var(--ck-gold-700);
   color: var(--ck-ink);
   text-shadow: none;
@@ -222,7 +224,12 @@
 .mselect-toggle .control-face { min-height: 32px; }
 .mselect-toggle .game-icon { width: 21px; height: 21px; }
 
-.wavebtn { text-transform: uppercase; }
+.wavebtn {
+  text-transform: uppercase;
+  /* generated blue face layers over the base gradient when chrome art is loaded */
+  background: var(--ck-img-btn-blue, none) center / 100% 100% no-repeat,
+    linear-gradient(180deg, var(--ck-field-1) 0%, var(--ck-field-2) 100%);
+}
 .wavebtn .control-face { flex-wrap: wrap; line-height: 1.05; }
 .wavebtn .game-icon { width: 22px; height: 22px; }
 .wavebtn .bonus { flex-basis: 100%; margin-top: -3px; color: var(--ck-gold-300); font-size: .78em; letter-spacing: .45px; }

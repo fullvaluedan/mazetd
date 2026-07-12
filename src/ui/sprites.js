@@ -49,7 +49,7 @@ export function hasSheet(id) { return enabled && sheets.has(id); }
 export function spriteCount() { return images.size; }
 
 export function towerSpriteCandidates(type, level = 1) {
-  if (type === 'wall') return ['tower-wall-redbrick', 'tower-wall'];
+  if (type === 'wall') return ['tower-wall-2', 'tower-wall-redbrick', 'tower-wall'];
   const top = Math.max(1, Math.min(5, level | 0 || 1));
   const ids = [];
   for (let lvl = top; lvl >= 1; lvl--) ids.push(`tower-${type}-lv${lvl}`);
@@ -90,6 +90,31 @@ export function enemyStateCandidates(type, state = 'idle') {
 export function getSpriteUrl(id) {
   if (!enabled || !images.has(id)) return null;
   return urls.get(id) || null;
+}
+
+// U4: expose generated chrome art to CSS as root custom properties plus a
+// has-chrome-art root class. CSS uses var(--ck-img-*, none) fallbacks and
+// :root.has-chrome-art overrides, so the placeholder skin stays whenever a
+// file is absent, sprites are disabled, or we run headless.
+const UI_CHROME_VARS = {
+  'ui-btn-gold': '--ck-img-btn-gold',
+  'ui-btn-blue': '--ck-img-btn-blue',
+  'ui-panel-parchment': '--ck-img-panel',
+  'ui-ribbon-header': '--ck-img-ribbon',
+  'ui-banner-victory': '--ck-img-victory',
+  'ui-banner-defeat': '--ck-img-defeat',
+};
+export function applyUiChromeVars() {
+  try {
+    const root = document.documentElement;
+    let any = false;
+    for (const [id, cssVar] of Object.entries(UI_CHROME_VARS)) {
+      const url = getSpriteUrl(id);
+      if (url) { root.style.setProperty(cssVar, `url("${url}")`); any = true; }
+      else root.style.removeProperty(cssVar);
+    }
+    root.classList.toggle('has-chrome-art', any);
+  } catch { /* headless: no DOM, chrome art is purely cosmetic */ }
 }
 
 // Generated PNGs are 1024px but drawn at ~32–40px. Downscaling once into a

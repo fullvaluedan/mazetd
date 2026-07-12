@@ -113,6 +113,25 @@ const TOWER_FAMILY_ATTACK_NOTES = {
   gold: 'This family should feel like an income pulse: shimmer, coin ping, glow, and settle. Keep the mine/treasury readable while the sparkles loop.',
 };
 
+// Clash-style UI chrome pieces (U4). Keep this list in sync with what has
+// actually been generated: t14asset-files requires every manifest file on disk.
+// gpt-image-2 rejects the transparent-background param, so every piece is an
+// opaque edge-to-edge face; CSS border-radius and clipping do the shaping.
+const UI_CHROME_ITEMS = [
+  { id: 'ui-btn-gold', out: 'ui/btn-gold-v1.png', transparent: false,
+    prompt: 'A blank game button face filling the entire frame edge to edge: glossy saturated gold with a warm amber vertical gradient, a bright glassy bevel highlight band across the top quarter, deep amber shade along the bottom quarter like a pressed candy bar, faint darker gold border strip on all four edges, empty center ready for a label.' },
+  { id: 'ui-panel-parchment', out: 'ui/panel-parchment-v1.png', transparent: false,
+    prompt: 'A completely plain seamless texture of warm cream parchment paper, nothing on it: only subtle fiber grain and very soft mottling, even lighting, low contrast so dark text stays readable on top, edge-to-edge. ABSOLUTELY EMPTY surface: no object, no icon, no emblem, no medallion, no ornament, no border, no frame, no drawing of any kind, texture only.' },
+  { id: 'ui-btn-blue', out: 'ui/btn-blue-v1.png', transparent: false,
+    prompt: 'A blank game button face filling the entire frame edge to edge: glossy saturated royal blue with a vertical gradient from bright sky blue at the top to deep navy at the bottom, a bright glassy bevel highlight band across the top quarter, dark navy shade along the bottom quarter like a pressed candy bar, faint darker blue border strip on all four edges, empty center ready for a label.' },
+  { id: 'ui-ribbon-header', out: 'ui/ribbon-header-v1.png', transparent: false,
+    prompt: 'A wide horizontal golden ribbon banner filling the entire frame edge to edge: rich gold fabric with a warm gradient, subtle cloth folds catching light, darker bronze edges along the top and bottom, the center band smooth and empty ready for a title. No tails, no text, flat front-on view.' },
+  { id: 'ui-banner-victory', out: 'ui/banner-victory-v1.png', transparent: false,
+    prompt: 'A celebratory game panel background filling the entire frame edge to edge: radiant warm gold and cream sunburst rays fanning out from the top center, soft floating light sparkles, bright and triumphant, smoothly darkening toward the bottom edge so white text stays readable, no object in the center, no trophy, no text.' },
+  { id: 'ui-banner-defeat', out: 'ui/banner-defeat-v1.png', transparent: false,
+    prompt: 'A somber game panel background filling the entire frame edge to edge: deep crimson and dark navy vignette, faint smoke wisps drifting upward, moody but readable, the center smoothly darkened so white text stays readable, no object in the center, no skull, no text.' },
+];
+
 function towerLevelPrompt(id, t, level) {
   const base = TOWER_HINT[id] || 'a defensive tower';
   const tierNote = TOWER_LEVEL_DESCRIPTIONS[level] || 'upgrade state';
@@ -317,6 +336,20 @@ export function buildManifest() {
     prompt: 'TALL vertical world map for a cheerful anime tower-defense game: a winding dirt trail climbing from sunny meadows at the bottom through forest, river crossings and rocky foothills to a snowy demon castle peak at the top, bright cel-shaded colors, gentle top-down angle, the trail clearly visible weaving left and right up the whole image, no text, no icons, no UI, no characters.' });
   items.push({ id: 'misc-title', out: 'misc/title.png', size: '1536x1024', transparent: false,
     prompt: 'Wide key art for a colorful anime tower-defense game: a cheerful fantasy valley with a winding stone maze path, one cute crystal tower at its heart, playful monster silhouettes marching in from the far left, rolling green hills and a bright warm sky, clean modern anime style with simple cel shading, calm uncluttered sky at the top center reserved for a logo, no text, no letters, no UI, no watermark.' });
+  // -- Clash-style UI chrome art (U4) ----------------------------------------
+  // Nine-slice friendly frames and textures consumed as CSS backgrounds via
+  // getSpriteUrl. The CSS placeholder skin stays the floor when a file is
+  // absent, so entries are added here only once their image is generated.
+  const UI_CHROME_STYLE =
+    'Mobile game UI asset in a premium cartoon strategy game style: chunky rounded shapes, ' +
+    'crisp 3D bevel with a bright top highlight and dark bottom shade, saturated colors, clean vector-like ' +
+    'edges, evenly lit, perfectly straight and symmetric, centered, no text, no letters, no logo, no watermark.';
+  for (const ui of UI_CHROME_ITEMS) {
+    items.push({ id: ui.id, out: ui.out, size: '1024x1024',
+      ...(ui.transparent === false ? { transparent: false } : {}),
+      meta: { version: 1, kind: 'ui', scaleMode: 'stretch' },
+      prompt: `${ui.prompt} ${UI_CHROME_STYLE}` });
+  }
   // The manifest `version` must always mirror a promoted file's -vN suffix so
   // regenerating the manifest never rolls an approved asset's version back.
   return items.map((it) => {
