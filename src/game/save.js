@@ -24,8 +24,13 @@ const CAMPAIGN_SAVE_PREFIX = 'mazecore_campaign_save_v1:';
 
 // Snapshot format version. v1: pre-siege (towers load at full HP); v2: towers
 // carry hp; v3: tier-table upgrades (U5) — level/branch fields unchanged; v4:
-// difficulty mode persists alongside the existing level/branch fields.
-const SAVE_VERSION = 4;
+// difficulty mode persists alongside the existing level/branch fields; v5
+// (U6): l1's crystal can now sit at a seeded-random position (goalZone), an
+// older snapshot's towers were built around the OLD fixed corner, so a
+// version MISMATCH (not just "newer") must refuse to load; resuming it as-is
+// would replay those towers onto a map with the crystal moved out from
+// under them.
+const SAVE_VERSION = 5;
 
 function ls() { return (typeof localStorage !== 'undefined') ? localStorage : null; }
 
@@ -92,8 +97,12 @@ export function loadCampaignSnapshot(levelId) {
   try {
     const raw = store.getItem(campaignKey(levelId));
     const snap = raw ? JSON.parse(raw) : null;
-    if (snap && snap.v > SAVE_VERSION) {
-      console.warn(`campaign save is v${snap.v}, this client supports up to v${SAVE_VERSION} — refusing to load`);
+    // Version gate (U6): campaign resumes require an exact version match.
+    // The map is rebuilt from seed + levelId on resume, and v5 introduced
+    // seeded goal placement, so an older campaign save would resume against
+    // a relocated crystal. Refuse rather than half-load.
+    if (snap && snap.v !== SAVE_VERSION) {
+      console.warn(`campaign save is v${snap.v}, this client requires v${SAVE_VERSION}, refusing to load`);
       return null;
     }
     return snap;
@@ -106,11 +115,12 @@ export function loadSnapshot() {
   try {
     const raw = store.getItem(SAVE_KEY);
     const snap = raw ? JSON.parse(raw) : null;
-    // Version gate: older snapshots (v1/v2) load via applySnapshot's tolerant
-    // field-defaulting; anything NEWER than this client is refused outright
-    // rather than half-loaded (callers already treat null as "no save").
+    // Version gate: the Endless/classic path keeps the historical contract,
+    // refuse only NEWER-than-client saves. Older v1/v2 Endless saves still
+    // load through applySnapshot's tolerant field-defaulting; their maps have
+    // no goalZone, so the v5 seeded-goal hazard does not apply here.
     if (snap && snap.v > SAVE_VERSION) {
-      console.warn(`save is v${snap.v}, this client supports up to v${SAVE_VERSION} — refusing to load`);
+      console.warn(`save is v${snap.v}, this client supports up to v${SAVE_VERSION}, refusing to load`);
       return null;
     }
     return snap;

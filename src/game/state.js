@@ -18,7 +18,7 @@ import { createMap } from './map.js';
 export function createState(rng, seed = 0, level = null, options = {}) {
   const difficultyMode = normalizeDifficultyMode(options?.difficultyMode);
   const balance = difficultyModeStats(difficultyMode);
-  const map = createMap(rng, level);
+  const map = createMap(rng, level, seed);
 
   // towerGrid[y][x] = tower entity or null. Separate from map cell types so we
   // never lose the underlying terrain when a tower is sold.

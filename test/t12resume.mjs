@@ -171,7 +171,7 @@ console.log('v4 format preserved; a snapshot from a different level id does not 
   for (let w = 1; w <= 2; w++) clearWave(st, w);
   saveCampaign(st);
   const snap = loadCampaignSnapshot('l9');
-  check('campaign snapshot is v4', snap.v === 4);
+  check('campaign snapshot is v5', snap.v === 5);
   check('campaign snapshot keeps difficulty mode', snap.difficultyMode === 'expert');
   // the resume-prompt gate in main.js is exactly hasCampaignSave(bootLevel.id);
   // a different level id must read false even though SOME campaign save exists

@@ -76,7 +76,13 @@ if (bootLevel) {
   viewport.resize();   // the viewport was built against the default world size
 }
 
-let state = createState(makeRng(CONFIG.SEED), CONFIG.SEED, bootLevel, { difficultyMode: bootDifficulty });
+// U6: a fresh (non-resume) boot draws its own run seed from the current time
+// so each new run's seeded content (e.g. l1's randomized crystal) actually
+// varies run to run; CONFIG.SEED remains the deterministic default for
+// tests/sims that construct state directly. Resume paths are untouched: they
+// rebuild via applySnapshot(snap), which reuses the ORIGINAL snap.seed as-is.
+const freshRunSeed = Math.max(2, Date.now() % 2147483647);   // 2^31-1 (prime), min 2
+let state = createState(makeRng(freshRunSeed), freshRunSeed, bootLevel, { difficultyMode: bootDifficulty });
 if (bootLevel) seedStarterWalls(state);
 let prevStatus = state.status;
 let prevSiege = false;

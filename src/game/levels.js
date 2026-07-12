@@ -87,6 +87,10 @@ function L(num, name, def) {
     cols: def.cols, rows: def.rows,
     spawns: def.spawns,
     goals: def.goals,
+    // goalZone (U6): opt-in per-level row band for a seeded-random goal
+    // position (map.js createAuthoredMap); undefined -> the authored goals
+    // above are used exactly as given.
+    goalZone: def.goalZone,
     checkpoints: def.checkpoints || [],
     obstacles: def.obstacles || [],
     // Decorative scenery is intentionally separate from collision terrain.
@@ -129,7 +133,12 @@ export const LEVELS = [
     spawns: [{ id: 'S1', cx: 2, cy: 0 }],
     // Opposite-corner crystal makes the first maze objective legible. The
     // campaign rebalance is validated against this real 2x2-tower geometry.
+    // goalZone (U6): the authored (9,15) below is only the FALLBACK position -
+    // map.js randomizes the crystal within these lower-board rows each new run
+    // (seeded off the run seed + level id, deterministic per seed). yMax stops
+    // at 13 (not 14/15) so the pad never sits under bottom-docked mobile chrome.
     goals: [{ id: 'G1', cx: 9, cy: 15 }],
+    goalZone: { yMin: 10, yMax: 13 },
     starterWalls: [[4, 3], [5, 3], [6, 3]],
     // Keep the center clear for the first maze while framing the open field
     // with strictly top-down, non-blocking rocks and trees.

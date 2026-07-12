@@ -25,7 +25,7 @@ console.log('v4 round-trip with a damaged wall + beacon:');
   saveGame(st);
 
   const snap = loadSnapshot();
-  check('snapshot is v4', snap.v === 4);
+  check('snapshot is v5', snap.v === 5);
   check('difficulty mode survives the snapshot', snap.difficultyMode === 'normal');
   const st2 = applySnapshot(snap);
   const a2 = st2.towers.find((t) => t.type === 'archer');

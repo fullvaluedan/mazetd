@@ -14,10 +14,25 @@ const checks = [];
 const check = (label, ok) => { checks.push(ok); console.log(`${ok ? '  ok  ' : '  FAIL'} ${label}`); };
 
 check('crystal objective is a square 2x2 destination', rect.w === 2 && rect.h === 2);
-check('every crystal cell is an equivalent reach target', [
+// Derive from the ACTUAL goal rect of the constructed state (U6: the crystal
+// can now sit anywhere in l1's goalZone, not just the old fixed corner) -
+// hardcoded approach cells would silently stop meaning anything once the
+// goal moved.
+const padCells = [
   [rect.x, rect.y], [rect.x + 1, rect.y], [rect.x, rect.y + 1], [rect.x + 1, rect.y + 1],
-].every(([x, y]) => fieldAt(field, x, y) === 0));
-check('entry approaches the nearest reachable crystal side', fieldAt(field, 7, 13) === 1 && fieldAt(field, 8, 12) === 1);
+];
+check('every crystal cell is an equivalent reach target', padCells.every(([x, y]) => fieldAt(field, x, y) === 0));
+const padKey = (x, y) => `${x},${y}`;
+const padSet = new Set(padCells.map(([x, y]) => padKey(x, y)));
+const outsideNeighborDists = [];
+for (const [x, y] of padCells) {
+  for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+    const nx = x + dx, ny = y + dy;
+    if (!padSet.has(padKey(nx, ny))) outsideNeighborDists.push(fieldAt(field, nx, ny));
+  }
+}
+check('at least one orthogonal neighbor of the crystal pad sits one step out',
+  outsideNeighborDists.some((d) => d === 1));
 
 console.log(checks.every(Boolean) ? 'OBJECTIVE_ROUTING_QC_OK' : 'OBJECTIVE_ROUTING_QC_FAIL');
 if (!checks.every(Boolean)) process.exitCode = 1;
