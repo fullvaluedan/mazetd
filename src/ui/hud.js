@@ -20,6 +20,7 @@ import { HeroBar } from './herobar.js';
 import { Sheets } from './sheets.js';
 import { InfoCard } from './infocard.js';
 import { MultiSelect } from './multiselect.js';
+import { createTutorial } from './tutorial.js';
 
 export class HUD {
   constructor(root, actions, scene = null) {
@@ -31,6 +32,7 @@ export class HUD {
     this.herobar = null;
     this.infocard = null;
     this.multiselect = null;
+    this.tutorial = null;
     this.sheets = new Sheets(actions);
     if (scene && scene.uiLayer) {
       const statusDeck = scene.statusDeck || scene.uiLayer;
@@ -86,6 +88,15 @@ export class HUD {
 
   closeRadial() { if (this.radial) this.radial.close(); }
 
+  // U5: first-run scripted tutorial (Level 1 only). Owned here so it shares
+  // the same actions/state wiring as every other overlay, main.js's
+  // level-1 boot branch only decides WHEN to call this, not how it's built.
+  mountTutorial(state, deps) {
+    this.tutorial = createTutorial(deps);
+    this.tutorial.maybeStart(state);
+    return this.tutorial;
+  }
+
   // ---- per-frame ----
   refresh(state, ui) {
     if (this.topbar) this.topbar.refresh(state, ui);
@@ -94,5 +105,6 @@ export class HUD {
     if (this.radial) this.radial.refresh(state);     // live affordability in open rings
     if (this.multiselect) this.multiselect.refresh(state);   // ...and in the batch card
     if (this.sheets.isOpen) this.sheets.refresh(state);
+    if (this.tutorial) this.tutorial.refresh(state);
   }
 }

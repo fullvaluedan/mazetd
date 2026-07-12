@@ -33,6 +33,7 @@
       'wall-grid',
       'tower-roster', 'tower-adjacency', 'enemy-roster',
       'store', 'resume', 'maze-end', 'leaderboard', 'stageLeaderboard',
+      'tutorial',
     ];
     const select = document.querySelector('#proof-state');
     const frame = document.querySelector('#game-frame');
@@ -176,6 +177,15 @@
         await placeTowerAdjacency(win, app);
       } else if (name === 'enemy-roster') {
         await placeEnemyRoster(win, app);
+      } else if (name === 'tutorial') {
+        // Bypasses the real no-save/flag gate (uiHarness=1 skips auto-mount at
+        // boot) with an in-memory storage stub so the proof reliably shows the
+        // step-0 intro card regardless of any real tutorial flag on this origin.
+        app.hud.mountTutorial(app.state, {
+          hasSave: () => false,
+          onPause: () => {},
+          storage: { getItem: () => null, setItem: () => {} },
+        });
       } else if (name === 'settings') app.actions.openSettings();
       else if (name === 'store') app.actions.openStore();
       else if (name === 'resume') app.screens.showResumePrompt(app.state.level, 4);

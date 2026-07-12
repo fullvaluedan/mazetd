@@ -1,0 +1,115 @@
+/* =============================================================================
+   tutorial.css, U5 first-run tutorial: a parchment intro card (reuses the
+   #modal surface's own centering/backdrop) plus small fixed-position parchment
+   chips for steps 1-4. Same --ck-* tokens as the rest of the screens layer:
+   parchment card, navy border, gold primary button, red-ish skip link.
+   ============================================================================= */
+
+.tutorial-intro {
+  width: min(360px, calc(100vw - 32px));
+  padding: clamp(18px, 3vh, 26px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: var(--ck-ink);
+  font-family: var(--ui-font);
+  border: 3px solid var(--ck-navy-900);
+  border-radius: 24px 24px 38px 24px;
+  background: linear-gradient(180deg, var(--ck-cream-100) 0%, #ecd9a8 100%);
+  box-shadow:
+    0 24px 70px rgba(3, 11, 20, 0.42),
+    inset 0 0 0 2px rgba(19, 43, 87, 0.14);
+}
+.tutorial-title {
+  font-size: clamp(20px, 3vw, 26px);
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  color: var(--ck-navy-900);
+}
+.tutorial-line {
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--ck-ink);
+}
+.tutorial-intro-buttons {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* ---- shared button faces (gold primary, red-ish skip link) --------------- */
+.tutorial-start,
+.tutorial-next {
+  min-height: 44px;
+  padding: 0 22px;
+  border: 2px solid var(--ck-gold-700);
+  border-radius: 12px;
+  background: linear-gradient(180deg, var(--ck-gold-300) 0%, var(--ck-gold-500) 100%);
+  color: var(--ck-ink);
+  font-family: var(--ui-font);
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  box-shadow: 0 4px 0 var(--ck-gold-700), 0 8px 16px rgba(0, 0, 0, 0.28);
+}
+.tutorial-start:active,
+.tutorial-next:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 var(--ck-gold-700), 0 6px 12px rgba(0, 0, 0, 0.24);
+}
+.tutorial-skip-link {
+  min-height: 44px;
+  padding: 0 10px;
+  border: 0;
+  background: none;
+  color: var(--ck-red-600);
+  font-family: var(--ui-font);
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.tutorial-skip-link:hover,
+.tutorial-skip-link:focus-visible {
+  color: var(--ck-red-500);
+}
+.tutorial-start:focus-visible,
+.tutorial-next:focus-visible,
+.tutorial-skip-link:focus-visible {
+  outline: 3px solid var(--ck-cyan-500);
+  outline-offset: 3px;
+}
+
+/* ---- non-modal step chips (1-4): fixed, board stays fully interactive ----- */
+.tutorial-chip {
+  position: fixed;
+  left: 50%;
+  bottom: max(18px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 25;
+  width: min(420px, calc(100vw - 24px));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  color: var(--ck-ink);
+  font-family: var(--ui-font);
+  text-align: center;
+  border: 3px solid var(--ck-navy-900);
+  border-radius: 16px;
+  background: linear-gradient(180deg, var(--ck-cream-100) 0%, #ecd9a8 100%);
+  box-shadow:
+    0 14px 34px rgba(3, 11, 20, 0.4),
+    inset 0 0 0 2px rgba(19, 43, 87, 0.14);
+}
+.tutorial-chip-text {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.tutorial-chip-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}

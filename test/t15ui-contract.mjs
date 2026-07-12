@@ -34,6 +34,7 @@ const states = [
   'wall-grid',
   'tower-roster', 'enemy-roster',
   'store', 'resume', 'maze-end', 'leaderboard', 'stageLeaderboard',
+  'tutorial',
 ];
 console.log('Deterministic harness states:');
 for (const state of states) {

@@ -4,6 +4,7 @@
 @import url('./styles/battle.css') layer(battle);
 @import url('./styles/screens.css') layer(screens);
 @import url('./styles/sheets.css') layer(screens);
+@import url('./styles/tutorial.css') layer(screens);
 
 @layer legacy {
 /* ===========================================================================

@@ -27,7 +27,7 @@ import {
 } from './game/save.js';
 import { render, renderScreen } from './ui/render.js';
 import { HUD } from './ui/hud.js';
-import { loadSprites, toggleSprites } from './ui/sprites.js';
+import { loadSprites, toggleSprites, applyUiChromeVars } from './ui/sprites.js';
 import { Viewport } from './ui/viewport.js';
 import { createHints } from './ui/hints.js';
 import { hoverCardHtml, enemyCardHtml, enemyAt, towerCardHtml } from './ui/infocard.js';
@@ -171,7 +171,7 @@ const actions = {
   },
   togglePause: () => loop.togglePause(),
   togglePath: () => { state.showPath = !state.showPath; },
-  toggleArt: () => { toggleSprites(); },
+  toggleArt: () => { toggleSprites(); applyUiChromeVars(); },
   toggleAuto: () => { state.autoStart = !state.autoStart; },
   startWave: () => {
     // (the !state.hero check was a hero-era "fully booted" proxy)
@@ -480,8 +480,16 @@ function enterLevel() {
     showBanner(`${bootLevel.name} — ${CONFIG.HEROES[heroId].name} L${h.level} ready!`, '', 2.2);
   } else if (CONFIG.HEROES_ENABLED) {
     screens.showHeroSelect();
+    return;   // hero pick owns #modal next; the tutorial mounts on a later boot once a hero exists
   } else {
     showBanner(`${bootLevel.name} — build your maze!`, '', 2.2);
+  }
+  // U5: first-run skippable tutorial, Level 1 only. Gated on no campaign save
+  // (the resume prompt wins instead, and a saved level never even reaches
+  // this function on that path) and never inside the proof harness, which
+  // drives its own dedicated 'tutorial' state rather than the real boot gate.
+  if (bootLevel && bootLevel.id === 'l1' && !bootLevel.endless && !bootLevel.mazeMode && !uiHarness) {
+    hud.mountTutorial(state, { hasSave: () => hasCampaignSave(bootLevel.id), onPause: setPausedBySheet });
   }
 }
 if (bootLevel) {
@@ -498,7 +506,7 @@ if (bootLevel) {
 } else {
   screens.showTitle();
 }
-loadSprites().then(() => screens.refreshArt());   // art pops in when ready; shapes are the fallback
+loadSprites().then(() => { screens.refreshArt(); applyUiChromeVars(); });   // art pops in when ready; shapes are the fallback
 
 // ---------------------------------------------------------------------------
 // input

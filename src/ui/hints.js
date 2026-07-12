@@ -15,7 +15,9 @@ export function createHints(overlay, hud) {
   let el = null, last = '';
 
   function current(state) {
-    if (done || (CONFIG.HEROES_ENABLED && !state.hero) || (state.status !== 'setup' && state.status !== 'playing')) return '';
+    // U5: the scripted tutorial owns onboarding while it's active, its own
+    // chips cover the same ground, so don't stack a second banner on top.
+    if (done || (hud.tutorial && hud.tutorial.active) || (CONFIG.HEROES_ENABLED && !state.hero) || (state.status !== 'setup' && state.status !== 'playing')) return '';
     if (state.wave === 0 && state.towers.length === 0) {
       return hud.radialOpen
         ? 'Pick a tower — gold price shown under each.'
