@@ -2,7 +2,7 @@ import { CONFIG } from '../src/config.js';
 import { makeRng } from '../src/engine/rng.js';
 import { setGridSize } from '../src/engine/grid.js';
 import { getLevel } from '../src/game/levels.js';
-import { canBuildAt, footprintCells, createState } from '../src/game/state.js';
+import { canBuildAt, footprintCells, createState, objectiveRect } from '../src/game/state.js';
 import { addTower, removeTower, seedStarterWalls } from '../src/game/tower.js';
 import { sellRefund, tryBuild } from '../src/game/shop.js';
 
@@ -44,8 +44,13 @@ console.log('Wall economy and starter brick:');
 console.log('Objective pads reserve their exact visual footprints:');
 {
   check('portal pad is non-buildable across its 2x2 mouth', !canBuildAt(state, 1, 0, 'wall') && !canBuildAt(state, 2, 1, 'wall'));
-  check('level one crystal objective sits in the opposite corner', state.map.goals[0].cx === 9 && state.map.goals[0].cy === 15);
-  check('crystal pad is non-buildable across its 2x2 footprint', !canBuildAt(state, 8, 13, 'wall') && !canBuildAt(state, 9, 14, 'wall'));
+  // U6: l1's crystal is seeded-random inside goalZone; assert the zone
+  // contract and derive the reserved pad from the actual goal.
+  const goal = state.map.goals[0];
+  const zone = level.goalZone;
+  check('level one crystal sits inside its goalZone band', goal.cy >= zone.yMin && goal.cy <= zone.yMax && goal.cx >= 2 && goal.cx <= level.cols - 3);
+  const rect = objectiveRect(state, goal);
+  check('crystal pad is non-buildable across its 2x2 footprint', !canBuildAt(state, rect.x, rect.y, 'wall') && !canBuildAt(state, rect.x + 1, rect.y + 1, 'wall'));
 }
 
 console.log(fails ? `FOOTPRINT_FAIL (${fails})` : 'FOOTPRINT_OK');

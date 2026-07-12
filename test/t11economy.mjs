@@ -317,7 +317,7 @@ console.log('U5 tier machinery: per-tier tables, forks only where declared:');
 
   // tier + branch survive the v4 save round-trip
   const snap = buildSnapshot(st);
-  check('snapshot is v4', snap.v === 4);
+  check('snapshot is v5', snap.v === 5);
   const st2 = applySnapshot(snap);
   const f2 = st2.towers.find((x) => x.type === 'ttestFork');
   const t2 = st2.towers.find((x) => x.type === 'ttest');

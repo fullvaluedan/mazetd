@@ -449,3 +449,47 @@ a `128px` static source and `256px` state sheets with `128px` frames.
   an approved asset's version back.
 - `node tools/asset-qc.mjs --all` and `node test/t19-production-assets.mjs`
   (with new Mender, Warden, and Boss assertions) pass.
+
+## Clash Chrome Art Set, 2026-07-13
+
+Six GPT-Image-2 pieces wired as progressive CSS backgrounds (7 of the 10
+generation budget spent, 3 reserved). gpt-image-2 rejects transparent
+backgrounds, so every piece is an opaque edge-to-edge face shaped by CSS
+radius clipping. With zero art present the U3 CSS placeholder skin is the
+floor; sprites.js applyUiChromeVars exposes loaded art as root custom
+properties plus a has-chrome-art class.
+
+| Artifact | Active path | Use |
+| --- | --- | --- |
+| Gold button face | `assets/ui/btn-gold-v1.png` | .ui-btn.gold background layer |
+| Blue button face | `assets/ui/btn-blue-v1.png` | .wavebtn background layer |
+| Framed parchment panel | `assets/ui/panel-parchment-v1.png` | .sheet face when art live |
+| Ribbon header | `assets/ui/ribbon-header-v1.png` | .sheet-title strip when art live |
+| Victory banner | `assets/ui/banner-victory-v1.png` | .end-screen.victory backdrop |
+| Defeat banner | `assets/ui/banner-defeat-v1.png` | .end-screen.defeat backdrop |
+
+- One parchment retry consumed budget: the first attempt rendered an
+  unwanted center medallion and was regenerated with a hardened prompt.
+- Browser composition verified at 390x844 and 1440x900: tutorial intro
+  card, pill counters, beveled buttons, sheet faces, and step chips all
+  render with art layered over the placeholder skin, no console errors.
+
+## Tutorial and Random Crystal Evidence, 2026-07-13
+
+- Level 1 first-run tutorial: intro card (uiState tutorial, lockSurface,
+  pause-on-modal) then four non-modal chips with aria-live polite; skip is
+  always visible; victory or defeat force-ends; persisted via
+  mazecore_tutorial_l1_done_v1. node test/t20-tutorial.mjs: TUTORIAL_QC_OK
+  (30 checks). Live check: building a wall advanced step 1, placing towers
+  advanced to the start-the-wave step, resume prompt correctly outranks
+  the tutorial when a campaign save exists.
+- Seeded-random crystal: goalZone rows 10-13 on l1, columns inset to
+  [2, cols-3], dedicated hashed rng stream, 14 cell route floor, authored
+  fallback after 40 rejected candidates. node test/t20-crystal-placement.mjs:
+  CRYSTAL_PLACEMENT_QC_OK (10 distinct centers across seeds 1..50; seed
+  round trip reproduces placement). Two live boots produced crystals at
+  (7,11) and (8,10).
+- Balance judgment (U7): CAMPAIGN_OK, CARELESS_OK, NOUPGRADE_OK,
+  VALIDATE_OK, zero guard trips, no tuning required. The 14 cell route
+  floor is the load-bearing guarantee that no seed can produce a trivially
+  short Level 1 route.

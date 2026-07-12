@@ -4,12 +4,16 @@
 
 - Worktree: `D:\Claude\mazecore-td`
 - Branch: `handoff/grid-art-pipeline-20260711`
-- Latest pushed commit: `74a6dec feat(assets): complete production art pipeline`
-- Remote: `origin/handoff/grid-art-pipeline-20260711`
-- Local open-field work is intentionally uncommitted: approved floor/portal
-  promotion, Level 1 prop data, objective pulses, and the map proof. Preserve
-  it together with the pre-existing untracked `serve.err`; do not stage,
-  remove, or modify `serve.err`.
+- The 2026-07-13 batch (plan `docs/plans/2026-07-12-003-feat-clash-ui-and-2x2-polish-plan.md`)
+  is committed as one commit per unit: U1 wall-2 asset, U3 Clash CSS skin,
+  U6 seeded-random crystal, U2 wall sprite rendering, U5 Level 1 tutorial,
+  U4 generated chrome art, plus this U8 evidence commit.
+- ALL balance gates pass as of this batch: plain campaign-sim, --careless,
+  --noupgrade, and t10validate (the pre-2x2 "deferred balance failure" was
+  resolved by the 2x2 economy rebalance and stays green with the random
+  crystal).
+- The only intentionally untracked file is `serve.err`; do not stage,
+  remove, or modify it.
 - Never touch `D:\Claude\pusoy-now` or its untracked files.
 
 ## Non-Negotiable Rules
@@ -26,8 +30,9 @@
 6. Treat an approval as a checkpoint, not a stop signal. Continue the next
    non-approval task automatically and provide proactive checkpoint updates.
 7. Preserve all source, generated, staging, and rejection evidence.
-8. `campaign-sim.mjs` is a real, deferred balance failure. Never weaken,
-   remove, hide, skip, or modify that gate during asset work.
+8. `campaign-sim.mjs` is the balance gate and it currently PASSES. Never
+   weaken, remove, hide, skip, or modify it; if balance drifts, tune level,
+   wave, or config data instead.
 
 ## Completed Runtime Art
 
