@@ -4,116 +4,119 @@
 
 - Worktree: `D:\Claude\mazecore-td`
 - Branch: `handoff/grid-art-pipeline-20260711`
-- Do not touch the separate Pusoy Now checkout or its untracked files.
-- Preserve the dirty worktree and all staging/rejection evidence. Never reset or
-  discard existing changes.
+- Latest pushed commit: `74a6dec feat(assets): complete production art pipeline`
+- Remote: `origin/handoff/grid-art-pipeline-20260711`
+- The only remaining local item is untracked `serve.err`; preserve it and do
+  not stage, remove, or modify it.
+- Never touch `D:\Claude\pusoy-now` or its untracked files.
 
 ## Non-Negotiable Rules
 
-1. Runtime Level 1 is modular: atomic floor/pad/objective/tower assets only;
-   never flatten a board into one image.
-2. Strict orthographic top-down art only. No diagonal, isometric, or 3/4
-   foundations, walls, pads, props, shadows, or battlefield effects.
-3. Footprints: walls 1x1; all non-wall towers 2x2; portal 3x3; crystal 3x4.
-4. Non-wall tower assets must fill their exact 128x128 source rectangle so
-   adjacent 2x2 towers meet flush; renderer draws the occupied rectangle with
-   no inset.
-5. Do not promote art without explicit approval, source alpha/dimension QC,
-   focused tests, and map-scale composition proof.
-6. Continue autonomously between approval checkpoints. Batch future L1 design
-   options for review; after approval, generate L2-L5 in one family request.
-7. Give proactive updates: generated asset, acceptance decision, QC evidence,
-   composition result, next action.
-8. `campaign-sim.mjs` is a known real balance failure. Keep its gate intact;
-   do not weaken, remove, or hide it.
+1. Keep Level 1 modular: tiles, pads, objectives, props, and sprites are
+   atomic assets. Never flatten a board into a runtime bitmap.
+2. All battlefield art is strict orthographic top-down and square to the grid.
+   No diagonal, isometric, 3/4 foundations, props, effects, or shadows.
+3. Footprints: wall 1x1; non-wall tower 2x2; portal 3x3; crystal 3x4.
+4. Non-wall tower assets occupy the exact 128x128 source rectangle and render
+   flush with adjacent 2x2 towers.
+5. Never promote new art without explicit approval, alpha/dimension QC,
+   focused tests, and map-scale proof.
+6. Treat an approval as a checkpoint, not a stop signal. Continue the next
+   non-approval task automatically and provide proactive checkpoint updates.
+7. Preserve all source, generated, staging, and rejection evidence.
+8. `campaign-sim.mjs` is a real, deferred balance failure. Never weaken,
+   remove, hide, skip, or modify that gate during asset work.
 
-## Implemented And Active
+## Completed Runtime Art
 
-### Map kit
+### Map and towers
 
-- Modular Level 1 map, runtime tiles, contained 3x3 portal and 3x4 crystal,
-  and 1x1 red-brick wall are active and QC'd.
-- Key contracts: `src/game/state.js`, `src/game/levels.js`,
-  `src/ui/render.js`, `tools/gen-assets.mjs`, `tools/asset-qc.mjs`.
+- Modular Level 1 map kit, portal, crystal, wall, and 2x2 tower system are
+  active.
+- Arrow, Cannon, Frost, Poison, Sniper, Lightning, Support, and Gold Mine
+  static families are active.
+- Approved runtime loops: Arrow, Frost, Poison, Sniper, Lightning, Support
+  aura, and Gold Mine income.
+- Cannon intentionally remains renderer-owned glow/shake/smoke; do not replace
+  it with image attack art without fresh user approval.
 
-### Approved runtime tower art
+### Enemies
 
-| Family | Active static tiers | Active animation |
-| --- | --- | --- |
-| Arrow | L1-L5 `v2` | attack atlas `v2` |
-| Cannon | L1-L5 (`v2`, with L2/L4 `v3`) | renderer-owned glow/shake/smoke; no image atlas approved |
-| Frost | L1-L5 `v2` | none yet |
-| Poison | L1-L5 `v3` | attack atlas `v3` |
-| Sniper | L1-L5 `v4` | attack atlas `v3` |
-| Lightning | L1-L5 `v2` | none yet |
+- Grunt (`normal`), Runner (`fast`), Brute (`tank`), Spawnling (`swarm`),
+  Wisp (`flyer`), Mender (`healer`), Warden (`shield`), and Boss all now have
+  versioned runtime static, walk/hover, and defeat paths.
+- The renderer selects named enemy state sheets with static fallback.
+- Defeat frames render from a cosmetic queue and do not delay death, bounty,
+  pathing, or wave cleanup.
+- Flying enemies have no ground shadow; Wisp uses hover art.
 
-Sniper static tier rotation was user-directed: prior L2 -> L1, L3 -> L2,
-L4 -> L3, L5 -> L4, and larger prior L1 -> L5.
+## Evidence Status
 
-### Approved staging art not yet promoted
+Already complete:
 
-- Support L1 design direction: gold beacon, teal crystal/aura, cardinal pylons.
-- Support L2-L5 source batch generated and approved; normalized staging L2-L5
-  exists, but L1 must be normalized, map-proven, then family promoted.
-- Gold Mine L1 design direction: timber mine, ore hopper, metal braces.
-- Gold Mine L2-L5 source batch generated and approved; normalized staging
-  L2-L5 exists, but L1 must be normalized, map-proven, then family promoted.
-- Lightning attack-sheet source was generated and user-approved, but it is not
-  yet normalized, QC'd, or promoted. Raw source:
-  `C:\Users\danom\.codex\generated_images\019f4f23-ea59-78d3-be75-a36fc5cbab16\exec-1fb61b31-6cb6-47e9-a9dd-0a2cf7f7b7a4.png`.
+- `node tools/asset-qc.mjs --all` -> `ASSET_QC_OK`
+- `node test/t19-production-assets.mjs` -> `PRODUCTION_ASSETS_OK` through the
+  Wisp entries checked at the latest full-suite run.
+- `node test/t12render.mjs` -> `RENDER_OK`
+- `node test/t12mechanics.mjs` -> `MECHANICS_OK`
+- `node test/t14asset-files.mjs` -> `ASSET_FILES_OK`
+- `git diff --check` passed before commit.
+- Full `npm test` passed 38/39 suites; only plain `campaign-sim.mjs` failed.
+  `campaign-sim.mjs --careless` and `--noupgrade` passed.
 
-### Required remaining tower work
+Follow-up evidence work completed 2026-07-12:
 
-1. Normalize, frame-QC, and promote approved Lightning attack atlas.
-2. Generate Frost attack atlas; obtain approval; normalize/QC/promote.
-3. Generate Cannon attack candidate only if needed. User previously approved
-   renderer-owned glow/shake/smoke over an unapproved replacement image, so do
-   not replace Cannon static art without fresh approval.
-4. Normalize Support/Gold Mine L1 from the approved combined board, build
-   family/map proofs, promote static L1-L5, then generate and approve their
-   aura/income loops.
+1. `test/t19-mender-staging.mjs`, `test/t19-warden-staging.mjs`, and
+   `test/t19-boss-staging.mjs` added and registered in `test/run.mjs`; all
+   pass. Map-scale proofs generated for all three families under
+   `assets/staging/enemy-family/<family>/<family>-map-proof-v1.png`.
+2. `test/t19-production-assets.mjs` now asserts Mender/Warden (32x32 logical)
+   and Boss (64x64 logical) static + walk + defeat contracts.
+   `tools/gen-assets.mjs` declares dedicated `BOSS_ENEMY_META` /
+   `BOSS_SHEET_META` (64x64 logical) instead of the standard 32px metadata,
+   and now derives every manifest `version` from the promoted file's `-vN`
+   suffix so a manifest regeneration can never roll versions back.
+3. Browser composition checks passed at `390x844` and `1440x900` with the
+   full 8-type roster: Wisp hovers with no ground shadow, Brute/Boss scale
+   reads correctly, Boss name + HP bar render, and a live defeat check
+   confirmed lethal damage removes the enemy logically the same tick while
+   the cosmetic defeat queue animates it (no delayed cleanup).
+4. `docs/art/asset-qc-report.md` extended with Spawnling, Wisp, Mender,
+   Warden, and Boss sections.
 
-## Remaining Pipeline
+Known runtime observation (pre-existing at the checkpoint, NOT changed): the
+browser console logs `dropped misaligned sheet` for all seven promoted tower
+action/aura/income atlases. `sliceSheet` in `src/ui/sprites.js` rejects
+full-bleed frames, while the tower-sheet QC contract requires exactly
+full-edge frames — so those loops currently fall back to procedural motion at
+runtime. Resolving this needs a decision (relax the slicer for tower sheets vs
+re-cutting the sheets) and fresh approval; do not silently change either side.
 
-1. Finish all approved tower animations and Support/Gold Mine promotion.
-2. Produce enemy families: static fallback, four-frame locomotion (hover for
-   Wisp), and four-frame defeat cycle. Extend renderer state selection only
-   after each approved sheet passes source QC and map proof.
-3. Run mobile and desktop browser composition checks for each promoted family.
-4. Run full `npm test`; retain and report the campaign-sim failure until real
-   2x2-aware balance/level repair is performed.
-5. Review and commit intentional changes only after pipeline evidence is
-   complete. Preserve untracked `serve.err`.
-
-## Verification State
-
-Most recent focused checks after Lightning static promotion:
+## Required Final Gate
 
 ```text
-node tools/asset-qc.mjs --all       ASSET_QC_OK
-node test/t19-production-assets.mjs PRODUCTION_ASSETS_OK
-node test/t12render.mjs             RENDER_OK
-node test/t12mechanics.mjs          MECHANICS_OK
-git diff --check                    passed
+node tools/asset-qc.mjs --all
+node test/t19-production-assets.mjs
+node test/t19-<family>-staging.mjs
+node test/t12render.mjs
+node test/t12mechanics.mjs
+node test/t14asset-files.mjs
+npm test
+git diff --check
 ```
 
-Focused approved-family tests currently include:
+Report the known plain `campaign-sim.mjs` failure separately; do not "fix" it
+as part of this asset branch.
 
-- `test/t19-arrow-staging.mjs`
-- `test/t19-poison-staging.mjs`
-- `test/t19-sniper-staging.mjs`
+## Key Files
 
-## Reference Documents
-
+- `assets/manifest.json`
+- `tools/gen-assets.mjs`
+- `tools/asset-qc.mjs`
+- `src/ui/sprites.js`
+- `src/ui/render.js`
+- `src/game/enemy.js`
+- `src/game/state.js`
+- `docs/art/asset-qc-report.md`
 - `docs/plans/2026-07-11-001-production-asset-pipeline-plan.md`
 - `docs/plans/2026-07-12-002-remaining-production-asset-pipeline-plan.md`
-- `docs/art/asset-qc-report.md`
-
-## Operational Notes
-
-- Use `apply_patch` for source/doc/test edits.
-- Generated sources may contain preview checkerboards; crop the measured
-  foundation and normalize before staging. Runtime paths must never reference
-  `assets/staging/`.
-- `tmux.exe` is available but sessions terminate after their command completes;
-  capture logs immediately if background validation is used.

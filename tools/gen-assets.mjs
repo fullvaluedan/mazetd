@@ -130,6 +130,10 @@ const ENEMY_META = { version: 1, kind: 'sprite', logical: [32, 32], pivot: [0.5,
 const SHEET_META = { version: 1, kind: 'sheet', logical: [32, 32], pivot: [0.5, 0.62], scaleMode: 'contain' };
 const BRUTE_ENEMY_META = { version: 2, kind: 'sprite', logical: [48, 48], pivot: [0.5, 0.62], scaleMode: 'contain' };
 const BRUTE_SHEET_META = { version: 2, kind: 'sheet', logical: [48, 48], pivot: [0.5, 0.62], scaleMode: 'contain' };
+// Boss sources are 128px static / 256px sheets, so its logical contract is
+// 64x64 — never the standard 32px enemy metadata.
+const BOSS_ENEMY_META = { version: 2, kind: 'sprite', logical: [64, 64], pivot: [0.5, 0.62], scaleMode: 'contain' };
+const BOSS_SHEET_META = { version: 2, kind: 'sheet', logical: [64, 64], pivot: [0.5, 0.62], scaleMode: 'contain' };
 const TOWER_2X2_SHEET_META = { version: 2, kind: 'sheet', logical: [64, 64], footprint: [2, 2], pivot: [0.5, 0.5], scaleMode: 'contain' };
 const TILE_META = { version: 1, kind: 'tile', logical: [32, 32], footprint: [1, 1], pivot: [0.5, 0.5], scaleMode: 'tile' };
 const PORTAL_META = { version: 1, kind: 'sprite', logical: [96, 96], footprint: [3, 3], pivot: [0.5, 0.5], scaleMode: 'contain' };
@@ -270,13 +274,13 @@ export function buildManifest() {
   }
   for (const [id, e] of Object.entries(CONFIG.ENEMIES)) {
     items.push({ id: `enemy-${id}`, out: ['normal', 'fast', 'tank', 'swarm', 'flyer', 'healer', 'shield', 'boss'].includes(id) ? `enemies/${id}-v2.png` : `enemies/${id}.png`, size: '1024x1024',
-      meta: id === 'tank' ? BRUTE_ENEMY_META : id === 'swarm' ? { ...ENEMY_META, logical: [24, 24] } : ENEMY_META,
+      meta: id === 'tank' ? BRUTE_ENEMY_META : id === 'swarm' ? { ...ENEMY_META, logical: [24, 24] } : id === 'boss' ? BOSS_ENEMY_META : ENEMY_META,
       prompt: `Game sprite of a "${e.name}" enemy for a tower-defense game: ${ENEMY_HINT[id] || 'a creature'}. Primary colour ${e.color}. ${STYLE}` });
     if (['normal', 'fast', 'tank', 'swarm', 'flyer', 'healer', 'shield', 'boss'].includes(id)) {
       for (const state of ['walk', 'defeat']) items.push({
         id: `sheet-enemy-${id}-${state}`,
         out: `sheets/enemy-${id}-${state}-v2.png`, size: '1024x1024',
-        meta: id === 'tank' ? BRUTE_SHEET_META : id === 'swarm' ? { ...SHEET_META, logical: [24, 24] } : SHEET_META, frames: 4, grid: [2, 2],
+        meta: id === 'tank' ? BRUTE_SHEET_META : id === 'swarm' ? { ...SHEET_META, logical: [24, 24] } : id === 'boss' ? BOSS_SHEET_META : SHEET_META, frames: 4, grid: [2, 2],
         prompt: sheetPrompt(`the ${e.name} enemy ${state} cycle`),
       });
     }
@@ -310,7 +314,12 @@ export function buildManifest() {
     prompt: 'TALL vertical world map for a cheerful anime tower-defense game: a winding dirt trail climbing from sunny meadows at the bottom through forest, river crossings and rocky foothills to a snowy demon castle peak at the top, bright cel-shaded colors, gentle top-down angle, the trail clearly visible weaving left and right up the whole image, no text, no icons, no UI, no characters.' });
   items.push({ id: 'misc-title', out: 'misc/title.png', size: '1536x1024', transparent: false,
     prompt: 'Wide key art for a colorful anime tower-defense game: a cheerful fantasy valley with a winding stone maze path, one cute crystal tower at its heart, playful monster silhouettes marching in from the far left, rolling green hills and a bright warm sky, clean modern anime style with simple cel shading, calm uncluttered sky at the top center reserved for a logo, no text, no letters, no UI, no watermark.' });
-  return items;
+  // The manifest `version` must always mirror a promoted file's -vN suffix so
+  // regenerating the manifest never rolls an approved asset's version back.
+  return items.map((it) => {
+    const versioned = it.meta && /-v(\d+)\.png$/.exec(it.out);
+    return versioned ? { ...it, meta: { ...it.meta, version: Number(versioned[1]) } } : it;
+  });
 }
 
 // --- request shaping (handles gpt-image-1 and the dall-e-3 fallback) ---------

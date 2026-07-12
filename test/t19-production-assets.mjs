@@ -93,6 +93,15 @@ expectEnemy('sheet-enemy-swarm-defeat', 'sheet', [24, 24]);
 expectEnemy('enemy-flyer', 'sprite', [32, 32]);
 expectEnemy('sheet-enemy-flyer-walk', 'sheet', [32, 32]);
 expectEnemy('sheet-enemy-flyer-defeat', 'sheet', [32, 32]);
+expectEnemy('enemy-healer', 'sprite', [32, 32]);
+expectEnemy('sheet-enemy-healer-walk', 'sheet', [32, 32]);
+expectEnemy('sheet-enemy-healer-defeat', 'sheet', [32, 32]);
+expectEnemy('enemy-shield', 'sprite', [32, 32]);
+expectEnemy('sheet-enemy-shield-walk', 'sheet', [32, 32]);
+expectEnemy('sheet-enemy-shield-defeat', 'sheet', [32, 32]);
+expectEnemy('enemy-boss', 'sprite', [64, 64]);
+expectEnemy('sheet-enemy-boss-walk', 'sheet', [64, 64]);
+expectEnemy('sheet-enemy-boss-defeat', 'sheet', [64, 64]);
 
 console.log(fails === 0 ? 'PRODUCTION_ASSETS_OK' : `PRODUCTION_ASSETS_FAIL (${fails})`);
 if (fails) process.exitCode = 1;

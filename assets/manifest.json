@@ -403,7 +403,10 @@
       64,
       64
     ],
-    "footprint": [2, 2],
+    "footprint": [
+      2,
+      2
+    ],
     "pivot": [
       0.5,
       0.5
@@ -418,7 +421,10 @@
       64,
       64
     ],
-    "footprint": [2, 2],
+    "footprint": [
+      2,
+      2
+    ],
     "pivot": [
       0.5,
       0.5
@@ -433,7 +439,10 @@
       64,
       64
     ],
-    "footprint": [2, 2],
+    "footprint": [
+      2,
+      2
+    ],
     "pivot": [
       0.5,
       0.5
@@ -448,7 +457,10 @@
       64,
       64
     ],
-    "footprint": [2, 2],
+    "footprint": [
+      2,
+      2
+    ],
     "pivot": [
       0.5,
       0.5
@@ -467,6 +479,10 @@
     "logical": [
       64,
       64
+    ],
+    "footprint": [
+      2,
+      2
     ],
     "pivot": [
       0.5,
@@ -496,7 +512,10 @@
       64,
       64
     ],
-    "footprint": [2, 2],
+    "footprint": [
+      2,
+      2
+    ],
     "pivot": [
       0.5,
       0.5
@@ -511,7 +530,10 @@
       64,
       64
     ],
-    "footprint": [2, 2],
+    "footprint": [
+      2,
+      2
+    ],
     "pivot": [
       0.5,
       0.5
@@ -526,7 +548,10 @@
       64,
       64
     ],
-    "footprint": [2, 2],
+    "footprint": [
+      2,
+      2
+    ],
     "pivot": [
       0.5,
       0.5
@@ -541,7 +566,10 @@
       64,
       64
     ],
-    "footprint": [2, 2],
+    "footprint": [
+      2,
+      2
+    ],
     "pivot": [
       0.5,
       0.5
@@ -556,7 +584,10 @@
       64,
       64
     ],
-    "footprint": [2, 2],
+    "footprint": [
+      2,
+      2
+    ],
     "pivot": [
       0.5,
       0.5
@@ -576,7 +607,10 @@
       64,
       64
     ],
-    "footprint": [2, 2],
+    "footprint": [
+      2,
+      2
+    ],
     "pivot": [
       0.5,
       0.5
@@ -605,7 +639,10 @@
       64,
       64
     ],
-    "footprint": [2, 2],
+    "footprint": [
+      2,
+      2
+    ],
     "pivot": [
       0.5,
       0.5
@@ -620,7 +657,10 @@
       64,
       64
     ],
-    "footprint": [2, 2],
+    "footprint": [
+      2,
+      2
+    ],
     "pivot": [
       0.5,
       0.5
@@ -635,7 +675,10 @@
       64,
       64
     ],
-    "footprint": [2, 2],
+    "footprint": [
+      2,
+      2
+    ],
     "pivot": [
       0.5,
       0.5
@@ -650,7 +693,10 @@
       64,
       64
     ],
-    "footprint": [2, 2],
+    "footprint": [
+      2,
+      2
+    ],
     "pivot": [
       0.5,
       0.5
@@ -665,7 +711,10 @@
       64,
       64
     ],
-    "footprint": [2, 2],
+    "footprint": [
+      2,
+      2
+    ],
     "pivot": [
       0.5,
       0.5
@@ -685,7 +734,10 @@
       64,
       64
     ],
-    "footprint": [2, 2],
+    "footprint": [
+      2,
+      2
+    ],
     "pivot": [
       0.5,
       0.5
@@ -714,7 +766,10 @@
       64,
       64
     ],
-    "footprint": [2, 2],
+    "footprint": [
+      2,
+      2
+    ],
     "pivot": [
       0.5,
       0.5
@@ -729,7 +784,10 @@
       64,
       64
     ],
-    "footprint": [2, 2],
+    "footprint": [
+      2,
+      2
+    ],
     "pivot": [
       0.5,
       0.5
@@ -744,7 +802,10 @@
       64,
       64
     ],
-    "footprint": [2, 2],
+    "footprint": [
+      2,
+      2
+    ],
     "pivot": [
       0.5,
       0.5
@@ -759,7 +820,10 @@
       64,
       64
     ],
-    "footprint": [2, 2],
+    "footprint": [
+      2,
+      2
+    ],
     "pivot": [
       0.5,
       0.5
@@ -774,7 +838,10 @@
       64,
       64
     ],
-    "footprint": [2, 2],
+    "footprint": [
+      2,
+      2
+    ],
     "pivot": [
       0.5,
       0.5
@@ -1058,20 +1125,6 @@
     ],
     "scaleMode": "contain"
   },
-  "tower-gold": {
-    "src": "assets/towers/gold.png",
-    "version": 1,
-    "kind": "sprite",
-    "logical": [
-      32,
-      32
-    ],
-    "pivot": [
-      0.5,
-      0.56
-    ],
-    "scaleMode": "contain"
-  },
   "tower-magic": {
     "src": "assets/towers/magic.png",
     "version": 1,
@@ -1212,10 +1265,86 @@
     ],
     "scaleMode": "contain"
   },
+  "sheet-enemy-normal-walk": {
+    "src": "assets/sheets/enemy-normal-walk-v2.png",
+    "frames": 4,
+    "grid": [
+      2,
+      2
+    ],
+    "version": 2,
+    "kind": "sheet",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.62
+    ],
+    "scaleMode": "contain"
+  },
+  "sheet-enemy-normal-defeat": {
+    "src": "assets/sheets/enemy-normal-defeat-v2.png",
+    "frames": 4,
+    "grid": [
+      2,
+      2
+    ],
+    "version": 2,
+    "kind": "sheet",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.62
+    ],
+    "scaleMode": "contain"
+  },
   "enemy-fast": {
     "src": "assets/enemies/fast-v2.png",
     "version": 2,
     "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.62
+    ],
+    "scaleMode": "contain"
+  },
+  "sheet-enemy-fast-walk": {
+    "src": "assets/sheets/enemy-fast-walk-v2.png",
+    "frames": 4,
+    "grid": [
+      2,
+      2
+    ],
+    "version": 2,
+    "kind": "sheet",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.62
+    ],
+    "scaleMode": "contain"
+  },
+  "sheet-enemy-fast-defeat": {
+    "src": "assets/sheets/enemy-fast-defeat-v2.png",
+    "frames": 4,
+    "grid": [
+      2,
+      2
+    ],
+    "version": 2,
+    "kind": "sheet",
     "logical": [
       32,
       32
@@ -1240,10 +1369,86 @@
     ],
     "scaleMode": "contain"
   },
+  "sheet-enemy-tank-walk": {
+    "src": "assets/sheets/enemy-tank-walk-v2.png",
+    "frames": 4,
+    "grid": [
+      2,
+      2
+    ],
+    "version": 2,
+    "kind": "sheet",
+    "logical": [
+      48,
+      48
+    ],
+    "pivot": [
+      0.5,
+      0.62
+    ],
+    "scaleMode": "contain"
+  },
+  "sheet-enemy-tank-defeat": {
+    "src": "assets/sheets/enemy-tank-defeat-v2.png",
+    "frames": 4,
+    "grid": [
+      2,
+      2
+    ],
+    "version": 2,
+    "kind": "sheet",
+    "logical": [
+      48,
+      48
+    ],
+    "pivot": [
+      0.5,
+      0.62
+    ],
+    "scaleMode": "contain"
+  },
   "enemy-swarm": {
     "src": "assets/enemies/swarm-v2.png",
     "version": 2,
     "kind": "sprite",
+    "logical": [
+      24,
+      24
+    ],
+    "pivot": [
+      0.5,
+      0.62
+    ],
+    "scaleMode": "contain"
+  },
+  "sheet-enemy-swarm-walk": {
+    "src": "assets/sheets/enemy-swarm-walk-v2.png",
+    "frames": 4,
+    "grid": [
+      2,
+      2
+    ],
+    "version": 2,
+    "kind": "sheet",
+    "logical": [
+      24,
+      24
+    ],
+    "pivot": [
+      0.5,
+      0.62
+    ],
+    "scaleMode": "contain"
+  },
+  "sheet-enemy-swarm-defeat": {
+    "src": "assets/sheets/enemy-swarm-defeat-v2.png",
+    "frames": 4,
+    "grid": [
+      2,
+      2
+    ],
+    "version": 2,
+    "kind": "sheet",
     "logical": [
       24,
       24
@@ -1268,10 +1473,86 @@
     ],
     "scaleMode": "contain"
   },
+  "sheet-enemy-flyer-walk": {
+    "src": "assets/sheets/enemy-flyer-walk-v2.png",
+    "frames": 4,
+    "grid": [
+      2,
+      2
+    ],
+    "version": 2,
+    "kind": "sheet",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.62
+    ],
+    "scaleMode": "contain"
+  },
+  "sheet-enemy-flyer-defeat": {
+    "src": "assets/sheets/enemy-flyer-defeat-v2.png",
+    "frames": 4,
+    "grid": [
+      2,
+      2
+    ],
+    "version": 2,
+    "kind": "sheet",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.62
+    ],
+    "scaleMode": "contain"
+  },
   "enemy-healer": {
     "src": "assets/enemies/healer-v2.png",
     "version": 2,
     "kind": "sprite",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.62
+    ],
+    "scaleMode": "contain"
+  },
+  "sheet-enemy-healer-walk": {
+    "src": "assets/sheets/enemy-healer-walk-v2.png",
+    "frames": 4,
+    "grid": [
+      2,
+      2
+    ],
+    "version": 2,
+    "kind": "sheet",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.62
+    ],
+    "scaleMode": "contain"
+  },
+  "sheet-enemy-healer-defeat": {
+    "src": "assets/sheets/enemy-healer-defeat-v2.png",
+    "frames": 4,
+    "grid": [
+      2,
+      2
+    ],
+    "version": 2,
+    "kind": "sheet",
     "logical": [
       32,
       32
@@ -1296,13 +1577,89 @@
     ],
     "scaleMode": "contain"
   },
+  "sheet-enemy-shield-walk": {
+    "src": "assets/sheets/enemy-shield-walk-v2.png",
+    "frames": 4,
+    "grid": [
+      2,
+      2
+    ],
+    "version": 2,
+    "kind": "sheet",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.62
+    ],
+    "scaleMode": "contain"
+  },
+  "sheet-enemy-shield-defeat": {
+    "src": "assets/sheets/enemy-shield-defeat-v2.png",
+    "frames": 4,
+    "grid": [
+      2,
+      2
+    ],
+    "version": 2,
+    "kind": "sheet",
+    "logical": [
+      32,
+      32
+    ],
+    "pivot": [
+      0.5,
+      0.62
+    ],
+    "scaleMode": "contain"
+  },
   "enemy-boss": {
     "src": "assets/enemies/boss-v2.png",
     "version": 2,
     "kind": "sprite",
     "logical": [
-      32,
-      32
+      64,
+      64
+    ],
+    "pivot": [
+      0.5,
+      0.62
+    ],
+    "scaleMode": "contain"
+  },
+  "sheet-enemy-boss-walk": {
+    "src": "assets/sheets/enemy-boss-walk-v2.png",
+    "frames": 4,
+    "grid": [
+      2,
+      2
+    ],
+    "version": 2,
+    "kind": "sheet",
+    "logical": [
+      64,
+      64
+    ],
+    "pivot": [
+      0.5,
+      0.62
+    ],
+    "scaleMode": "contain"
+  },
+  "sheet-enemy-boss-defeat": {
+    "src": "assets/sheets/enemy-boss-defeat-v2.png",
+    "frames": 4,
+    "grid": [
+      2,
+      2
+    ],
+    "version": 2,
+    "kind": "sheet",
+    "logical": [
+      64,
+      64
     ],
     "pivot": [
       0.5,
@@ -1332,26 +1689,6 @@
     ],
     "scaleMode": "contain"
   },
-  "sheet-enemy-normal-walk": {
-    "src": "assets/sheets/enemy-normal-walk-v2.png",
-    "frames": 4,
-    "grid": [2, 2],
-    "version": 2,
-    "kind": "sheet",
-    "logical": [32, 32],
-    "pivot": [0.5, 0.62],
-    "scaleMode": "contain"
-  },
-  "sheet-enemy-normal-defeat": {
-    "src": "assets/sheets/enemy-normal-defeat-v2.png",
-    "frames": 4,
-    "grid": [2, 2],
-    "version": 2,
-    "kind": "sheet",
-    "logical": [32, 32],
-    "pivot": [0.5, 0.62],
-    "scaleMode": "contain"
-  },
   "sheet-enemy-fast": {
     "src": "assets/sheets/enemy-fast.png",
     "frames": 4,
@@ -1369,26 +1706,6 @@
       0.5,
       0.62
     ],
-    "scaleMode": "contain"
-  },
-  "sheet-enemy-fast-walk": {
-    "src": "assets/sheets/enemy-fast-walk-v2.png",
-    "frames": 4,
-    "grid": [2, 2],
-    "version": 2,
-    "kind": "sheet",
-    "logical": [32, 32],
-    "pivot": [0.5, 0.62],
-    "scaleMode": "contain"
-  },
-  "sheet-enemy-fast-defeat": {
-    "src": "assets/sheets/enemy-fast-defeat-v2.png",
-    "frames": 4,
-    "grid": [2, 2],
-    "version": 2,
-    "kind": "sheet",
-    "logical": [32, 32],
-    "pivot": [0.5, 0.62],
     "scaleMode": "contain"
   },
   "sheet-enemy-tank": {
@@ -1410,26 +1727,6 @@
     ],
     "scaleMode": "contain"
   },
-  "sheet-enemy-tank-walk": {
-    "src": "assets/sheets/enemy-tank-walk-v2.png",
-    "frames": 4,
-    "grid": [2, 2],
-    "version": 2,
-    "kind": "sheet",
-    "logical": [48, 48],
-    "pivot": [0.5, 0.62],
-    "scaleMode": "contain"
-  },
-  "sheet-enemy-tank-defeat": {
-    "src": "assets/sheets/enemy-tank-defeat-v2.png",
-    "frames": 4,
-    "grid": [2, 2],
-    "version": 2,
-    "kind": "sheet",
-    "logical": [48, 48],
-    "pivot": [0.5, 0.62],
-    "scaleMode": "contain"
-  },
   "sheet-enemy-swarm": {
     "src": "assets/sheets/enemy-swarm.png",
     "frames": 4,
@@ -1449,12 +1746,6 @@
     ],
     "scaleMode": "contain"
   },
-  "sheet-enemy-swarm-walk": { "src": "assets/sheets/enemy-swarm-walk-v2.png", "frames": 4, "grid": [2, 2], "version": 2, "kind": "sheet", "logical": [24, 24], "pivot": [0.5, 0.62], "scaleMode": "contain" },
-  "sheet-enemy-swarm-defeat": { "src": "assets/sheets/enemy-swarm-defeat-v2.png", "frames": 4, "grid": [2, 2], "version": 2, "kind": "sheet", "logical": [24, 24], "pivot": [0.5, 0.62], "scaleMode": "contain" },
-  "sheet-enemy-flyer-walk": { "src": "assets/sheets/enemy-flyer-walk-v2.png", "frames": 4, "grid": [2, 2], "version": 2, "kind": "sheet", "logical": [32, 32], "pivot": [0.5, 0.62], "scaleMode": "contain" },
-  "sheet-enemy-flyer-defeat": { "src": "assets/sheets/enemy-flyer-defeat-v2.png", "frames": 4, "grid": [2, 2], "version": 2, "kind": "sheet", "logical": [32, 32], "pivot": [0.5, 0.62], "scaleMode": "contain" },
-  "sheet-enemy-healer-walk": { "src": "assets/sheets/enemy-healer-walk-v2.png", "frames": 4, "grid": [2, 2], "version": 2, "kind": "sheet", "logical": [32, 32], "pivot": [0.5, 0.62], "scaleMode": "contain" },
-  "sheet-enemy-healer-defeat": { "src": "assets/sheets/enemy-healer-defeat-v2.png", "frames": 4, "grid": [2, 2], "version": 2, "kind": "sheet", "logical": [32, 32], "pivot": [0.5, 0.62], "scaleMode": "contain" },
   "sheet-enemy-healer": {
     "src": "assets/sheets/enemy-healer.png",
     "frames": 4,
@@ -1493,8 +1784,6 @@
     ],
     "scaleMode": "contain"
   },
-  "sheet-enemy-shield-walk": { "src": "assets/sheets/enemy-shield-walk-v2.png", "frames": 4, "grid": [2, 2], "version": 2, "kind": "sheet", "logical": [32, 32], "pivot": [0.5, 0.62], "scaleMode": "contain" },
-  "sheet-enemy-shield-defeat": { "src": "assets/sheets/enemy-shield-defeat-v2.png", "frames": 4, "grid": [2, 2], "version": 2, "kind": "sheet", "logical": [32, 32], "pivot": [0.5, 0.62], "scaleMode": "contain" },
   "sheet-enemy-boss": {
     "src": "assets/sheets/enemy-boss.png",
     "frames": 4,
@@ -1514,8 +1803,6 @@
     ],
     "scaleMode": "contain"
   },
-  "sheet-enemy-boss-walk": { "src": "assets/sheets/enemy-boss-walk-v2.png", "frames": 4, "grid": [2, 2], "version": 2, "kind": "sheet", "logical": [64, 64], "pivot": [0.5, 0.62], "scaleMode": "contain" },
-  "sheet-enemy-boss-defeat": { "src": "assets/sheets/enemy-boss-defeat-v2.png", "frames": 4, "grid": [2, 2], "version": 2, "kind": "sheet", "logical": [64, 64], "pivot": [0.5, 0.62], "scaleMode": "contain" },
   "sheet-hero-warrior": {
     "src": "assets/sheets/hero-warrior.png",
     "frames": 4,

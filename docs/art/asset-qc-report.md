@@ -286,3 +286,113 @@ larger than standard enemies so its armored silhouette stays readable at scale.
 - `node tools/asset-qc.mjs --all`, `node test/t19-production-assets.mjs`,
   `node test/t12render.mjs`, `node test/t12mechanics.mjs`, and
   `git diff --check` pass after promotion.
+
+## Spawnling Enemy Family, 2026-07-12
+
+Spawnling is the small swarm hatchling family. Its sources stay intentionally
+smaller than standard enemies so a packed swarm remains readable.
+
+| Artifact | Active path | Pixel bounds | Result |
+| --- | --- | --- | --- |
+| Static fallback | `assets/enemies/swarm-v2.png` | 48x48 | RGBA, safe transparent padding |
+| Walk atlas | `assets/sheets/enemy-swarm-walk-v2.png` | 96x96, 2x2 frames | four distinct 48x48 frames with safe padding |
+| Defeat atlas | `assets/sheets/enemy-swarm-defeat-v2.png` | 96x96, 2x2 frames | four distinct 48x48 frames with safe padding |
+| Map-scale proof | `assets/staging/enemy-family/spawnling/spawnling-map-proof-v1.png` | 768x1024 | placements on a strict 12x16 grid |
+
+## Spawnling Evidence
+
+- `node test/t19-spawnling-staging.mjs`: `SPAWNLING_STAGING_QC_OK`.
+- Spawnling declares a separate `24x24` logical/`48px` source contract in both
+  the generator and manifest.
+- `node tools/asset-qc.mjs --all` and `node test/t19-production-assets.mjs`
+  validate the promoted files against that contract.
+
+## Wisp Enemy Family, 2026-07-12
+
+Wisp is the flying family. It uses hover motion instead of a walk cycle, and
+the renderer draws no ground contact shadow for flying units — the sprite
+silhouette carries the read.
+
+| Artifact | Active path | Pixel bounds | Result |
+| --- | --- | --- | --- |
+| Static fallback | `assets/enemies/flyer-v2.png` | 64x64 | RGBA, safe transparent padding |
+| Hover atlas | `assets/sheets/enemy-flyer-walk-v2.png` | 128x128, 2x2 frames | four distinct 64x64 hover frames with safe padding |
+| Defeat atlas | `assets/sheets/enemy-flyer-defeat-v2.png` | 128x128, 2x2 frames | four distinct 64x64 frames with safe padding |
+| Map-scale proof | `assets/staging/enemy-family/wisp/wisp-map-proof-v1.png` | 768x1024 | two 64px placements on a strict 12x16 grid |
+
+## Wisp Evidence
+
+- `node test/t19-wisp-staging.mjs`: `WISP_STAGING_QC_OK`.
+- The renderer's flying branch adds a hover bob and skips the ground shadow
+  ellipse entirely (`src/ui/render.js` drawEnemies); verified in browser
+  composition checks at `390x844` and `1440x900`.
+- `node tools/asset-qc.mjs --all` and `node test/t19-production-assets.mjs`
+  validate the promoted files and their `32x32` logical metadata.
+
+## Mender Enemy Family, 2026-07-12
+
+Mender is the healer family: a green-robed acolyte with a warm lantern accent,
+strict overhead with no baked ground shadow.
+
+| Artifact | Active path | Pixel bounds | Result |
+| --- | --- | --- | --- |
+| Static fallback | `assets/enemies/healer-v2.png` | 64x64 | RGBA, safe transparent padding |
+| Walk atlas | `assets/sheets/enemy-healer-walk-v2.png` | 128x128, 2x2 frames | four distinct 64x64 frames with safe padding |
+| Defeat atlas | `assets/sheets/enemy-healer-defeat-v2.png` | 128x128, 2x2 frames | four distinct 64x64 frames with safe padding |
+| Map-scale proof | `assets/staging/enemy-family/mender/mender-map-proof-v1.png` | 768x1024 | two 64px placements on a strict 12x16 grid |
+
+## Mender Evidence
+
+- `node test/t19-mender-staging.mjs`: `MENDER_STAGING_QC_OK`.
+- Standard `32x32` logical/`64px` source enemy contract in generator and
+  manifest; the heal aura remains a renderer-owned pulse ring, not baked art.
+- `node tools/asset-qc.mjs --all` and `node test/t19-production-assets.mjs`
+  validate the promoted static, walk, and defeat files.
+
+## Warden Enemy Family, 2026-07-12
+
+Warden is the shield family: an armored knight inside a blue barrier orb,
+strict overhead with no baked ground shadow.
+
+| Artifact | Active path | Pixel bounds | Result |
+| --- | --- | --- | --- |
+| Static fallback | `assets/enemies/shield-v2.png` | 64x64 | RGBA, safe transparent padding |
+| Walk atlas | `assets/sheets/enemy-shield-walk-v2.png` | 128x128, 2x2 frames | four distinct 64x64 frames with safe padding |
+| Defeat atlas | `assets/sheets/enemy-shield-defeat-v2.png` | 128x128, 2x2 frames | four distinct 64x64 frames with safe padding |
+| Map-scale proof | `assets/staging/enemy-family/warden/warden-map-proof-v1.png` | 768x1024 | two 64px placements on a strict 12x16 grid |
+
+## Warden Evidence
+
+- `node test/t19-warden-staging.mjs`: `WARDEN_STAGING_QC_OK`.
+- Standard `32x32` logical/`64px` source enemy contract in generator and
+  manifest; the active shield ring remains renderer-owned so it can track
+  live shield hit points.
+- `node tools/asset-qc.mjs --all` and `node test/t19-production-assets.mjs`
+  validate the promoted static, walk, and defeat files.
+
+## Boss Enemy Family, 2026-07-12
+
+Boss is the horned demon-king family. Like Brute it declares its own large
+source contract so the silhouette dominates at map scale: `64x64` logical from
+a `128px` static source and `256px` state sheets with `128px` frames.
+
+| Artifact | Active path | Pixel bounds | Result |
+| --- | --- | --- | --- |
+| Static fallback | `assets/enemies/boss-v2.png` | 128x128 | RGBA, safe transparent padding |
+| Walk atlas | `assets/sheets/enemy-boss-walk-v2.png` | 256x256, 2x2 frames | four distinct 128x128 frames with safe padding |
+| Defeat atlas | `assets/sheets/enemy-boss-defeat-v2.png` | 256x256, 2x2 frames | four distinct 128x128 frames with safe padding |
+| Map-scale proof | `assets/staging/enemy-family/boss/boss-map-proof-v1.png` | 768x1024 | two 128px (2-cell) placements on a strict 12x16 grid |
+
+## Boss Evidence
+
+- `node test/t19-boss-staging.mjs`: `BOSS_STAGING_QC_OK`.
+- `tools/gen-assets.mjs` now declares dedicated `BOSS_ENEMY_META` and
+  `BOSS_SHEET_META` (`64x64` logical) instead of silently inheriting the
+  standard 32px enemy metadata, and the regenerated manifest carries the same
+  contract. `tools/asset-qc.mjs` checks the 128px static and 256px sheet
+  sources with 128px frame bounds.
+- Manifest `version` fields are now derived from each promoted file's `-vN`
+  suffix inside `buildManifest`, so regenerating the manifest can never roll
+  an approved asset's version back.
+- `node tools/asset-qc.mjs --all` and `node test/t19-production-assets.mjs`
+  (with new Mender, Warden, and Boss assertions) pass.
